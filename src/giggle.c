@@ -4,199 +4,10 @@
 
 #include "bpt.h"
 #include "giggle.h"
+#include "ll.h"
+#include "lists.h"
+#include "file_read.h"
 
-//{{{void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val)
-void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val)
-{
-    struct uint32_t_ll_node *n = (struct uint32_t_ll_node *)
-        malloc(sizeof(struct uint32_t_ll_node));
-    n->val = val;
-    n->next = NULL;
-
-    if (*ll == NULL) {
-        *ll = (struct uint32_t_ll *)malloc(sizeof(struct uint32_t_ll));
-        (*ll)->head = n;
-        (*ll)->len = 1;
-    } else {
-        (*ll)->tail->next = n;
-        (*ll)->len = (*ll)->len + 1;
-    }
-
-    (*ll)->tail = n;
-}
-//}}}
-
-//{{{void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val)
-void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val)
-{
-    struct uint32_t_ll_node *n = (struct uint32_t_ll_node *)
-        malloc(sizeof(struct uint32_t_ll_node));
-    n->val = val;
-    n->next = NULL;
-
-    if (*ll == NULL) {
-        *ll = (struct uint32_t_ll *)malloc(sizeof(struct uint32_t_ll));
-        (*ll)->head = n;
-        (*ll)->len = 1;
-    } else {
-
-        struct uint32_t_ll_node *curr = (*ll)->head;
-        while (curr != NULL) {
-            if (curr->val == val) {
-                free(n);
-                return;
-            }
-            curr = curr->next;
-        }
-
-        (*ll)->tail->next = n;
-        (*ll)->len = (*ll)->len + 1;
-    }
-
-    (*ll)->tail = n;
-}
-//}}}
-
-//{{{void uint32_t_ll_remove(struct uint32_t_ll **ll, uint32_t val)
-void uint32_t_ll_remove(struct uint32_t_ll **ll, uint32_t val)
-{
-    if (*ll != NULL) {
-        struct uint32_t_ll_node *tmp, *last, *curr = (*ll)->head;
-        while (curr != NULL) {
-            if (curr->val == val) {
-                if ((curr == (*ll)->head) && (curr == (*ll)->tail)) {
-                    free(curr);
-                    free(*ll);
-                    *ll = NULL;
-                    return;
-                } else if (curr == (*ll)->head) {
-                    tmp = curr->next;
-                    free(curr);
-                    (*ll)->head = tmp;
-                    curr = tmp;
-                    (*ll)->len = (*ll)->len - 1;
-                } else if (curr == (*ll)->tail) {
-                    free(curr);
-                    curr = NULL;
-                    (*ll)->tail = last;
-                    last->next = NULL;
-                    (*ll)->len = (*ll)->len - 1;
-                } else {
-                    tmp = curr;
-                    last->next = tmp->next;
-                    curr = tmp->next;
-                    free(tmp);
-                    (*ll)->len = (*ll)->len - 1;
-                }
-            } else {
-                last = curr;
-                curr = curr->next;
-            }
-        }
-    }
-}
-//}}}
-
-//{{{int uint32_t_ll_contains(struct uint32_t_ll *ll, uint32_t val)
-uint32_t uint32_t_ll_contains(struct uint32_t_ll *ll, uint32_t val)
-{
-    if (ll == NULL)
-       return 0; 
-
-    uint32_t r = 0;
-    
-    struct uint32_t_ll_node *curr = ll->head;
-    while (curr != NULL) {
-        if (curr->val == val)
-            r += 1;
-        curr = curr->next;
-    }
-
-    return r;
-}
-//}}}
-
-//{{{void uint32_t_ll_free(struct uint32_t_ll **ll)
-void uint32_t_ll_free(struct uint32_t_ll **ll)
-{
-    struct uint32_t_ll_node *curr, *tmp;
-
-    if (*ll != NULL) {
-        curr = (*ll)->head;
-        while (curr != NULL) {
-            tmp = curr->next;
-            free(curr);
-            curr = tmp;
-        }
-
-        free(*ll);
-        *ll = NULL;
-    }
-}
-//}}}
-
-//{{{void leading_repair(struct bpt_node *a, struct bpt_node *b)
-void leading_repair(struct bpt_node *a, struct bpt_node *b)
-{
-#if DEBUG
-    fprintf(stderr, "leading_repair\n");
-#endif
-
-    if ( (a->is_leaf == 1) && (b->is_leaf == 1) ) {
-        struct giggle_bpt_leading_data *d = 
-            (struct giggle_bpt_leading_data *)
-            malloc(sizeof(struct giggle_bpt_leading_data));
-
-        d->B = NULL;
-
-        if (a->leading != NULL) {
-            struct giggle_bpt_leading_data *l =  
-                    (struct giggle_bpt_leading_data *)a->leading;
-
-            struct uint32_t_ll_node *curr = l->B->head;
-
-            while (curr != NULL) {
-#if DEBUG
-                fprintf(stderr, "+ %u\n", curr->val);
-#endif
-                uint32_t_ll_uniq_append(&(d->B), curr->val);
-                curr = curr->next;
-            }
-        }
-
-        uint32_t i;
-        for (i = 0 ; i < a->num_keys; ++i) {
-            struct giggle_bpt_non_leading_data *nl = 
-                (struct giggle_bpt_non_leading_data *)a->pointers[i];
-
-            if (nl->SA != NULL) {
-                struct uint32_t_ll_node *curr = nl->SA->head;
-                while (curr != NULL) {
-                    uint32_t_ll_uniq_append(&(d->B), curr->val);
-#if DEBUG
-                    fprintf(stderr, "+ %u\n", curr->val);
-#endif
-                    curr = curr->next;
-                }
-            }
-
-            if (nl->SE != NULL) {
-                struct uint32_t_ll_node *curr = nl->SE->head;
-                while (curr != NULL) {
-                    uint32_t_ll_remove(&(d->B), curr->val);
-#if DEBUG
-                    fprintf(stderr, "- %u\n", curr->val);
-#endif
-                    curr = curr->next;
-                }
-            }
-        }
-
-        if (d->B != NULL)
-            b->leading = d;
-    }
-}
-//}}}
 
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
 uint32_t giggle_insert(struct bpt_node **root,
@@ -249,48 +60,38 @@ uint32_t giggle_insert(struct bpt_node **root,
 #if DEBUG
     fprintf(stderr, "%u %u\n", start, end);
 #endif
-    repair_func = leading_repair;
+
 
     struct bpt_node *start_leaf_r = NULL;
     int start_pos_r;
 
-    struct giggle_bpt_non_leading_data *start_r = 
-        (struct giggle_bpt_non_leading_data*)bpt_find(*root,
-                                                      &start_leaf_r,
-                                                      &start_pos_r,
-                                                      start);
-    if (start_r == NULL) {
-        struct giggle_bpt_non_leading_data *d = 
-            (struct giggle_bpt_non_leading_data *)
-            malloc(sizeof( struct giggle_bpt_non_leading_data));
-        d->SA = NULL;
-        d->SE = NULL;
+    void *start_r = bpt_find(*root,
+                             &start_leaf_r,
+                             &start_pos_r,
+                             start);
 
-        uint32_t_ll_uniq_append(&(d->SA), id);
+    if (start_r == NULL) {
+        void *d = new_non_leading();
+        non_leading_SA_add_scalar(d, &id);
         *root = bpt_insert(*root, start, d, &start_leaf_r, &start_pos_r);
     } else {
-        uint32_t_ll_uniq_append(&(start_r->SA), id);
+        non_leading_SA_add_scalar(start_r, &id);
     }
 
     struct bpt_node *end_leaf_r = NULL;
     int end_pos_r;
 
-    struct giggle_bpt_non_leading_data *end_r = 
-        (struct giggle_bpt_non_leading_data*)bpt_find(*root,
-                                                      &end_leaf_r,
-                                                      &end_pos_r,
-                                                      end + 1);
-    if (end_r == NULL) {
-        struct giggle_bpt_non_leading_data *d = 
-            (struct giggle_bpt_non_leading_data *)
-            malloc(sizeof( struct giggle_bpt_non_leading_data));
-        d->SA = NULL;
-        d->SE = NULL;
+    void *end_r = bpt_find(*root,
+                           &end_leaf_r,
+                           &end_pos_r,
+                           end + 1);
 
-        uint32_t_ll_uniq_append(&(d->SE), id);
+    if (end_r == NULL) {
+        void *d = new_non_leading();
+        non_leading_SE_add_scalar(d, &id);
         *root = bpt_insert(*root, end + 1, d, &end_leaf_r, &end_pos_r);
     } else {
-        uint32_t_ll_uniq_append(&(end_r->SE), id);
+        non_leading_SE_add_scalar(end_r, &id);
     }
 
 #if DEBUG
@@ -315,15 +116,10 @@ uint32_t giggle_insert(struct bpt_node **root,
             curr_leaf = curr_leaf->next;
 
             if (curr_leaf->leading == NULL) {
-                struct giggle_bpt_leading_data *d = 
-                        (struct giggle_bpt_leading_data *)
-                        malloc(sizeof( struct giggle_bpt_leading_data));
-                d->B = NULL;
-                uint32_t_ll_uniq_append(&(d->B), id);
+                void *d = new_leading();
+                leading_B_add_scalar(d, &id);
             } else {
-                struct giggle_bpt_leading_data *d = 
-                    (struct giggle_bpt_leading_data *)(curr_leaf->leading);
-                uint32_t_ll_uniq_append(&(d->B), id);
+                leading_B_add_scalar(curr_leaf->leading, &id);
             }
         } while (curr_leaf != end_leaf_r);
     }
@@ -333,9 +129,9 @@ uint32_t giggle_insert(struct bpt_node **root,
 //}}}
 
 //{{{struct uint32_t_ll *giggle_search(struct bpt_node *root,
-struct uint32_t_ll *giggle_search(struct bpt_node *root,
-                                  uint32_t start,
-                                  uint32_t end)
+void *giggle_search(struct bpt_node *root,
+                    uint32_t start,
+                    uint32_t end)
 {
 #if DEBUG
     fprintf(stderr, "giggle_search\n");
@@ -345,72 +141,43 @@ struct uint32_t_ll *giggle_search(struct bpt_node *root,
     if (root == NULL)
         return NULL;
 
-    struct uint32_t_ll *r = NULL;
+    void *r = NULL;
 
-
-    struct giggle_bpt_non_leading_data *nld_start_r, *nld_end_r;
     struct bpt_node *leaf_start_r, *leaf_end_r;
     int pos_start_r, pos_end_r;
 
-    nld_start_r = (struct giggle_bpt_non_leading_data *)bpt_find(root,
-                                                                 &leaf_start_r, 
-                                                                 &pos_start_r,
-                                                                 start);
+    void *nld_start_r = bpt_find(root,
+                                 &leaf_start_r, 
+                                 &pos_start_r,
+                                 start);
+    if ((pos_start_r == 0) && (leaf_start_r->keys[0] != start))
+        pos_start_r = -1;
+
 #if DEBUG
     fprintf(stderr, "pos_start_r:%d\t", pos_start_r);
 #endif
 
+    void *nld_end_r = bpt_find(root,
+                               &leaf_end_r, 
+                               &pos_end_r,
+                               end);
 
-    nld_end_r = (struct giggle_bpt_non_leading_data *)bpt_find(root,
-                                                               &leaf_end_r, 
-                                                               &pos_end_r,
-                                                               end);
+    if ((pos_end_r == 0) && (leaf_end_r->keys[0] != end))
+        pos_end_r = -1;
+
 #if DEBUG
     fprintf(stderr, "pos_end_r:%d\n", pos_end_r);
 #endif
 
-
     // get everything in the leading value
-    if (leaf_start_r->leading != NULL) {
-        struct uint32_t_ll_node *curr = ((struct giggle_bpt_leading_data *)
-            (leaf_start_r->leading))->B->head;
-        while (curr != NULL) {
-#if DEBUG
-            fprintf(stderr, "+%u\n", curr->val);
-#endif
-            uint32_t_ll_uniq_append(&r, curr->val);
-            curr = curr->next;
-        }
-    }
+    if (leaf_start_r->leading != NULL)
+        leading_union_with_B(&r, leaf_start_r->leading);
 
     // add any SA and remove any that are an SE up to and including this point
-    uint32_t i;
-    struct giggle_bpt_non_leading_data *nld;
+    int i;
     for (i = 0; (i < leaf_start_r->num_keys) && (i <= pos_start_r); ++i) {
-        nld = (struct giggle_bpt_non_leading_data *)
-                (leaf_start_r->pointers[i]);
-        if (nld != NULL) {
-            if ((nld->SA != NULL)) {
-                struct uint32_t_ll_node *curr = nld->SA->head;
-                while (curr != NULL) {
-#if DEBUG
-                    fprintf(stderr, "+%u\n", curr->val);
-#endif
-                    uint32_t_ll_uniq_append(&r, curr->val);
-                    curr = curr->next;
-                }
-            }
-            if ((nld->SE != NULL)) {
-                struct uint32_t_ll_node *curr = nld->SE->head;
-                while (curr != NULL) {
-#if DEBUG
-                    fprintf(stderr, "-%u\n", curr->val);
-#endif
-                    uint32_t_ll_remove(&r, curr->val);
-                    curr = curr->next;
-                }
-            }
-        }
+        non_leading_union_with_SA_subtract_SE(&r,
+                                              leaf_start_r->pointers[i]);
     }
 
     // now process everything in between the start and end
@@ -419,21 +186,10 @@ struct uint32_t_ll *giggle_search(struct bpt_node *root,
 
     // any intermediate leaves
     while (leaf_curr != leaf_end_r) {
-
         // do from pos_curr to the last key
         for (i = pos_curr; i < leaf_curr->num_keys; ++i) {
-            nld = (struct giggle_bpt_non_leading_data *)
-                    (leaf_curr->pointers[i]);
-            if ((nld != NULL) && (nld->SA != NULL)) {
-                struct uint32_t_ll_node *curr = nld->SA->head;
-                while (curr != NULL) {
-#if DEBUG
-                    fprintf(stderr, "+%u\n", curr->val);
-#endif
-                    uint32_t_ll_uniq_append(&r, curr->val);
-                    curr = curr->next;
-                }
-            }
+            non_leading_union_with_SA(&r,
+                                      leaf_curr->pointers[i]);
         }
 
         leaf_curr = leaf_curr->next;
@@ -443,24 +199,150 @@ struct uint32_t_ll *giggle_search(struct bpt_node *root,
     if (leaf_curr == leaf_end_r) {
         // add all SA's from here to either the end point
         for ( i = pos_curr;
-             (i < leaf_curr->num_keys) && (i <= pos_end_r); 
+             (i < leaf_curr->num_keys) && (i < pos_end_r); 
               ++i) {
-            nld = (struct giggle_bpt_non_leading_data *)
-                    (leaf_curr->pointers[i]);
-            if ((nld != NULL) && (nld->SA != NULL)) {
-                struct uint32_t_ll_node *curr = nld->SA->head;
-                while (curr != NULL) {
-#if DEBUG
-                    fprintf(stderr, "+%u\n", curr->val);
-#endif
-                    uint32_t_ll_uniq_append(&r, curr->val);
-                    curr = curr->next;
-                }
-            }
-
+            non_leading_union_with_SA(&r,
+                                      leaf_curr->pointers[i]);
         }
     }
 
-    return r;
+    return (struct uint32_t_ll *)r;
+}
+//}}}
+
+//{{{struct giggle_index *giggle_init_index(uint32_t init_size);
+struct giggle_index *giggle_init_index(uint32_t init_size)
+{
+    struct giggle_index *gi = (struct giggle_index *)
+            malloc(sizeof(struct giggle_index));
+    gi->len = init_size;
+    gi->num = 0;
+
+    gi->roots = (struct bpt_node **)malloc(gi->len * sizeof(struct bpt_node *));
+
+    gi->chrm_index = ordered_set_init(init_size,
+                                      str_uint_pair_sort_element_cmp,
+                                      str_uint_pair_search_element_cmp,
+                                      str_uint_pair_search_key_cmp);
+
+    gi->file_index = unordered_list_init(3);
+
+    gi->offset_index = unordered_list_init(1000);
+
+    int i;
+    for (i = 0; i < gi->len; ++i)
+        gi->roots[i] = NULL;
+
+    return gi;
+}
+//}}}
+
+//{{{int giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
+uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
+{
+
+    struct str_uint_pair *r = (struct str_uint_pair *)
+            ordered_set_get(gi->chrm_index, chrm);
+
+    if (r == NULL) {
+        struct str_uint_pair *p = (struct str_uint_pair *)
+                malloc(sizeof(struct str_uint_pair));
+        p->uint = gi->chrm_index->num;
+        p->str = strdup(chrm);
+
+        r = (struct str_uint_pair *) ordered_set_add(gi->chrm_index, p);
+
+        gi->num += 1;
+
+        if (gi->len < gi->chrm_index->size) {
+            gi->roots = realloc(gi->roots,
+                                gi->chrm_index->size*sizeof(struct bpt_node *));
+            gi->len = gi->chrm_index->size;
+            uint32_t i;
+            for (i = gi->num; i < gi->len; ++i)
+                gi->roots[i] = NULL;
+        }
+    }
+
+    return r->uint;
+}
+//}}}
+
+//{{{uint32_t giggle_index_file(struct giggle_index *gi,
+uint32_t giggle_index_file(struct giggle_index *gi,
+                           char *file_name)
+{
+    struct input_file *i = input_file_init(file_name);
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    uint32_t start, end;
+    long offset;
+
+    uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+
+    uint32_t j = 0;
+
+    struct file_id_offset_pair *p;
+    uint32_t intrv_id;
+
+    while (input_file_get_next_interval(i,
+                                        &chrm,
+                                        &chrm_len,
+                                        &start,
+                                        &end,
+                                        &offset) >= 0) {
+        
+        p = (struct file_id_offset_pair *)
+                malloc(sizeof(struct file_id_offset_pair));
+        p->offset = offset;
+        p->file_id = file_id;
+        intrv_id = unordered_list_add(gi->offset_index, p);
+        uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
+        uint32_t r = giggle_insert(&(gi->roots[chrm_id]), start, end, intrv_id);
+        j += 1;
+    }
+
+    input_file_destroy(&i);
+
+    return(j);
+}
+//}}}
+
+//{{{void giggle_query_region(struct giggle_index *gi,
+void giggle_query_region(struct giggle_index *gi,
+                         char *chrm,
+                         uint32_t start,
+                         uint32_t end)
+{
+    uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
+    struct uint32_t_ll *R = (struct uint32_t_ll *)
+            giggle_search(gi->roots[chr_id], start, end);
+    if (R != NULL) {
+        struct uint32_t_ll_node *curr = R->head;
+        while (curr != NULL) {
+            struct file_id_offset_pair *r = 
+                    (struct file_id_offset_pair *)
+                    unordered_list_get(gi->offset_index, curr->val);
+
+            struct input_file *i = 
+                    input_file_init(unordered_list_get(gi->file_index,
+                                                       r->file_id));
+            input_file_seek(i, r->offset);
+            int chrm_len = 10;
+            char *chrm = (char *)malloc(chrm_len*sizeof(char));
+            uint32_t start, end;
+            long offset;
+            
+            int x = input_file_get_next_interval(i,
+                                                &chrm,
+                                                &chrm_len,
+                                                &start,
+                                                &end,
+                                                &offset);
+            fprintf(stderr, "%s %u %u\n", chrm, start, end);
+            input_file_destroy(&i);
+            curr = curr->next;
+        }
+    }
 }
 //}}}

@@ -659,7 +659,7 @@ void test_split_repair(void)
 
     int pos;
 
-    repair_func = decrement_repair;
+    repair = decrement_repair;
 
     root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
 
@@ -702,7 +702,7 @@ void test_split_repair(void)
     TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[1])->is_leaf);
     TEST_ASSERT_EQUAL(NULL, ((struct bpt_node*)root->pointers[1])->next);
 
-    repair_func = NULL;
+    repair = NULL;
 
     bpt_destroy_tree(&root);
 }
@@ -758,7 +758,7 @@ void test_bpt_destroy_tree(void)
 //{{{ void test_rand_test(void)
 void test_rand_test(void)
 {
-    repair_func = NULL;
+    repair = NULL;
     struct bpt_node *root = NULL;
     struct bpt_node *leaf = NULL;
     int pos;
@@ -856,7 +856,7 @@ void test_bpt_insert_repeat_append(void)
     struct bpt_node *leaf = NULL;
     int pos;
 
-    append_func = append_sum;
+    append = append_sum;
 
     /*
      * 4
@@ -891,7 +891,7 @@ void test_bpt_insert_repeat_append(void)
     TEST_ASSERT_EQUAL(15, *r);
 
     bpt_destroy_tree(&root);
-    append_func = NULL;
+    append = NULL;
 }
 //}}}
 
@@ -899,7 +899,7 @@ void test_bpt_insert_repeat_append(void)
 void test_rand_test_high_order(void)
 {
     ORDER=50;
-    repair_func = NULL;
+    repair = NULL;
     struct bpt_node *root = NULL;
     struct bpt_node *leaf = NULL;
     int pos;

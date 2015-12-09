@@ -12,8 +12,8 @@
  *  greater than or equal to key[i-1] or less than key[i].
  */
 
-void (*repair_func)(struct bpt_node *, struct bpt_node *) = NULL;
-void (*append_func)(void *, void **) = NULL;
+void (*repair)(struct bpt_node *, struct bpt_node *) = NULL;
+void (*append)(void *, void **) = NULL;
 uint32_t ORDER = 4;
 
 //{{{ struct bpt_node *bpt_to_node(void *n)
@@ -101,8 +101,8 @@ struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
          (*target_key_pos < ((*target_bpt_node)->num_keys)) &&
         ((*target_bpt_node)->keys[*target_key_pos] == key )) {
 
-        if (append_func != NULL)
-            append_func(value, &((*target_bpt_node)->pointers[*target_key_pos]));
+        if (append != NULL)
+            append(value, &((*target_bpt_node)->pointers[*target_key_pos]));
         else
             (*target_bpt_node)->pointers[*target_key_pos] = value;
 
@@ -174,7 +174,7 @@ struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
                                             &lo_result_bpt_node,
                                             &hi_result_bpt_node,
                                             &lo_hi_split_point,
-                                            repair_func);
+                                            repair);
         if ((*target_bpt_node)->is_leaf) {
             if (bpt_insert_key_pos < lo_hi_split_point)
                 *target_bpt_node = lo_result_bpt_node;

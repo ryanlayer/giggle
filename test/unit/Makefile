@@ -8,8 +8,10 @@ PREFIX=Runner_
 RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 
 NO_PRE_SRC_FILES=giggle.c \
-	  	 data_reg.c \
-		 bpt.c
+		 bpt.c \
+		 ll.c \
+		 file_read.c \
+		 lists.c 
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))
 

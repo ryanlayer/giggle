@@ -13,8 +13,8 @@ struct bpt_node
     struct bpt_node *next;
 };
 
-void (*repair_func)(struct bpt_node *, struct bpt_node *);
-void (*append_func)(void *, void **);
+void (*repair)(struct bpt_node *, struct bpt_node *);
+void (*append)(void *, void **);
 
 struct bpt_node *bpt_to_node(void *n);
 
