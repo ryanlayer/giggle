@@ -956,3 +956,29 @@ void test_bpt_find_null(void)
     bpt_destroy_tree(&root);
 }
 //}}}
+
+void test_bpt_write_tree(void)
+{
+    ORDER=50;
+    repair = NULL;
+    struct bpt_node *root = NULL;
+    struct bpt_node *leaf = NULL;
+    int pos;
+    uint32_t size = 100000;
+
+    uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
+    uint32_t *v = (uint32_t *)malloc(size * sizeof(uint32_t));
+
+    time_t t = time(NULL);
+    srand(t);
+
+    uint32_t i, j;
+    for (i = 0; i < size; ++i) {
+        d[i] = rand();
+        v[i] = d[i] /2;
+        root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
+    }
+
+
+
+}

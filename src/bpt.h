@@ -1,6 +1,7 @@
 #ifndef __BPT_H__
 #define __BPT_H__
-
+#include <stdint.h>
+#include <stdio.h>
 //#define ORDER 4
 uint32_t ORDER;
 
@@ -56,5 +57,7 @@ void *bpt_find(struct bpt_node *root,
                uint32_t key);
 
 void bpt_destroy_tree(struct bpt_node **root);
+
+void bpt_write_tree(struct bpt_node *root, FILE *f);
 
 #endif

@@ -21,10 +21,6 @@ struct giggle_index
     struct unordered_list *offset_index;
 };
 
-uint32_t giggle_index_file(struct giggle_index *gi,
-                           char *file_name); 
-
-
 uint32_t giggle_insert(struct bpt_node **root,
                        uint32_t start,
                        uint32_t end,
@@ -47,8 +43,13 @@ void (*non_leading_union_with_SA_subtract_SE)(void **result, void *non_leading);
 struct giggle_index *giggle_init_index(uint32_t init_size);
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm);
 uint32_t giggle_get_file_id(struct giggle_index *gi, char *path);
-void giggle_query_region(struct giggle_index *gi,
-                         char *chrm,
-                         uint32_t start,
-                         uint32_t end);
+uint32_t giggle_index_file(struct giggle_index *gi,
+                           char *file_name); 
+uint32_t giggle_index_directory(struct giggle_index *gi,
+                                char *path_name,
+                                int verbose);
+void *giggle_query_region(struct giggle_index *gi,
+                          char *chrm,
+                          uint32_t start,
+                          uint32_t end);
 #endif

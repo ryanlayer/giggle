@@ -9,6 +9,7 @@
 #include "bpt.h"
 #include "giggle.h"
 #include "lists.h"
+#include "file_read.h"
 
 void setUp(void) { }
 void tearDown(void) { }
@@ -489,15 +490,110 @@ void test_giggle_query_region(void)
     non_leading_union_with_SA_subtract_SE = 
             uint32_t_ll_non_leading_union_with_SA_subtract_SE;
 
-    struct bpt_node *root = NULL;
-
-    char *file_name = "../data/1k.unsort.bed.gz";
+    char *file_name = "../data/1k.sort.bed.gz";
 
     ORDER = 10;
 
     struct giggle_index *gi = giggle_init_index(23);
-    uint32_t r = giggle_index_file(gi, file_name);
+    uint32_t num = giggle_index_file(gi, file_name);
+    TEST_ASSERT_EQUAL(1000, num);
+    TEST_ASSERT_EQUAL(1, gi->file_index->num);
+    TEST_ASSERT_EQUAL(1000, gi->offset_index->num);
+
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                                      "chr11",
+                                                                      1000,
+                                                                      3000000);
+    /*
+     * tabix 1k.sort.bed.gz chr11:1000-3000000
+     * chr11    575808  576604  .   1000    .   ...
+     * chr11    2950239 2952321 .   1000    .   ...
+     */
+
+    TEST_ASSERT_EQUAL(2, R->len);
+
+    struct file_id_offset_pair *r = 
+        (struct file_id_offset_pair *)
+        unordered_list_get(gi->offset_index, R->head->val);
+
+    struct input_file *i = input_file_init(unordered_list_get(gi->file_index,
+                                           r->file_id));
+
+    input_file_seek(i, r->offset);
+
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    uint32_t start, end;
+    long offset;
+            
+    int x = input_file_get_next_interval(i,
+                                        &chrm,
+                                        &chrm_len,
+                                        &start,
+                                        &end,
+                                        &offset);
+
+    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(575808, start);
+    TEST_ASSERT_EQUAL(576604, end);
+
+    r = (struct file_id_offset_pair *)
+            unordered_list_get(gi->offset_index, R->head->next->val);
+    input_file_seek(i, r->offset);
+    x = input_file_get_next_interval(i,
+                                     &chrm,
+                                     &chrm_len,
+                                     &start,
+                                     &end,
+                                     &offset);
+
+    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(2950239, start);
+    TEST_ASSERT_EQUAL(2952321, end);
+
+
+    input_file_destroy(&i);
+
+}
+//}}}
+
+//{{{void test_giggle_index_directory(void)
+void test_giggle_index_directory(void)
+{
+    repair = uint32_t_ll_leading_repair;
+    new_non_leading = uint32_t_ll_new_non_leading;
+    new_leading = uint32_t_ll_new_leading;
+    non_leading_SA_add_scalar = uint32_t_ll_non_leading_SA_add_scalar;
+    non_leading_SE_add_scalar = uint32_t_ll_non_leading_SE_add_scalar;
+    leading_B_add_scalar = uint32_t_ll_leading_B_add_scalar;
+    leading_union_with_B = uint32_t_ll_leading_union_with_B;
+    non_leading_union_with_SA = uint32_t_ll_non_leading_union_with_SA;
+    non_leading_union_with_SA_subtract_SE = 
+            uint32_t_ll_non_leading_union_with_SA_subtract_SE;
+
+    char *path_name = "../data/many/*bed.gz";
+
+    ORDER = 10;
+
+    struct giggle_index *gi = giggle_init_index(23);
+    
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+    TEST_ASSERT_EQUAL(10000, r);
+    TEST_ASSERT_EQUAL(10, gi->file_index->num);
+    TEST_ASSERT_EQUAL(10000, gi->offset_index->num);
 
     giggle_query_region(gi, "chr11", 1000, 3000000);
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                                      "chr1",
+                                                                      1000,
+                                                                      3000000);
+    /*
+     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
+     * 4456
+     */
+    TEST_ASSERT_EQUAL(4456, R->len);
 }
 //}}}

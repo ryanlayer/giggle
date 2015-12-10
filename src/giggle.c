@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <dirent.h>
+#include <glob.h>
 
 #include "bpt.h"
 #include "giggle.h"
 #include "ll.h"
 #include "lists.h"
 #include "file_read.h"
-
 
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
 uint32_t giggle_insert(struct bpt_node **root,
@@ -164,9 +165,16 @@ void *giggle_search(struct bpt_node *root,
 
     if ((pos_end_r == 0) && (leaf_end_r->keys[0] != end))
         pos_end_r = -1;
+    else if ( (pos_end_r >=0) && 
+              (pos_end_r < leaf_end_r->num_keys) &&
+              (leaf_end_r->keys[pos_end_r] > end))
+        pos_end_r -= 1;
 
 #if DEBUG
-    fprintf(stderr, "pos_end_r:%d\n", pos_end_r);
+    fprintf(stderr, "pos_end_r:%d %u\n", pos_end_r,
+            ( ((pos_end_r >=0)&&(pos_end_r<leaf_end_r->num_keys)) ?
+              leaf_end_r->keys[pos_end_r] : 0)
+            );
 #endif
 
     // get everything in the leading value
@@ -199,7 +207,7 @@ void *giggle_search(struct bpt_node *root,
     if (leaf_curr == leaf_end_r) {
         // add all SA's from here to either the end point
         for ( i = pos_curr;
-             (i < leaf_curr->num_keys) && (i < pos_end_r); 
+             (i < leaf_curr->num_keys) && (i <= pos_end_r); 
               ++i) {
             non_leading_union_with_SA(&r,
                                       leaf_curr->pointers[i]);
@@ -309,40 +317,44 @@ uint32_t giggle_index_file(struct giggle_index *gi,
 //}}}
 
 //{{{void giggle_query_region(struct giggle_index *gi,
-void giggle_query_region(struct giggle_index *gi,
-                         char *chrm,
-                         uint32_t start,
-                         uint32_t end)
+void *giggle_query_region(struct giggle_index *gi,
+                          char *chrm,
+                          uint32_t start,
+                          uint32_t end)
 {
     uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
     struct uint32_t_ll *R = (struct uint32_t_ll *)
             giggle_search(gi->roots[chr_id], start, end);
-    if (R != NULL) {
-        struct uint32_t_ll_node *curr = R->head;
-        while (curr != NULL) {
-            struct file_id_offset_pair *r = 
-                    (struct file_id_offset_pair *)
-                    unordered_list_get(gi->offset_index, curr->val);
+    return R;
+}
+//}}}
 
-            struct input_file *i = 
-                    input_file_init(unordered_list_get(gi->file_index,
-                                                       r->file_id));
-            input_file_seek(i, r->offset);
-            int chrm_len = 10;
-            char *chrm = (char *)malloc(chrm_len*sizeof(char));
-            uint32_t start, end;
-            long offset;
-            
-            int x = input_file_get_next_interval(i,
-                                                &chrm,
-                                                &chrm_len,
-                                                &start,
-                                                &end,
-                                                &offset);
-            fprintf(stderr, "%s %u %u\n", chrm, start, end);
-            input_file_destroy(&i);
-            curr = curr->next;
-        }
+//{{{uint32_t giggle_index_directory(struct giggle_index *gi,
+uint32_t giggle_index_directory(struct giggle_index *gi,
+                                char *path_name,
+                                int verbose)
+{
+    glob_t results;
+    int ret = glob(path_name, 0, NULL, &results);
+    if (ret != 0)
+        fprintf(stderr,
+                "Problem with %s (%s), stopping early\n",
+                path_name,
+                /* ugly: */ (ret == GLOB_ABORTED ? "filesystem problem" :
+                ret == GLOB_NOMATCH ? "no match of pattern" :
+                ret == GLOB_NOSPACE ? "no dynamic memory" :
+                "unknown problem"));
+
+    int i;
+    uint32_t total = 0;
+    for (i = 0; i < results.gl_pathc; i++) {
+        if (verbose)
+            fprintf(stderr, "%s\n", results.gl_pathv[i]);
+        total += giggle_index_file(gi, results.gl_pathv[i]);
     }
+
+    globfree(&results);
+
+    return total;
 }
 //}}}

@@ -470,6 +470,11 @@ void bpt_destroy_tree(struct bpt_node **curr)
 }
 //}}}
 
+void bpt_write_tree(struct bpt_node *root, FILE *f)
+{
+    
+}
+
 #if 0
 //{{{void store(struct bpt_node *root, char *file_name)
 void store(struct bpt_node *root, char *file_name)
