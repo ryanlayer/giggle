@@ -5,6 +5,7 @@
 #include <err.h>
 #include <sysexits.h>
 #include "bpt.h"
+#include "lists.h"
 
 /*
  *  All bpt_nodes have an array of keys, and an array of values.
@@ -472,7 +473,181 @@ void bpt_destroy_tree(struct bpt_node **curr)
 
 void bpt_write_tree(struct bpt_node *root, FILE *f)
 {
-    
+
+    // make table of memory addr -> id
+    struct pointer_uint_pair *pu_p, *pu_r;
+    struct ordered_set *addr_to_id =
+            ordered_set_init(50,
+                             pointer_uint_pair_sort_element_cmp,
+                             pointer_uint_pair_search_element_cmp,
+                             pointer_uint_pair_search_key_cmp);
+
+    struct fifo_q *q = NULL;
+
+    fifo_q_push(&q, root);
+
+    uint32_t i, count = 1;
+
+    while (fifo_q_peek(q) != NULL) {
+        struct bpt_node *curr = (struct bpt_node *)fifo_q_pop(&q);
+
+        pu_p = (struct pointer_uint_pair *)
+                malloc(sizeof(struct pointer_uint_pair));
+        pu_p->pointer = curr;
+        pu_p->uint = count;
+        fprintf(stderr, "%u %p\n", pu_p->uint, pu_p->pointer);
+        pu_r = (struct pointer_uint_pair *) ordered_set_add(addr_to_id, pu_p);
+
+        count += 1;
+
+        if (curr->is_leaf == 0) {
+            for (i = 0; i <= curr->num_keys; ++i) {
+                if (curr->pointers[i] != NULL)
+                    fifo_q_push(&q, curr->pointers[i]);
+            }
+        } else {
+            for (i = 0; i < curr->num_keys; ++i) {
+                if (curr->pointers[i] != NULL) {
+                    pu_p = (struct pointer_uint_pair *)
+                        malloc(sizeof(struct pointer_uint_pair));
+                    pu_p->pointer = curr->pointers[i];
+                    pu_p->uint = count;
+                    fprintf(stderr, "%u %p\n", pu_p->uint, pu_p->pointer);
+                    pu_r = (struct pointer_uint_pair *)
+                            ordered_set_add(addr_to_id, pu_p);
+                    count += 1;
+                }
+            }
+            if (curr->leading != NULL) {
+                pu_p = (struct pointer_uint_pair *)
+                        malloc(sizeof(struct pointer_uint_pair));
+                pu_p->pointer = curr->leading;
+                pu_p->uint = count;
+                fprintf(stderr, "%u %p\n", pu_p->uint, pu_p->pointer);
+                pu_r = (struct pointer_uint_pair *)
+                        ordered_set_add(addr_to_id, pu_p);
+                count += 1;
+            }
+        }
+    }
+
+    long top_offset = ftell(f);
+    //make room in the file for the id -> offset table
+     if (fwrite(&(addr_to_id->num), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR, "Error writing id to offset table size to file");
+
+    char zero = 0;
+    long table_offset = ftell(f);
+    if (fwrite(&zero,
+               sizeof(char),
+               addr_to_id->num *(sizeof(uint32_t) + sizeof(long)),
+               f) != addr_to_id->num *(sizeof(uint32_t) + sizeof(long)))
+        err(EX_IOERR, "Error writing id to offset table to file");
+
+    fprintf(stderr, "%u\t%u\n", addr_to_id->num, count);
+
+    // make table of id -> file offset
+    struct uint_offset_pair *uo_p, *uo_r;
+    struct ordered_set *id_to_offset =
+            ordered_set_init(50,
+                             uint_offset_pair_sort_element_cmp,
+                             uint_offset_pair_search_element_cmp,
+                             uint_offset_pair_search_key_cmp);
+
+    fifo_q_push(&q, root);
+    while (fifo_q_peek(q) != NULL) {
+        struct bpt_node *curr = (struct bpt_node *)fifo_q_pop(&q);
+        fprintf(stderr,
+                "write curr:%p is_leaf:%u\tnum_keys:%u\n",
+                curr,
+                curr->is_leaf,
+                curr->num_keys);
+
+        // get id
+        pu_r = (struct pointer_uint_pair *)ordered_set_get(addr_to_id, curr);
+        uint32_t curr_id = pu_r->uint;
+
+        // put in id to offset table
+        uo_p = (struct uint_offset_pair *)
+                malloc(sizeof(struct uint_offset_pair));
+        uo_p->uint = curr_id;
+        uo_p->offset = ftell(f);
+        uo_r = (struct uint_offset_pair *) ordered_set_add(id_to_offset, uo_p);
+
+        //serialize
+        // write is_leaf
+        if (fwrite(&(curr->is_leaf), sizeof(uint32_t), 1, f) != 1)
+            err(EX_IOERR, "Error writing is_leaf to file");
+   
+        // write converted parent
+        // get parent id 
+        if (curr->parent != NULL) {
+            pu_r = (struct pointer_uint_pair *)
+                ordered_set_get(addr_to_id, curr->parent);
+            uint32_t parent_id = pu_r->uint;
+            if (fwrite(&(parent_id), sizeof(uint32_t), 1, f) != 1)
+                err(EX_IOERR, "Error writing parent id to file");
+        } else {
+            if (fwrite(&(zero), sizeof(char), sizeof(uint32_t), f) != 
+                    sizeof(uint32_t))
+                err(EX_IOERR, "Error writing NULL parent id to file");
+        }
+
+        // write num_keys
+        if (fwrite(&(curr->num_keys), sizeof(uint32_t), 1, f) != 1)
+                err(EX_IOERR, "Error writing num_keys to file");
+       
+        // write keys
+        if (fwrite(&(curr->keys), sizeof(uint32_t), curr->num_keys, f) != 
+                    curr->num_keys)
+                err(EX_IOERR, "Error writing keys to file");
+        
+        // converted pointers values
+        for (i = 0;
+             i <= (curr->is_leaf ? curr->num_keys - 1 : curr->num_keys);
+             ++i) {
+
+            if (curr->pointers[i] != NULL) {
+                pu_r = (struct pointer_uint_pair *)
+                        ordered_set_get(addr_to_id, curr->pointers[i]);
+
+                if (pu_r == NULL)
+                    errx(1, "%u %p not in table", i, curr->pointers[i]);
+
+                uint32_t pointer_id = pu_r->uint;
+                if (fwrite(&(pointer_id), sizeof(uint32_t), 1, f) != 1)
+                    err(EX_IOERR, "Error writing pointer to file");
+            } else {
+                if (fwrite(&(zero), sizeof(char), sizeof(uint32_t), f) != 
+                        sizeof(uint32_t))
+                    err(EX_IOERR, "Error writing NULL pointer to file");
+            }
+        }
+
+        // converted next value
+        if (curr->is_leaf == 1) {
+            if (curr->next != NULL) {
+                pu_r = (struct pointer_uint_pair *)
+                        ordered_set_get(addr_to_id, curr->next);
+                uint32_t next_id = pu_r->uint;
+                if (fwrite(&(next_id), sizeof(uint32_t), 1, f) != 1)
+                    err(EX_IOERR, "Error writing next to file");
+            } else {
+                if (fwrite(&(zero), sizeof(char), sizeof(uint32_t), f) != 
+                        sizeof(uint32_t))
+                err(EX_IOERR, "Error writing NULL next to file");
+            }
+        }
+        // converted leading
+
+        if (curr->is_leaf == 0) {
+            for (i = 0; i <= curr->num_keys; ++i) {
+                if (curr->pointers[i] != NULL)
+                    fifo_q_push(&q, curr->pointers[i]);
+            }
+        } 
+    }
+    fprintf(stderr, "%u\n", id_to_offset->num);
 }
 
 #if 0

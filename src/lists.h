@@ -42,4 +42,33 @@ int str_uint_pair_sort_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_key_cmp(const void *a, const void *b);
 
+struct pointer_uint_pair
+{
+    void *pointer;
+    uint32_t uint;
+};
+int pointer_uint_pair_sort_element_cmp(const void *a, const void *b);
+int pointer_uint_pair_search_element_cmp(const void *a, const void *b);
+int pointer_uint_pair_search_key_cmp(const void *a, const void *b);
+
+
+struct uint_offset_pair
+{
+    uint32_t uint;
+    long offset;
+};
+int uint_offset_pair_sort_element_cmp(const void *a, const void *b);
+int uint_offset_pair_search_element_cmp(const void *a, const void *b);
+int uint_offset_pair_search_key_cmp(const void *a, const void *b);
+
+struct fifo_q
+{
+    void *val;
+    struct fifo_q *next;
+};
+
+void fifo_q_push(struct fifo_q **q, void *val);
+void *fifo_q_pop(struct fifo_q **q);
+void *fifo_q_peek(struct fifo_q *q);
+
 #endif

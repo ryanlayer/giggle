@@ -135,21 +135,26 @@ void *ordered_set_get(struct ordered_set *os, void *key)
 }
 //}}}
 
-//{{{
+//{{{ str_uint_pair
+//{{{ int str_uint_pair_sort_element_cmp(const void *a, const void *b)
 int str_uint_pair_sort_element_cmp(const void *a, const void *b)
 {
     struct str_uint_pair **pa = (struct str_uint_pair **)a;
     struct str_uint_pair **pb = (struct str_uint_pair **)b;
     return strcmp((*pa)->str, (*pb)->str);
 }
+//}}}
 
+//{{{int str_uint_pair_search_element_cmp(const void *a, const void *b)
 int str_uint_pair_search_element_cmp(const void *a, const void *b)
 {
     struct str_uint_pair *key = (struct str_uint_pair *)a;
     struct str_uint_pair **arg = (struct str_uint_pair **)b;
     return strcmp(key->str, (*arg)->str);
 }
+//}}}
 
+//{{{int str_uint_pair_search_key_cmp(const void *a, const void *b)
 int str_uint_pair_search_key_cmp(const void *a, const void *b)
 {
     char *key = (char *)a;
@@ -157,3 +162,128 @@ int str_uint_pair_search_key_cmp(const void *a, const void *b)
     return strcmp(key, (*arg)->str);
 }
 //}}}
+//}}}
+
+//{{{ pointer_uint_pair
+//{{{ int pointer_uint_pair_sort_element_cmp(const void *a, const void *b)
+int pointer_uint_pair_sort_element_cmp(const void *a, const void *b)
+{
+    /*
+    fprintf(stderr,
+            "pointer_uint_pair_sort_element_cmp:%p %p\n",
+            (*pa)->pointer,
+            (*pb)->pointer,
+            */
+
+
+    struct pointer_uint_pair **pa = (struct pointer_uint_pair **)a;
+    struct pointer_uint_pair **pb = (struct pointer_uint_pair **)b;
+    if ((*pa)->pointer < (*pb)->pointer)
+        return -1;
+    else if ((*pa)->pointer > (*pb)->pointer)
+        return 1;
+    else
+        return 0;
+}
+//}}}
+
+//{{{int pointer_uint_pair_search_element_cmp(const void *a, const void *b)
+int pointer_uint_pair_search_element_cmp(const void *a, const void *b)
+{
+    struct pointer_uint_pair *key = (struct pointer_uint_pair *)a;
+    struct pointer_uint_pair **arg = (struct pointer_uint_pair **)b;
+
+    if (key->pointer < (*arg)->pointer)
+        return -1;
+    else if (key->pointer > (*arg)->pointer)
+        return 1;
+    else
+        return 0;
+}
+//}}}
+
+//{{{int pointer_uint_pair_search_key_cmp(const void *a, const void *b)
+int pointer_uint_pair_search_key_cmp(const void *a, const void *b)
+{
+    struct pointer_uint_pair **arg = (struct pointer_uint_pair **)b;
+
+    if (a < (*arg)->pointer)
+        return -1;
+    else if (a > (*arg)->pointer)
+        return 1;
+    else
+        return 0;
+
+}
+//}}}
+//}}}
+
+//{{{ uint_offset_pair
+//{{{ int uint_offset_pair_sort_element_cmp(const void *a, const void *b)
+int uint_offset_pair_sort_element_cmp(const void *a, const void *b)
+{
+    struct uint_offset_pair **pa = (struct uint_offset_pair **)a;
+    struct uint_offset_pair **pb = (struct uint_offset_pair **)b;
+
+    return (*pa)->uint - (*pb)->uint;
+}
+//}}}
+
+//{{{int uint_offset_pair_search_element_cmp(const void *a, const void *b)
+int uint_offset_pair_search_element_cmp(const void *a, const void *b)
+{
+    struct uint_offset_pair *key = (struct uint_offset_pair *)a;
+    struct uint_offset_pair **arg = (struct uint_offset_pair **)b;
+
+    return key->uint - (*arg)->uint;
+
+}
+//}}}
+
+//{{{int uint_offset_pair_search_key_cmp(const void *a, const void *b)
+int uint_offset_pair_search_key_cmp(const void *a, const void *b)
+{
+    uint32_t *key = (uint32_t *)a;
+    struct uint_offset_pair **arg = (struct uint_offset_pair **)b;
+
+    return *key - (*arg)->uint;
+}
+//}}}
+//}}}
+
+//{{{void fifo_q_push(struct fifo_q **q, void *val)
+void fifo_q_push(struct fifo_q **q, void *val)
+{
+    int *v = (int *)val;
+    struct fifo_q *n = (struct fifo_q *)malloc(sizeof(struct fifo_q));
+    n->val = val;
+    n->next = *q;
+
+    *q = n;
+}
+//}}}
+
+//{{{void *fifo_q_pop(struct fifo_q **q)
+void *fifo_q_pop(struct fifo_q **q)
+{
+    if (*q == NULL)
+        return NULL;
+
+    struct fifo_q *t = *q;
+    void *r = t->val;
+    *q = (*q)->next;
+    free(t);
+    return r;
+}
+//}}}
+
+//{{{void *fifo_q_peek(struct fifo_q *q)
+void *fifo_q_peek(struct fifo_q *q)
+{
+    if (q == NULL)
+        return NULL;
+    else
+        return q->val;
+}
+//}}}
+
