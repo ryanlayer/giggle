@@ -2,19 +2,24 @@
 #define __BPT_H__
 #include <stdint.h>
 #include <stdio.h>
-//#define ORDER 4
+#include "lists.h"
+
 uint32_t ORDER;
+
+struct ordered_set *id_to_offset_map;
 
 struct bpt_node 
 {
     struct bpt_node *parent;
     uint32_t *keys, num_keys, is_leaf;
+    uint8_t flags;
     void **pointers;
     void *leading;
     struct bpt_node *next;
 };
 
 void (*repair)(struct bpt_node *, struct bpt_node *);
+
 void (*append)(void *, void **);
 
 struct bpt_node *bpt_to_node(void *n);
@@ -58,6 +63,9 @@ void *bpt_find(struct bpt_node *root,
 
 void bpt_destroy_tree(struct bpt_node **root);
 
-void bpt_write_tree(struct bpt_node *root, FILE *f);
-
+void bpt_write_tree(struct bpt_node *root,
+                    FILE *f,
+                    struct ordered_set **addr_to_id,
+                    struct indexed_list **id_to_offset_size,
+                    long *table_offset);
 #endif

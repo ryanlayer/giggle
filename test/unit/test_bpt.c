@@ -957,20 +957,21 @@ void test_bpt_find_null(void)
 }
 //}}}
 
+//{{{void test_bpt_write_tree(void)
 void test_bpt_write_tree(void)
 {
-    ORDER=50;
+    ORDER=5;
     repair = NULL;
     struct bpt_node *root = NULL;
     struct bpt_node *leaf = NULL;
     int pos;
-    uint32_t size = 100000;
+    uint32_t size = 20;
 
     uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
     uint32_t *v = (uint32_t *)malloc(size * sizeof(uint32_t));
 
     time_t t = time(NULL);
-    srand(t);
+    //srand(t);
 
     uint32_t i, j;
     for (i = 0; i < size; ++i) {
@@ -979,6 +980,88 @@ void test_bpt_write_tree(void)
         root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
     }
 
+    FILE *f = fopen(".tmp.bpt.out", "wb");
+    struct ordered_set *addr_to_id;
+    struct indexed_list *id_to_offset_size;
+    long table_offset;
+    bpt_write_tree(root, f, &addr_to_id, &id_to_offset_size, &table_offset);
+    fclose(f);
 
+    f = fopen(".tmp.bpt.out", "rb");
 
+    uint32_t r;
+
+    fread(&r, sizeof(uint32_t), 1, f);
+    TEST_ASSERT_EQUAL(ORDER, r);
+
+    fread(&r, sizeof(uint32_t), 1, f);
+
+    uint32_t id = 1;
+    struct offset_size_pair *p =
+        (struct offset_size_pair*)indexed_list_get(id_to_offset_size, 1);
+
+    char *raw_node = (char *)malloc(p->size * sizeof(char));
+
+    uint32_t root_size = 0;
+    //is_leaf
+    root_size += sizeof(uint32_t);
+    //parent
+    root_size += sizeof(uint32_t);
+    //num_keys
+    root_size += sizeof(uint32_t);
+    //keys
+    root_size += (root->num_keys)*sizeof(uint32_t);
+    //pointers
+    root_size += (root->num_keys+1)*sizeof(uint32_t);
+    //next
+    root_size += sizeof(uint32_t);
+    //leading
+    root_size += sizeof(uint32_t);
+
+    TEST_ASSERT_EQUAL(root_size, p->size);
+
+    fseek(f, p->offset, SEEK_SET);
+    fread(raw_node, sizeof(char), p->size, f);
+
+    uint32_t *is_leaf, *parent, *num_keys, *key, *pointer, *next, *leading;
+
+    uint32_t offset = 0;
+    is_leaf = (uint32_t *)(raw_node + offset);
+    offset += sizeof(uint32_t);
+
+    parent = (uint32_t *)(raw_node + offset);
+    offset += sizeof(uint32_t);
+
+    num_keys = (uint32_t *)(raw_node + offset);
+    offset += sizeof(uint32_t);
+
+    TEST_ASSERT_EQUAL(0, *is_leaf);
+    TEST_ASSERT_EQUAL(0, *parent);
+    TEST_ASSERT_EQUAL(root->num_keys, *num_keys);
+
+    for (i = 0; i < *num_keys; ++i) {
+        key = (uint32_t *)(raw_node + offset);
+        offset += sizeof(uint32_t);
+        TEST_ASSERT_EQUAL(root->keys[i], *key);
+    }
+
+    for (i = 0; i < *num_keys + 1; ++i) {
+        pointer = (uint32_t *)(raw_node + offset);
+        offset += sizeof(uint32_t);
+        struct pointer_uint_pair *pu_r = (struct pointer_uint_pair *)
+                        ordered_set_get(addr_to_id, root->pointers[i]);
+        uint32_t pointer_id = pu_r->uint;
+        TEST_ASSERT_EQUAL(pointer_id, *pointer);
+    }
+
+    next = (uint32_t *)(raw_node + offset);
+    offset += sizeof(uint32_t);
+    TEST_ASSERT_EQUAL(0, *next);
+
+    leading = (uint32_t *)(raw_node + offset);
+    offset += sizeof(uint32_t);
+    TEST_ASSERT_EQUAL(0, *leading);
+
+    fclose(f);
 }
+//}}}

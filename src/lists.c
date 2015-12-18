@@ -6,6 +6,63 @@
 
 #include "lists.h"
 
+//{{{ indexed_list
+//{{{ struct indexed_list *indexed_list_init(uint32_t init_size,
+struct indexed_list *indexed_list_init(uint32_t init_size,
+                                       uint32_t element_size)
+{
+    struct indexed_list *il = (struct indexed_list *)
+            malloc(sizeof(struct indexed_list));
+    il->size = init_size;
+    il->element_size = element_size;
+    il->data = (char *) calloc(init_size, element_size);
+    return il;
+}
+//}}}
+
+//{{{void indexed_list_destroy(struct indexed_list **il)
+void indexed_list_destroy(struct indexed_list **il)
+{
+    free((*il)->data);
+    free(*il);
+    *il = NULL;
+}
+//}}}
+
+//{{{uint32_t indexed_list_add(struct indexed_list *il,
+uint32_t indexed_list_add(struct indexed_list *il,
+                          uint32_t index,
+                          void *data)
+{
+    uint32_t r = 0;
+    while (index >= il->size) {
+        uint32_t old_size = il->size;
+        il->size = il->size * 2;
+        il->data = (char *)realloc(il->data, il->size * il->element_size);
+        memset(il->data + old_size * il->element_size,
+               0,
+               old_size * il->element_size);
+        r = 1;
+    }
+
+    memcpy(il->data + (index * il->element_size), data, il->element_size);
+
+    return r;
+}
+//}}}
+
+//{{{void *indexed_list_get(struct indexed_list *il, uint32_t index)
+void *indexed_list_get(struct indexed_list *il, uint32_t index)
+{
+    if (index >= il->size)
+        return NULL;
+    else
+        return il->data + (index * il->element_size);
+}
+//}}}
+//}}}
+
+//{{{unordered_list
 //{{{struct unordered_list *unordered_list_init(uint32_t init_size)
 struct unordered_list *unordered_list_init(uint32_t init_size)
 {
@@ -61,7 +118,9 @@ void *unordered_list_get(struct unordered_list *ul, uint32_t i)
     return ul->data[i];
 }
 //}}}
+//}}}
 
+//{{{ordered_set
 //{{{ struct ordered_set *ordered_set_init(uint32_t init_size,
 struct ordered_set 
         *ordered_set_init(
@@ -74,7 +133,8 @@ struct ordered_set
                                 malloc(sizeof(struct ordered_set));
     os->num = 0;
     os->size = init_size;
-    os->data = (void **) malloc(init_size * sizeof(void *));
+    //os->data = (void **) malloc(init_size * sizeof(void *));
+    os->data = (void **) calloc(init_size, sizeof(void *));
     os->sort_element_cmp = sort_element_cmp;
     os->search_element_cmp = search_element_cmp;
     os->search_key_cmp = search_key_cmp;
@@ -133,6 +193,7 @@ void *ordered_set_get(struct ordered_set *os, void *key)
         return NULL;
     }
 }
+//}}}
 //}}}
 
 //{{{ str_uint_pair
@@ -218,39 +279,39 @@ int pointer_uint_pair_search_key_cmp(const void *a, const void *b)
 //}}}
 //}}}
 
-//{{{ uint_offset_pair
-//{{{ int uint_offset_pair_sort_element_cmp(const void *a, const void *b)
-int uint_offset_pair_sort_element_cmp(const void *a, const void *b)
+//{{{ uint_offset_size_pair
+//{{{ int uint_offset_size_pair_sort_element_cmp(const void *a, const void *b)
+int uint_offset_size_pair_sort_element_cmp(const void *a, const void *b)
 {
-    struct uint_offset_pair **pa = (struct uint_offset_pair **)a;
-    struct uint_offset_pair **pb = (struct uint_offset_pair **)b;
+    struct uint_offset_size_pair **pa = (struct uint_offset_size_pair **)a;
+    struct uint_offset_size_pair **pb = (struct uint_offset_size_pair **)b;
 
     return (*pa)->uint - (*pb)->uint;
 }
 //}}}
 
-//{{{int uint_offset_pair_search_element_cmp(const void *a, const void *b)
-int uint_offset_pair_search_element_cmp(const void *a, const void *b)
+//{{{int uint_offset_size_pair_search_element_cmp(const void *a, const void *b)
+int uint_offset_size_pair_search_element_cmp(const void *a, const void *b)
 {
-    struct uint_offset_pair *key = (struct uint_offset_pair *)a;
-    struct uint_offset_pair **arg = (struct uint_offset_pair **)b;
+    struct uint_offset_size_pair *key = (struct uint_offset_size_pair *)a;
+    struct uint_offset_size_pair **arg = (struct uint_offset_size_pair **)b;
 
     return key->uint - (*arg)->uint;
-
 }
 //}}}
 
-//{{{int uint_offset_pair_search_key_cmp(const void *a, const void *b)
-int uint_offset_pair_search_key_cmp(const void *a, const void *b)
+//{{{int uint_offset_size_pair_search_key_cmp(const void *a, const void *b)
+int uint_offset_size_pair_search_key_cmp(const void *a, const void *b)
 {
     uint32_t *key = (uint32_t *)a;
-    struct uint_offset_pair **arg = (struct uint_offset_pair **)b;
+    struct uint_offset_size_pair **arg = (struct uint_offset_size_pair **)b;
 
     return *key - (*arg)->uint;
 }
 //}}}
 //}}}
 
+//{{{ fifo_q
 //{{{void fifo_q_push(struct fifo_q **q, void *val)
 void fifo_q_push(struct fifo_q **q, void *val)
 {
@@ -286,4 +347,287 @@ void *fifo_q_peek(struct fifo_q *q)
         return q->val;
 }
 //}}}
+//}}}
 
+//{{{ byte_array
+//{{{ struct byte_array *byte_array_init(uint32_t init_size)
+struct byte_array *byte_array_init(uint32_t init_size)
+{
+    struct byte_array *ba = (struct byte_array *)
+            malloc(sizeof(struct byte_array));
+    
+    ba->data = (char *) malloc(init_size);
+    ba->num = 0;
+    ba->size = init_size;
+
+    return ba;
+}
+//}}}
+
+//{{{void byte_array_destory(struct byte_array **ba)
+void byte_array_destory(struct byte_array **ba)
+{
+    free((*ba)->data);
+    free(*ba);
+    *ba = NULL;
+}
+//}}}
+
+//{{{void byte_array_append(struct byte_array *ba, void *data, uint32_t size)
+void byte_array_append(struct byte_array *ba, void *data, uint32_t size)
+{
+    while (ba->num + size >= ba->size) {
+        ba->size = ba->size * 2;
+        ba->data = realloc(ba->data, ba->size * sizeof(char *));
+    }
+    if (ba->num + size >= ba->size)
+        errx(1, "Not enough room to append on byte array");
+
+    void *r = memcpy(ba->data + ba->num, data, size);
+    ba->num += size;
+}
+//}}}
+
+//{{{void byte_array_append_zeros(struct byte_array *ba, uint32_t size)
+void byte_array_append_zeros(struct byte_array *ba, uint32_t size)
+{
+    memset(ba->data + ba->num, 0, size);
+    ba->num += size;
+}
+//}}}
+//}}}
+
+//{{{ cc_hash
+
+uint32_t hash_A(uint32_t x, uint32_t limit)
+{
+    x = x ^ (x>>4);
+    x = (x^0xdeadbeef) + (x<<5);
+    x = x ^ (x>>11);
+    return x % limit;
+}
+
+uint32_t hash_B( uint32_t x, uint32_t limit)
+{
+    x = (x+0x7ed55d16) + (x<<12);
+    x = (x^0xc761c23c) ^ (x>>19);
+    x = (x+0x165667b1) + (x<<5);
+    x = (x+0xd3a2646c) ^ (x<<9);
+    x = (x+0xfd7046c5) + (x<<3);
+    x = (x^0xb55a4f09) ^ (x>>16);
+    return x % limit;
+}
+
+struct cc_hash *cc_hash_init(uint32_t size)
+{
+    struct cc_hash *hash = (struct cc_hash *)malloc(sizeof(struct cc_hash));
+    hash->num = 0;
+    hash->sizes = size / 2;
+    hash->keys[0] = (uint32_t *) calloc(hash->sizes, sizeof(uint32_t));
+    hash->keys[1] = (uint32_t *) calloc(hash->sizes, sizeof(uint32_t));
+    hash->values[0] = (void **) calloc(hash->sizes, sizeof(void *));
+    hash->values[1] = (void **) calloc(hash->sizes, sizeof(void *));
+    
+    hash->hashes[0] = hash_A;
+    hash->hashes[1] = hash_B;
+
+    return hash;
+}
+
+int cc_hash_add(struct cc_hash *hash, uint32_t key, void *value)
+{
+    uint32_t pos_0 = hash->hashes[0](key, hash->sizes);
+    uint32_t pos_1 = hash->hashes[1](key, hash->sizes);
+
+    if ( (hash->keys[0][pos_0] == key) || (hash->keys[1][pos_1] == key))
+        return 1;
+
+    uint32_t h_i = 0;
+    uint32_t i, pos_i;
+
+    for (i = 0; i < hash->sizes; ++i) {
+        pos_i = hash->hashes[h_i](key, hash->sizes);
+        if ( hash->values[h_i][pos_i] == NULL ) {
+            hash->keys[h_i][pos_i] = key;
+            hash->values[h_i][pos_i] = value;
+            return 0;
+        } else {
+            uint32_t t_key = hash->keys[h_i][pos_i];
+            void *t_value = hash->values[h_i][pos_i];
+    
+            hash->keys[h_i][pos_i] = key;
+            hash->values[h_i][pos_i] = value;
+    
+            key = t_key;
+            value = t_value;
+            h_i = (h_i + 1) % 2;
+        }
+    }
+
+    errx(1, "Could not place item\n");
+}
+
+void *cc_hash_get(struct cc_hash *hash, uint32_t key)
+{
+    uint32_t i, pos_i;
+    for (i = 0; i < 2; ++i) {
+        pos_i = hash->hashes[i](key, hash->sizes);
+        if ((hash->keys[i][pos_i] == key) && (hash->values[i][pos_i] != NULL))
+            return hash->values[i][pos_i];
+    }
+
+    return NULL;
+}
+
+void *cc_hash_remove(struct cc_hash *hash, uint32_t key)
+{
+    uint32_t i, pos_i;
+    for (i = 0; i < 2; ++i) {
+        pos_i = hash->hashes[i](key, hash->sizes);
+        if ((hash->keys[i][pos_i] == key) && 
+            (hash->values[i][pos_i] != NULL)) {
+            void *r = hash->values[i][pos_i];
+            hash->values[i][pos_i] = NULL;
+            return r;
+        }
+    }
+
+    return NULL;
+}
+
+void cc_hash_destroy(struct cc_hash **hash)
+{
+    free((*hash)->keys[0]);
+    free((*hash)->keys[1]);
+    free((*hash)->values[0]);
+    free((*hash)->values[1]);
+    free(*hash);
+    *hash = NULL;
+}
+//}}}
+
+//{{{ lru_cache
+/*
+struct lru_cache
+{
+
+    struct cc_hash *hash_table;
+    struct linked_list_node *head, *tail;
+};
+*/
+/*
+struct linked_list_node
+{
+    void *value; 
+    struct linked_list_node *next;
+};
+*/
+
+//{{{struct lru_cache *lru_cache_init(uint32_t init_size)
+struct lru_cache *lru_cache_init(uint32_t init_size)
+{
+    struct lru_cache *lruc = (struct lru_cache *)
+            malloc(sizeof(struct lru_cache));
+    lruc->size = init_size;
+    lruc->num = 0;
+    lruc->hash_table = cc_hash_init(init_size * 2.5);
+    lruc->head = NULL;
+    lruc->tail = NULL;
+
+    return lruc;
+}
+//}}}
+
+//{{{void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
+void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
+{
+    if (cc_hash_get(lruc->hash_table, key) != NULL)
+        return;
+
+    if (lruc->num == lruc->size) {
+        // the head node is the lru
+        struct linked_list_node *to_rem_l = lruc->head;
+        lruc->head = to_rem_l->next;
+        lruc->head->prev = NULL;
+
+        struct linked_list_node *to_rem_h = 
+                (struct linked_list_node *)
+                cc_hash_remove(lruc->hash_table, to_rem_l->key);
+
+        if (to_rem_h != to_rem_l)
+            errx(1, "Inconsistency in LRU cache");
+
+        free(to_rem_l);
+        lruc->num -= 1;
+    }
+
+    struct linked_list_node *ll = (struct linked_list_node *)
+            malloc(sizeof(struct linked_list_node));
+    ll->key = key;
+    ll->prev = NULL;
+    ll->next = NULL;
+    ll->value = value;
+
+    if (lruc->head == NULL) {
+        lruc->head = ll;
+    } else {
+        ll->prev = lruc->tail;
+        lruc->tail->next = ll;
+    }
+
+    lruc->tail = ll;
+
+    int r = cc_hash_add(lruc->hash_table, key, ll);
+
+    lruc->num += 1;
+}
+//}}}
+
+//{{{void *lru_cache_get(struct lru_cache *lruc, uint32_t key)
+void *lru_cache_get(struct lru_cache *lruc, uint32_t key)
+{
+    struct linked_list_node *ll =
+        (struct linked_list_node *) cc_hash_get(lruc->hash_table, key);
+
+    if (ll == NULL)
+        return NULL;
+
+    // move this to the tail
+    if (lruc->tail != ll) {
+
+        // take ll out of the list
+        if (lruc->head == ll) 
+            lruc->head = ll->next;
+        else {
+            ll->next->prev = ll->prev;
+            ll->prev->next = ll->next;
+        }
+
+        ll->prev = lruc->tail;
+        lruc->tail->next = ll;
+        lruc->tail = ll;
+        lruc->tail->next = NULL;
+    }
+        
+    return ll->value;
+}
+//}}}
+
+//{{{void lru_cache_destroy(struct lru_cache **lruc)
+void lru_cache_destroy(struct lru_cache **lruc)
+{
+    cc_hash_destroy(&((*lruc)->hash_table));
+
+    struct linked_list_node *curr, *tmp;
+    curr = (*lruc)->head;
+
+    while (curr != NULL) {
+        tmp = curr->next;;
+        free(curr);
+        curr = tmp;
+    }
+    free(*lruc);
+    *lruc = NULL;
+}
+//}}}
+//}}}
