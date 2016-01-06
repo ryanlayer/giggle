@@ -1,5 +1,9 @@
 language: c
 
 script:
-    - cd test/unit/
+    - cd $TRAVIS_BUILD_DIR
+    - git clone https://github.com/samtools/htslib.git
+    - cd htslib
+    - make
+    - cd $TRAVIS_BUILD_DIR/test/unit/
     - make
