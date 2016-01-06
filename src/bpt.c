@@ -6,6 +6,7 @@
 #include <sysexits.h>
 #include "bpt.h"
 #include "lists.h"
+#include "ll.h"
 
 /*
  *  All bpt_nodes have an array of keys, and an array of values.
@@ -14,15 +15,31 @@
  */
 
 void (*repair)(struct bpt_node *, struct bpt_node *) = NULL;
-void (*append)(void *, void **) = NULL;
 uint32_t ORDER = 4;
+uint32_t CACHE_SIZE = 10000;
 
-//{{{ struct bpt_node *bpt_to_node(void *n)
-struct bpt_node *bpt_to_node(void *n)
-{
-    return (struct bpt_node*)n;
-}
-//}}}
+/*
+struct cache_def cache = {
+    NULL,
+    lru_cache_init,
+    lru_cache_seen,
+    lru_cache_add,
+    lru_cache_get,
+    lru_cache_remove,
+    lru_cache_destroy
+};
+*/
+
+struct cache_def cache = {
+    NULL,
+    simple_cache_init,
+    simple_cache_seen,
+    simple_cache_add,
+    simple_cache_get,
+    NULL,
+    simple_cache_destroy
+};
+
 
 //{{{int b_search(int key, int *D, int D_size)
 int b_search(uint32_t key, uint32_t *D, uint32_t D_size)
@@ -43,292 +60,379 @@ int b_search(uint32_t key, uint32_t *D, uint32_t D_size)
 //{{{ struct bpt_node *bpt_new_node()
 struct bpt_node *bpt_new_node()
 {
+    if (cache.cache == NULL) {
+        cache.cache = cache.init(CACHE_SIZE);
+    }
+
     struct bpt_node *n = (struct bpt_node *)malloc(sizeof(struct bpt_node));
-    n->parent = NULL;
-    n->keys = (uint32_t *) 
-            malloc( (ORDER+1) * sizeof(uint32_t)); //adding one help bpt_insert
-    n->num_keys = 0;
-    n->is_leaf = 0;
-    n->flags = 0;
-    n->pointers = (void **) malloc((ORDER+2) * sizeof(void *));
-    n->next = NULL;
-    n->leading = NULL;
+    n->data = (uint32_t *)calloc(2*ORDER+9, sizeof(uint32_t));
+
+    BPT_ID(n) = cache.seen(cache.cache) + 1;
+
+    cache.add(cache.cache, BPT_ID(n), n, bpt_free_node);
 
     return n;
 }
 //}}}
 
-//{{{ struct bpt_node *bpt_find_leaf(struct bpt_node *curr, int key)
-struct bpt_node *bpt_find_leaf(struct bpt_node *curr, uint32_t key)
+//{{{struct bpt_node *bpt_copy_node(uint32_t *data)
+struct bpt_node *bpt_copy_node(uint32_t *data)
 {
-    if (curr == NULL)
-        return NULL;
+    struct bpt_node *n = bpt_new_node();
+    memcpy(n->data, data, BPT_NODE_SIZE);
 
-    while (curr->is_leaf != 1) {
+    return n;
+}
+//}}}
+
+//{{{void bpt_free_node(struct bpt_node **n)
+void bpt_free_node(void **v)
+{
+    struct bpt_node **n = (struct bpt_node **) v;
+    //fprintf(stderr, "<-- %u\n", BPT_ID(*n));
+    free((*n)->data);
+    free(*n);
+    *n = NULL;
+}
+//}}}
+
+//{{{ struct bpt_node *bpt_find_leaf(struct bpt_node *curr, int key)
+uint32_t bpt_find_leaf(uint32_t curr_id, uint32_t key)
+{
+    //struct bpt_node *curr = lru_cache_get(cache, curr_id);
+    struct bpt_node *curr = cache.get(cache.cache, curr_id);
+    if (curr == NULL)
+        return 0;
+
+    while (BPT_IS_LEAF(curr) != 1) {
         int i = bpt_find_insert_pos(curr, key);
-        if ((i < curr->num_keys) && (curr->keys[i] == key))
+
+        if ((i < BPT_NUM_KEYS(curr)) && (BPT_KEYS(curr)[i] == key))
             i+=1;
-        curr = (struct bpt_node *)curr->pointers[i];
+        //curr = lru_cache_get(cache, BPT_POINTERS(curr)[i]);
+        curr = cache.get(cache.cache, BPT_POINTERS(curr)[i]);
     }
-    return curr;
+    return BPT_ID(curr);
 }
 //}}}
 
 //{{{int bpt_find_insert_pos(struct bpt_node *leaf, int key)
 int bpt_find_insert_pos(struct bpt_node *leaf, uint32_t key)
 {
-    return b_search(key, leaf->keys, leaf->num_keys);
+    return b_search(key, BPT_KEYS(leaf), BPT_NUM_KEYS(leaf));
 }
 //}}}
 
-//{{{struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
-struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
-                                         struct bpt_node **target_bpt_node,
-                                         int *target_key_pos,
-                                         uint32_t key,
-                                         void *value)
-{
-    int bpt_insert_key_pos = bpt_find_insert_pos(*target_bpt_node, key);
-
-    int bpt_insert_value_pos = bpt_insert_key_pos;
-
-    if ((*target_bpt_node)->is_leaf == 0)
-        bpt_insert_value_pos += 1;
-
-    if ((*target_bpt_node)->is_leaf == 1)
-        *target_key_pos = bpt_insert_key_pos;
-
-
-    if (((*target_bpt_node)->is_leaf == 1) &&
-         (*target_key_pos < ((*target_bpt_node)->num_keys)) &&
-        ((*target_bpt_node)->keys[*target_key_pos] == key )) {
-
-        if (append != NULL)
-            append(value, &((*target_bpt_node)->pointers[*target_key_pos]));
-        else
-            (*target_bpt_node)->pointers[*target_key_pos] = value;
-
-        return root;
-    }
-
-    // move everything over
-    int i;
-
-#if DEBUG
-    fprintf(stderr, "bpt_place_new_key_value:\t"
-                    "target_bpt_node:%p\t"
-                    "target_bpt_node->num_keys:%d\t"
-                    "bpt_insert_key_pos:%d\t"
-                    "target_bpt_node->is_leaf:%d\n",
-                    *target_bpt_node,
-                    (*target_bpt_node)->num_keys,
-                    bpt_insert_key_pos,
-                    (*target_bpt_node)->is_leaf
-                    );
-#endif
-
-    for (i = (*target_bpt_node)->num_keys; i > bpt_insert_key_pos; --i) {
-#if DEBUG
-        fprintf(stderr, "bpt_place_new_key_value:\ti:%d\tk:%d\n", 
-                        i,
-                        (*target_bpt_node)->keys[i-1]);
-#endif
-        (*target_bpt_node)->keys[i] = (*target_bpt_node)->keys[i-1];
-    }
-
-    if ((*target_bpt_node)->is_leaf == 1) {
-        for (i = (*target_bpt_node)->num_keys; i > bpt_insert_value_pos; --i) 
-            (*target_bpt_node)->pointers[i] = (*target_bpt_node)->pointers[i-1];
-    } else {
-        for (i = (*target_bpt_node)->num_keys+1; i > bpt_insert_value_pos; --i) {
-
-#if DEBUG
-            fprintf(stderr, "bpt_place_new_key_value:\ti:%d\tv:%p\n", 
-                            i,
-                            (*target_bpt_node)->pointers[i-1]);
-#endif
-
-            (*target_bpt_node)->pointers[i] = (*target_bpt_node)->pointers[i-1];
-        }
-    }
-
-
-#if DEBUG
-    fprintf(stderr, "bpt_place_new_key_value:\ti:%d\tkey:%d\n",
-                    bpt_insert_key_pos,
-                    key);
-    fprintf(stderr, "bpt_place_new_key_value:\ti:%d\tvalue:%p\n",
-                    bpt_insert_value_pos,
-                    value);
-#endif
-
-    (*target_bpt_node)->keys[bpt_insert_key_pos] = key;
-    (*target_bpt_node)->pointers[bpt_insert_value_pos] = value;
-
-    (*target_bpt_node)->num_keys += 1;
-
-    // If there are now too many values in the bpt_node, split it
-    if ((*target_bpt_node)->num_keys > ORDER) {
-        struct bpt_node *lo_result_bpt_node = NULL, *hi_result_bpt_node = NULL;
-        int lo_hi_split_point = 0;
-        struct bpt_node *r = bpt_split_node(root,
-                                            *target_bpt_node,
-                                            &lo_result_bpt_node,
-                                            &hi_result_bpt_node,
-                                            &lo_hi_split_point,
-                                            repair);
-        if ((*target_bpt_node)->is_leaf) {
-            if (bpt_insert_key_pos < lo_hi_split_point)
-                *target_bpt_node = lo_result_bpt_node;
-            else {
-                *target_bpt_node = hi_result_bpt_node;
-                *target_key_pos = bpt_insert_key_pos - lo_hi_split_point;
-            }
-        }
-
-        return r;
-    } else {
-        return root;
-    }
-}
-//}}}
-
-//{{{struct bpt_node *bpt_split_node(struct bpt_node *root, struct bpt_node *bpt_node)
-struct bpt_node *bpt_split_node(struct bpt_node *root,
-                        struct bpt_node *bpt_node,
-                        struct bpt_node **lo_result_bpt_node,
-                        struct bpt_node **hi_result_bpt_node,
+//{{{struct bpt_node *bpt_split_node(struct bpt_node *root, struct bpt_node
+uint32_t bpt_split_node(uint32_t root_id,
+                        uint32_t bpt_node_id,
+                        uint32_t *lo_result_id,
+                        uint32_t *hi_result_id,
                         int *lo_hi_split_point,
                         void (*repair)(struct bpt_node *, struct bpt_node *))
-{
 
+{
 #if DEBUG
-    fprintf(stderr, "bpt_split_node():\n");
+    {
+        fprintf(stderr, "bpt_split_node\n");
+        fprintf(stderr, "root_id:%u\tbpt_node_id:%u\n", root_id, bpt_node_id);
+    }
 #endif
 
+    //struct bpt_node *bpt_node = lru_cache_get(cache, bpt_node_id);
+    struct bpt_node *bpt_node = cache.get(cache.cache, bpt_node_id);
     struct bpt_node *n = bpt_new_node();
 
 #if DEBUG
-    fprintf(stderr, "bpt_split_node():\tbpt_new_node:%p\n", n);
+    {
+        int i;
+        fprintf(stderr, "keys\t");
+        for (i = 0; i < BPT_NUM_KEYS(bpt_node); ++i)
+            fprintf(stderr, "%u\t", BPT_KEYS(bpt_node)[i]);
+        fprintf(stderr, "\n");
+    }
 #endif
 
     // set the split location
     int split_point = (ORDER + 1)/2;
 
-    *lo_result_bpt_node = bpt_node;
-    *hi_result_bpt_node = n;
+    *lo_result_id = BPT_ID(bpt_node);
+    *hi_result_id = BPT_ID(n);
     *lo_hi_split_point = split_point;
 
     // copy the 2nd 1/2 of the values over to the new bpt_node
     int bpt_node_i, new_bpt_node_i = 0;
-    for (bpt_node_i = split_point; bpt_node_i < bpt_node->num_keys; ++bpt_node_i) {
-        n->keys[new_bpt_node_i] = bpt_node->keys[bpt_node_i];
-        n->pointers[new_bpt_node_i] = bpt_node->pointers[bpt_node_i];
-        n->num_keys += 1;
+    for (bpt_node_i = split_point;
+         bpt_node_i < BPT_NUM_KEYS(bpt_node);
+         ++bpt_node_i) {
+
+        BPT_KEYS(n)[new_bpt_node_i] = BPT_KEYS(bpt_node)[bpt_node_i];
+        BPT_POINTERS(n)[new_bpt_node_i] = BPT_POINTERS(bpt_node)[bpt_node_i];
+        BPT_NUM_KEYS(n) += 1;
         new_bpt_node_i += 1;
     }
 
     // if the bpt_node is not a leaf, the far right pointer must be coppied too
-    if (bpt_node->is_leaf == 0) {
-        n->pointers[new_bpt_node_i] = bpt_node->pointers[bpt_node_i];
-        n->pointers[0] = NULL;
+    if (BPT_IS_LEAF(bpt_node) == 0) {
+        BPT_POINTERS(n)[new_bpt_node_i] = BPT_POINTERS(bpt_node)[bpt_node_i];
+        BPT_POINTERS(n)[0] = 0;
     }
 
     // set status of new bpt_node
-    n->is_leaf = bpt_node->is_leaf;
-    n->parent = bpt_node->parent;
+    BPT_IS_LEAF(n) = BPT_IS_LEAF(bpt_node);
+    BPT_PARENT(n) = BPT_PARENT(bpt_node);
 
-    bpt_node->num_keys = split_point;
+    BPT_NUM_KEYS(bpt_node) = split_point;
 
-    if (bpt_node->is_leaf == 0) {
-#if DEBUG
-        fprintf(stderr, "bpt_split_node():\tsplit non-leaf\n");
-#endif
+    if (BPT_IS_LEAF(bpt_node) == 0) {
         // if the bpt_node is not a leaf, then update the parent pointer of the 
         // children
-        for (bpt_node_i = 1; bpt_node_i <= n->num_keys; ++bpt_node_i) 
-            ( (struct bpt_node *)n->pointers[bpt_node_i])->parent = n;
+        for (bpt_node_i = 1; bpt_node_i <= BPT_NUM_KEYS(n); ++bpt_node_i) {
+            //struct bpt_node *child = lru_cache_get(cache,
+                            //BPT_POINTERS(n)[bpt_node_i]);
+            struct bpt_node *child = cache.get(cache.cache,
+                                               BPT_POINTERS(n)[bpt_node_i]);
+            BPT_PARENT(child) = BPT_ID(n);
+        }
     } else {
         // if the bpt_node is a leaf, then connect the two
-        n->next = bpt_node->next;
-        bpt_node->next = n;
-
-#if DEBUG
-        fprintf(stderr,
-                "bpt_split_node():\tsplit leaf old->next:%p new->next:%p\n",
-                bpt_node->next,
-                n->next);
-#endif
+        BPT_NEXT(n)= BPT_NEXT(bpt_node);
+        BPT_NEXT(bpt_node) = BPT_ID(n);
     }
 
     if (repair != NULL) {
         repair(bpt_node, n);
     }
 
-    if (bpt_node == root) {
-#if DEBUG
-            fprintf(stderr, "bpt_split_node():\tsplit root\tk:%d\n", n->keys[0]);
-#endif
-
+    if (BPT_ID(bpt_node) == root_id) {
         // if we just split the root, create a new root witha single value
         struct bpt_node *new_root = bpt_new_node();
-        new_root->is_leaf = 0;
-        new_root->keys[0] = n->keys[0];
-        new_root->pointers[0] = (void *)bpt_node; 
-        new_root->pointers[1] = (void *)n; 
-        new_root->num_keys += 1;
-        bpt_node->parent = new_root;
-        n->parent = new_root;
-        return new_root;
+        BPT_IS_LEAF(new_root) = 0;
+        BPT_NUM_KEYS(new_root) += 1;
+        BPT_KEYS(new_root)[0] = BPT_KEYS(n)[0];
+        BPT_POINTERS(new_root)[0] = BPT_ID(bpt_node); 
+        BPT_POINTERS(new_root)[1] = BPT_ID(n); 
+        BPT_PARENT(bpt_node) = BPT_ID(new_root);
+        BPT_PARENT(n) = BPT_ID(new_root);
+        return BPT_ID(new_root);
     } else {
-#if DEBUG
-            fprintf(stderr, "bpt_split_node():\tsplit non-root\n");
-#endif
-        // if we didnt split the root, place the new value in the parent bpt_node
-        return bpt_place_new_key_value(root,
-                                       &(bpt_node->parent),
-                                       NULL,
-                                       n->keys[0],
-                                       (void *)n);
+        // if we didnt split the root, place the new value in the parent
+        // bpt_node
+        int trash_pos;
+        uint32_t parent_id =  BPT_PARENT(bpt_node);
+        return bpt_place_new_key_value(root_id,
+                                       &parent_id,
+                                       &trash_pos,
+                                       BPT_KEYS(n)[0],
+                                       BPT_ID(n));
     }
 }
 //}}}
 
-//{{{struct bpt_node *bpt_insert(struct bpt_node *root, int key, void *value)
-struct bpt_node *bpt_insert(struct bpt_node *root,
-                            uint32_t key,
-                            void *value,
-                            struct bpt_node **leaf,
-                            int *pos)
+//{{{struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
+uint32_t bpt_place_new_key_value(uint32_t root_id,
+                                 uint32_t *target_id,
+                                 int *target_key_pos,
+                                 uint32_t key,
+                                 uint32_t value_id)
 {
-
 #if DEBUG
-    fprintf(stderr, "bpt_insert():\tk:%d\n", key);
+    {
+        fprintf(stderr, "bpt_place_new_key_value\n");
+        fprintf(stderr,
+                "root_id:%u\ttarget_id:%u\tkey:%u\n",
+                root_id,
+                *target_id,
+                key);
+    }
 #endif
 
-    if (root == NULL) {
-        root = bpt_new_node();
-        root->is_leaf = 1;
-        root->keys[0] = key;
-        root->pointers[0] = value;
-        root->num_keys += 1;
+    //struct bpt_node *target_bpt_node = lru_cache_get(cache, *target_id);
+    struct bpt_node *target_bpt_node = cache.get(cache.cache, *target_id);
 
-        *leaf = root;
+#if DEBUG
+    {
+        int i;
+        fprintf(stderr, "keys\t");
+        for (i = 0; i < BPT_NUM_KEYS(target_bpt_node); ++i)
+            fprintf(stderr, "%u\t", BPT_KEYS(target_bpt_node)[i]);
+        fprintf(stderr, "\n");
+    }
+#endif
+
+    int bpt_insert_key_pos = bpt_find_insert_pos(target_bpt_node, key);
+
+    int bpt_insert_value_pos = bpt_insert_key_pos;
+
+    if (BPT_IS_LEAF(target_bpt_node) == 0)
+        bpt_insert_value_pos += 1;
+
+    if (BPT_IS_LEAF(target_bpt_node) == 1)
+        *target_key_pos = bpt_insert_key_pos;
+
+
+    if ((BPT_IS_LEAF(target_bpt_node) == 1) &&
+         (*target_key_pos < (BPT_NUM_KEYS(target_bpt_node))) &&
+        (BPT_KEYS(target_bpt_node)[*target_key_pos] == key )) {
+
+        // If the append function is NULL assume overwrite
+        if (append != NULL)
+            append(value_id, BPT_POINTERS(target_bpt_node)[*target_key_pos]);
+        else
+            BPT_POINTERS(target_bpt_node)[*target_key_pos] = value_id;
+
+        return root_id;
+    }
+
+    // move everything over
+    int i;
+    for (i = BPT_NUM_KEYS(target_bpt_node); i > bpt_insert_key_pos; --i) {
+        BPT_KEYS(target_bpt_node)[i] = BPT_KEYS(target_bpt_node)[i-1];
+    }
+
+    if (BPT_IS_LEAF(target_bpt_node) == 1) {
+        for (i = BPT_NUM_KEYS(target_bpt_node); i > bpt_insert_value_pos; --i) 
+            BPT_POINTERS(target_bpt_node)[i] = 
+                    BPT_POINTERS(target_bpt_node)[i-1];
+    } else {
+        for (i = BPT_NUM_KEYS(target_bpt_node)+1;
+             i > bpt_insert_value_pos;
+             --i) {
+            BPT_POINTERS(target_bpt_node)[i] = 
+                    BPT_POINTERS(target_bpt_node)[i-1];
+        }
+    }
+
+#if DEBUG
+    {
+        fprintf(stderr,
+                "bpt_insert_key_pos:%u\tbpt_insert_value_pos:%u\n",
+                bpt_insert_key_pos,
+                bpt_insert_value_pos);
+    }
+#endif
+
+    BPT_KEYS(target_bpt_node)[bpt_insert_key_pos] = key;
+    BPT_POINTERS(target_bpt_node)[bpt_insert_value_pos] = value_id;
+
+    BPT_NUM_KEYS(target_bpt_node) += 1;
+
+    // If there are now too many values in the bpt_node, split it
+    if (BPT_NUM_KEYS(target_bpt_node) > ORDER) {
+        uint32_t lo_result_id, hi_result_id;
+        int lo_hi_split_point = 0;
+        uint32_t new_root_id = bpt_split_node(root_id,
+                                              BPT_ID(target_bpt_node),
+                                              &lo_result_id,
+                                              &hi_result_id,
+                                              &lo_hi_split_point,
+                                              repair);
+
+        //target_bpt_node = lru_cache_get(cache, *target_id);
+        target_bpt_node = cache.get(cache.cache, *target_id);
+
+        if (BPT_IS_LEAF(target_bpt_node)) {
+            if (bpt_insert_key_pos < lo_hi_split_point)
+                *target_id = lo_result_id;
+            else {
+                *target_id = hi_result_id;
+                *target_key_pos = bpt_insert_key_pos - lo_hi_split_point;
+            }
+        }
+
+        return new_root_id;
+    } else {
+        return root_id;
+    }
+}
+//}}}
+
+//{{{ uint32_t bpt_insert(uint32_t root_id,
+uint32_t bpt_insert(uint32_t root_id,
+                    uint32_t key,
+                    uint32_t value_id,
+                    uint32_t *leaf_id,
+                    int *pos)
+{
+    if (root_id == 0) {
+        struct bpt_node *root = bpt_new_node();
+        BPT_IS_LEAF(root) = 1;
+        BPT_KEYS(root)[0] = key;
+        BPT_POINTERS(root)[0] = value_id;
+        BPT_NUM_KEYS(root) += 1;
+
+        *leaf_id = BPT_ID(root);
         *pos = 0;
 
-        return root;
+        return BPT_ID(root);
     } else {
-        *leaf = bpt_find_leaf(root, key);
+        *leaf_id = bpt_find_leaf(root_id, key);
+
 #if DEBUG
-        fprintf(stderr, "bpt_insert():\tleaf:%p\n", *leaf);
+        {
+            fprintf(stderr, "root_id:%u\tleaf_id:%u\n", root_id, *leaf_id);
+        }
 #endif
-        root = bpt_place_new_key_value(root,
-                                   leaf,
-                                   pos,
-                                   key,
-                                   value);
-        return root;
+
+        root_id = bpt_place_new_key_value(root_id,
+                                          leaf_id,
+                                          pos,
+                                          key,
+                                          value_id);
+        return root_id;
     }
+}
+//}}}
+
+//{{{uint32_t bpt_insert_new_value(uint32_t root_id,
+uint32_t bpt_insert_new_value(uint32_t root_id,
+                              uint32_t key,
+                              void *value,
+                              void (*free_value)(void **data),
+                              uint32_t *value_id,
+                              uint32_t *leaf_id,
+                              int *pos)
+{
+    //*value_id = cache->seen + 1;
+    *value_id = cache.seen(cache.cache) + 1;
+    //lru_cache_add(cache, *value_id, value, free_value);
+    cache.add(cache.cache, *value_id, value, free_value);
+    return bpt_insert(root_id, key, *value_id, leaf_id, pos);
+}
+//}}}
+
+//{{{ uint32_t bpt_find(uint32_t root_id,
+uint32_t bpt_find(uint32_t root_id,
+                  uint32_t *leaf_id,
+                  int *pos,
+                  uint32_t key) 
+{
+    if (root_id == 0)
+        return 0;
+
+    *leaf_id = bpt_find_leaf(root_id, key);
+    //struct bpt_node *leaf = lru_cache_get(cache, *leaf_id);
+    struct bpt_node *leaf = cache.get(cache.cache, *leaf_id);
+
+    int bpt_insert_key_pos = bpt_find_insert_pos(leaf, key);
+
+
+    *pos = bpt_insert_key_pos;
+    if ((bpt_insert_key_pos + 1) > BPT_NUM_KEYS(leaf)) 
+        return 0;
+    else if (key != BPT_KEYS(leaf)[bpt_insert_key_pos])
+        return 0;
+    else {
+        return BPT_POINTERS(leaf)[bpt_insert_key_pos];
+    }
+}
+//}}}
+
+#if 0
+//{{{ struct bpt_node *bpt_to_node(void *n)
+struct bpt_node *bpt_to_node(void *n)
+{
+    return (struct bpt_node*)n;
 }
 //}}}
 
@@ -407,42 +511,6 @@ void print_values(struct bpt_node *root)
             curr = curr->next;
     }
     printf("\n");
-}
-//}}}
-
-//{{{ void *bpt_find(struct bpt_node *root, struct bpt_node **leaf, uint32_t
-void *bpt_find(struct bpt_node *root,
-               struct bpt_node **leaf,
-               int *pos,
-               uint32_t key) 
-{
-#if DEBUG
-    fprintf(stderr, "bpt_find\n");
-#endif
-
-    if (root == NULL)
-        return NULL;
-
-    *leaf = bpt_find_leaf(root, key);
-    int bpt_insert_key_pos = bpt_find_insert_pos(*leaf, key);
-
-#if DEBUG
-    fprintf(stderr,
-            "key:%d pos:%d num_key:%d\n",
-            key,
-            bpt_insert_key_pos,
-            (*leaf)->num_keys);
-#endif
-
-    *pos = bpt_insert_key_pos;
-    if ((bpt_insert_key_pos + 1) > (*leaf)->num_keys) 
-
-        return NULL;
-    else if (key != (*leaf)->keys[bpt_insert_key_pos])
-        return NULL;
-    else {
-        return (*leaf)->pointers[bpt_insert_key_pos];
-    }
 }
 //}}}
 
@@ -727,6 +795,8 @@ void bpt_write_tree(struct bpt_node *root,
 }
 //}}}
 
+#endif
+
 #if 0
 //{{{void store(struct bpt_node *root, char *file_name)
 void store(struct bpt_node *root, char *file_name)
@@ -735,6 +805,205 @@ void store(struct bpt_node *root, char *file_name)
 
     if (!f)
         err(EX_IOERR, "Could not write to '%s'.", file_name);
+}
+//}}}
+//{{{struct bpt_node *bpt_split_node(struct bpt_node *root, struct bpt_node *bpt_node)
+
+/*
+struct bpt_node *bpt_split_node(struct bpt_node *root,
+                                struct bpt_node *bpt_node,
+                                struct bpt_node **lo_result_bpt_node,
+                                struct bpt_node **hi_result_bpt_node,
+                                int *lo_hi_split_point,
+                                void (*repair)(struct bpt_node *,
+                                               struct bpt_node *))
+*/
+uint32_t bpt_split_node(struct bpt_node *root,
+                        struct bpt_node *bpt_node,
+                        struct bpt_node **lo_result_bpt_node,
+                        struct bpt_node **hi_result_bpt_node,
+                        int *lo_hi_split_point,
+                        void (*repair)(struct bpt_node *, struct bpt_node *))
+
+{
+
+#if DEBUG
+    fprintf(stderr, "bpt_split_node():\n");
+#endif
+
+    struct bpt_node *n = bpt_new_node();
+
+#if DEBUG
+    fprintf(stderr, "bpt_split_node():\tbpt_new_node:%p\n", n);
+#endif
+
+    // set the split location
+    int split_point = (ORDER + 1)/2;
+
+    *lo_result_bpt_node = bpt_node;
+    *hi_result_bpt_node = n;
+    *lo_hi_split_point = split_point;
+
+    // copy the 2nd 1/2 of the values over to the new bpt_node
+    int bpt_node_i, new_bpt_node_i = 0;
+    for (bpt_node_i = split_point;
+         bpt_node_i < BPT_NUM_KEYS(bpt_node);
+         ++bpt_node_i) {
+
+        BPT_KEYS(n)[new_bpt_node_i] = BPT_KEYS(bpt_node)[bpt_node_i];
+        BPT_POINTERS(n)[new_bpt_node_i] = BPT_POINTERS(bpt_node)[bpt_node_i];
+        BPT_NUM_KEYS(n) += 1;
+        new_bpt_node_i += 1;
+    }
+
+    // if the bpt_node is not a leaf, the far right pointer must be coppied too
+    if (BPT_IS_LEAF(bpt_node) == 0) {
+        BPT_POINTERS(n)[new_bpt_node_i] = BPT_POINTERS(bpt_node)[bpt_node_i];
+        BPT_POINTERS(n)[0] = 0;
+    }
+
+    // set status of new bpt_node
+    BPT_IS_LEAF(n) = BPT_IS_LEAF(bpt_node);
+    BPT_PARENT(n) = BPT_PARENT(bpt_node);
+
+    BPT_NUM_KEYS(bpt_node) = split_point;
+
+    if (BPT_IS_LEAF(bpt_node) == 0) {
+#if DEBUG
+        fprintf(stderr, "bpt_split_node():\tsplit non-leaf\n");
+#endif
+        // if the bpt_node is not a leaf, then update the parent pointer of the 
+        // children
+        for (bpt_node_i = 1; bpt_node_i <= BPT_NUM_KEYS(n); ++bpt_node_i) {
+            //( (struct bpt_node *)n->pointers[bpt_node_i])->parent = n;
+            struct bpt_node *child = lru_cache_get(cache,
+                                                   BPT_POINTERS(v)[bpt_node_i]);
+            BPT_PARENT(child) = BPT_ID(n);
+        }
+    } else {
+        // if the bpt_node is a leaf, then connect the two
+        BPT_NEXT(n)= BPT_NEXT(bpt_node);
+        BPT_NEXT(bpt_node) = BPT_ID(n);
+
+#if DEBUG
+        fprintf(stderr,
+                "bpt_split_node():\tsplit leaf old->next:%p new->next:%p\n",
+                BPT_NEXT(bpt_node),
+                BPT_NEXT(n));
+#endif
+    }
+
+    if (repair != NULL) {
+        repair(bpt_node, n);
+    }
+
+    if (bpt_node == root) {
+#if DEBUG
+            fprintf(stderr,
+                    "bpt_split_node():\tsplit root\tk:%d\n",
+                    BPT_KEYS(n)[0]);
+#endif
+        // if we just split the root, create a new root witha single value
+        struct bpt_node *new_root = bpt_new_node();
+        BPT_IS_LEAF(new_root) = 0;
+        BPT_NUM_KEYS(new_root) += 1;
+        BPT_KEYS(new_root)[0] = BPT_KEYS(n)[0];
+        BPT_POINTERS(new_root)[0] = BPT_ID(bpt_node); 
+        BPT_POINTERS(new_root)[1] = BPT_ID(n); 
+        BPT_PARENT(bpt_node) = BPT_ID(new_root);
+        BPT_PARENT(n) = BPT_ID(new_root);
+        return new_root;
+    } else {
+#if DEBUG
+            fprintf(stderr, "bpt_split_node():\tsplit non-root\n");
+#endif
+        // if we didnt split the root, place the new value in the parent
+        // bpt_node
+        return bpt_place_new_key_value(root,
+                                       BPT_PARENT(bpt_node),
+                                       NULL,
+                                       BPT_KEYS(n)[0],
+                                       BPT_ID(n));
+    }
+}
+//}}}
+//{{{struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
+struct bpt_node *bpt_place_new_key_value(struct bpt_node *root,
+                                         struct bpt_node **target_bpt_node,
+                                         int *target_key_pos,
+                                         uint32_t key,
+                                         void *value)
+{
+    int bpt_insert_key_pos = bpt_find_insert_pos(*target_bpt_node, key);
+
+    int bpt_insert_value_pos = bpt_insert_key_pos;
+
+    if ((*target_bpt_node)->is_leaf == 0)
+        bpt_insert_value_pos += 1;
+
+    if ((*target_bpt_node)->is_leaf == 1)
+        *target_key_pos = bpt_insert_key_pos;
+
+
+    if (((*target_bpt_node)->is_leaf == 1) &&
+         (*target_key_pos < ((*target_bpt_node)->num_keys)) &&
+        ((*target_bpt_node)->keys[*target_key_pos] == key )) {
+
+        if (append != NULL)
+            append(value, &((*target_bpt_node)->pointers[*target_key_pos]));
+        else
+            (*target_bpt_node)->pointers[*target_key_pos] = value;
+
+        return root;
+    }
+
+    // move everything over
+    int i;
+
+
+    for (i = (*target_bpt_node)->num_keys; i > bpt_insert_key_pos; --i) {
+        (*target_bpt_node)->keys[i] = (*target_bpt_node)->keys[i-1];
+    }
+
+    if ((*target_bpt_node)->is_leaf == 1) {
+        for (i = (*target_bpt_node)->num_keys; i > bpt_insert_value_pos; --i) 
+            (*target_bpt_node)->pointers[i] = (*target_bpt_node)->pointers[i-1];
+    } else {
+        for (i = (*target_bpt_node)->num_keys+1;
+             i > bpt_insert_value_pos;
+             --i) {
+            (*target_bpt_node)->pointers[i] = (*target_bpt_node)->pointers[i-1];
+        }
+    }
+
+    (*target_bpt_node)->keys[bpt_insert_key_pos] = key;
+    (*target_bpt_node)->pointers[bpt_insert_value_pos] = value;
+
+    (*target_bpt_node)->num_keys += 1;
+
+    // If there are now too many values in the bpt_node, split it
+    if ((*target_bpt_node)->num_keys > ORDER) {
+        struct bpt_node *lo_result_bpt_node = NULL, *hi_result_bpt_node = NULL;
+        int lo_hi_split_point = 0;
+        struct bpt_node *r = bpt_split_node(root,
+                                            *target_bpt_node,
+                                            &lo_result_bpt_node,
+                                            &hi_result_bpt_node,
+                                            &lo_hi_split_point,
+                                            repair);
+        if ((*target_bpt_node)->is_leaf) {
+            if (bpt_insert_key_pos < lo_hi_split_point)
+                *target_bpt_node = lo_result_bpt_node;
+            else {
+                *target_bpt_node = hi_result_bpt_node;
+                *target_key_pos = bpt_insert_key_pos - lo_hi_split_point;
+            }
+        }
+
+        return r;
+    } else {
+        return root;
+    }
 }
 //}}}
 #endif

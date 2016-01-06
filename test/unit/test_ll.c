@@ -25,7 +25,7 @@ void test_uint32_t_ll_append(void)
     TEST_ASSERT_EQUAL(2, ll->head->next->val);
     TEST_ASSERT_EQUAL(5, ll->head->next->next->val);
 
-    uint32_t_ll_free(&ll);
+    uint32_t_ll_free((void **)&ll);
 
     TEST_ASSERT_EQUAL(NULL, ll);
 }
@@ -64,7 +64,7 @@ void test_uint32_t_ll_remove(void)
     uint32_t_ll_remove(&ll, 1);
     TEST_ASSERT_EQUAL(NULL, ll);
 
-    uint32_t_ll_free(&ll);
+    uint32_t_ll_free((void **)&ll);
 
     TEST_ASSERT_EQUAL(NULL, ll);
 }
@@ -97,7 +97,7 @@ void test_uint32_t_ll_contains(void)
 
     TEST_ASSERT_EQUAL(0, uint32_t_ll_contains(ll, 7));
 
-    uint32_t_ll_free(&ll);
+    uint32_t_ll_free((void **)&ll);
 
 }
 //}}}

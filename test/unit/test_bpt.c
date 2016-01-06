@@ -62,199 +62,366 @@ void test_b_search(void)
 }
 //}}}
 
+//{{{void test_bpt_node_macros(void)
+void test_bpt_node_macros(void)
+{
+    struct bpt_node *node = (struct bpt_node *)malloc(sizeof(struct bpt_node));
+
+    uint32_t data[17] = {1,  // id
+                         0,  // parent
+                         0,  // is_leaf
+                         0,  // leading
+                         0,  // next
+                         2,  // num_keys
+                         2, 3, 0, 0, 0,  // keys (ORDER = 4)
+                         5, 6, 7, 0, 0, 0}; //pointers (ORDER = 4)
+    node->data = data;
+
+    TEST_ASSERT_EQUAL(node->data[0], BPT_ID(node));
+    TEST_ASSERT_EQUAL(node->data[1], BPT_PARENT(node));
+    TEST_ASSERT_EQUAL(node->data[2], BPT_IS_LEAF(node));
+    TEST_ASSERT_EQUAL(node->data[3], BPT_LEADING(node));
+    TEST_ASSERT_EQUAL(node->data[4], BPT_NEXT(node));
+    TEST_ASSERT_EQUAL(node->data[5], BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(node->data + 6, BPT_KEYS(node));
+    TEST_ASSERT_EQUAL(node->data + 6 + ORDER + 1, BPT_POINTERS(node));
+
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(0, BPT_KEYS(node)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_KEYS(node)[3]);
+    TEST_ASSERT_EQUAL(0, BPT_KEYS(node)[4]);
+
+    TEST_ASSERT_EQUAL(5, BPT_POINTERS(node)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_POINTERS(node)[1]);
+    TEST_ASSERT_EQUAL(7, BPT_POINTERS(node)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[3]);
+    TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[4]);
+    TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[5]);
+
+    BPT_KEYS(node)[3] = 10;
+    TEST_ASSERT_EQUAL(10, BPT_KEYS(node)[3]);
+
+    BPT_ID(node) = 2;
+    TEST_ASSERT_EQUAL(2, BPT_ID(node));
+
+    ORDER=5;
+
+    uint32_t data2[19] = {1,
+                          0,  // parent
+                          0,  // is_leaf
+                          0,  // leading
+                          0,  // next
+                          2,  // num_keys
+                          2, 3, 0, 0, 0, 0,  // keys (ORDER = 4)
+                          5, 6, 7, 0, 0, 0, 0}; //pointers (ORDER = 4)
+
+    node->data = data2;
+
+    TEST_ASSERT_EQUAL(node->data[0], BPT_ID(node));
+    TEST_ASSERT_EQUAL(node->data[1], BPT_PARENT(node));
+    TEST_ASSERT_EQUAL(node->data[2], BPT_IS_LEAF(node));
+    TEST_ASSERT_EQUAL(node->data[3], BPT_LEADING(node));
+    TEST_ASSERT_EQUAL(node->data[4], BPT_NEXT(node));
+    TEST_ASSERT_EQUAL(node->data[5], BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(node->data + 6, BPT_KEYS(node));
+    TEST_ASSERT_EQUAL(node->data + 6 + ORDER + 1, BPT_POINTERS(node));
+
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(0, BPT_KEYS(node)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_KEYS(node)[3]);
+    TEST_ASSERT_EQUAL(0, BPT_KEYS(node)[4]);
+
+    TEST_ASSERT_EQUAL(5, BPT_POINTERS(node)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_POINTERS(node)[1]);
+    TEST_ASSERT_EQUAL(7, BPT_POINTERS(node)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[3]);
+    TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[4]);
+    TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[5]);
+
+}
+//}}}
+
 //{{{ void test_bpt_new_node(void)
 void test_bpt_new_node(void)
 {
     struct bpt_node *n = bpt_new_node();
-    TEST_ASSERT_EQUAL(NULL, n->parent);
-    TEST_ASSERT_EQUAL(0, n->num_keys);
-    TEST_ASSERT_EQUAL(0, n->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, n->next);
-    free(n->keys);
-    free(n->pointers);
-    free(n);
+    TEST_ASSERT_EQUAL(1, BPT_ID(n));
+    //TEST_ASSERT_EQUAL(1, cache.seen(cache.cache));
+    TEST_ASSERT_EQUAL(1, cache.seen(cache.cache));
+
+    //struct bpt_node *r = lru_cache_get(cache, 1);
+    struct bpt_node *r = cache.get(cache.cache, 1);
+    TEST_ASSERT_EQUAL(n, r);
+
+    //r = lru_cache_get(cache, 2);
+    r = cache.get(cache.cache, 2);
+    TEST_ASSERT_EQUAL(NULL, r);
+
+    struct bpt_node *l = bpt_new_node();
+    TEST_ASSERT_EQUAL(2, BPT_ID(l));
+    TEST_ASSERT_EQUAL(2, cache.seen(cache.cache));
+    
+    r = cache.get(cache.cache, 2);
+    TEST_ASSERT_EQUAL(l, r);
+
+    r = cache.get(cache.cache, 3);
+    TEST_ASSERT_EQUAL(NULL, r);
+
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
 //{{{ void test_bpt_find_leaf(void)
 void test_bpt_find_leaf(void)
 {
-
-    struct bpt_node *l1 = bpt_new_node();
-    l1->is_leaf = 1;
-    l1->num_keys = 4;
-    l1->keys[0] = 1;
-    l1->keys[1] = 2;
-    l1->keys[2] = 3;
-    l1->keys[3] = 4;
-
-    struct bpt_node *l2 = bpt_new_node();
-    l2->is_leaf = 1;
-    l2->num_keys = 4;
-    l2->keys[0] = 5;
-    l2->keys[1] = 6;
-    l2->keys[2] = 7;
-    l2->keys[3] = 8;
-
-    struct bpt_node *l3 = bpt_new_node();
-    l3->is_leaf = 1;
-    l3->num_keys = 4;
-    l3->keys[0] = 9;
-    l3->keys[1] = 10;
-    l3->keys[2] = 11;
-    l3->keys[3] = 12;
-
-    l1->next = l2;
-    l2->next = l3;
+    struct bpt_node *root = bpt_new_node();
+    BPT_NUM_KEYS(root) = 1;
+    BPT_KEYS(root)[0] = 9;
 
     struct bpt_node *n1 = bpt_new_node();
-    n1->keys[0] = 5;
-    n1->num_keys = 1;
-    n1->pointers[0] = (void *)l1;
-    n1->pointers[1] = (void *)l2;
-    l1->parent = n1;
-    l2->parent = n1;
+    BPT_NUM_KEYS(n1) = 1;
+    BPT_KEYS(n1)[0] = 5;
 
-    struct bpt_node *root = bpt_new_node();
-    root->keys[0] = 9;
-    root->num_keys = 1;
-    root->pointers[0] = (void *)n1;
-    root->pointers[1] = (void *)l3;
-    n1->parent = root;
-    l3->parent = root;
+    struct bpt_node *l1 = bpt_new_node();
+    BPT_IS_LEAF(l1) = 1;
+    BPT_NUM_KEYS(l1) = 4;
+    BPT_KEYS(l1)[0] = 1;
+    BPT_KEYS(l1)[1] = 2;
+    BPT_KEYS(l1)[2] = 3;
+    BPT_KEYS(l1)[3] = 4;
 
-    /*
-    fprintf(stderr, "l1:%p\t"
-                    "l2:%p\t"
-                    "l3:%p\t"
-                    "n1:%p\t"
-                    "root:%p\n",
-                    l1, l2, l3, n1, root);
-    */
+    struct bpt_node *l2 = bpt_new_node();
+    BPT_IS_LEAF(l2) = 1;
+    BPT_NUM_KEYS(l2) = 4;
+    BPT_KEYS(l2)[0] = 5;
+    BPT_KEYS(l2)[1] = 6;
+    BPT_KEYS(l2)[2] = 7;
+    BPT_KEYS(l2)[3] = 8;
+
+    struct bpt_node *l3 = bpt_new_node();
+    BPT_IS_LEAF(l3) = 1;
+    BPT_NUM_KEYS(l3) = 4;
+    BPT_KEYS(l3)[0] = 9;
+    BPT_KEYS(l3)[1] = 10;
+    BPT_KEYS(l3)[2] = 11;
+    BPT_KEYS(l3)[3] = 12;
+
+    BPT_NEXT(l1) = BPT_ID(l2);
+    BPT_NEXT(l2) = BPT_ID(l3);
+
+
+    BPT_POINTERS(n1)[0] = BPT_ID(l1);
+    BPT_POINTERS(n1)[1] = BPT_ID(l2);
+    BPT_PARENT(l1) = BPT_ID(n1);
+    BPT_PARENT(l2) = BPT_ID(n1);
+
+    BPT_POINTERS(root)[0] = BPT_ID(n1);
+    BPT_POINTERS(root)[1] = BPT_ID(l3);
+
+    BPT_PARENT(n1) = BPT_ID(root);
+    BPT_PARENT(l3) = BPT_ID(root);
 
     int i;
     for (i = 1; i <= 4; ++i)
-        TEST_ASSERT_EQUAL(l1, bpt_find_leaf(root, i));
+        TEST_ASSERT_EQUAL(BPT_ID(l1),
+                          bpt_find_leaf(BPT_ID(root), i));
 
     for (i = 5; i <= 8; ++i) 
-        TEST_ASSERT_EQUAL(l2, bpt_find_leaf(root, i));
+        TEST_ASSERT_EQUAL(BPT_ID(l2),
+                          bpt_find_leaf(BPT_ID(root), i));
 
     for (i = 9; i <= 12; ++i) 
-        TEST_ASSERT_EQUAL(l3, bpt_find_leaf(root, i));
+        TEST_ASSERT_EQUAL(BPT_ID(l3),
+                          bpt_find_leaf(BPT_ID(root), i));
 
-    bpt_destroy_tree(&root);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
 //{{{void test_bpt_split_node_non_root_parent_has_room(void)
 void test_bpt_split_node_non_root_parent_has_room(void)
 {
-    int V[5] = {2,3,4,5,6};
-    struct bpt_node *l1 = bpt_new_node();
-    l1->is_leaf = 1;
-    l1->num_keys = 4;
-    l1->keys[0] = 1;
-    l1->keys[1] = 2;
-    l1->keys[2] = 3;
-    l1->keys[3] = 4;
-
-    l1->pointers[0] = (void*)V;
-    l1->pointers[1] = (void*)(V + 1);
-    l1->pointers[2] = (void*)(V + 2);
-    l1->pointers[3] = (void*)(V + 2);
+    ORDER = 4;
+    
+    /*
+     * 9
+     * 6
+     * 1,2,3,4,5
+     *
+     * Then split
+     *
+     * 9
+     * 3,6
+     * 1,2 3,4,5
+     */
+    struct bpt_node *root = bpt_new_node();
+    BPT_NUM_KEYS(root) = 1;
+    BPT_KEYS(root)[0] = 9;
 
     struct bpt_node *n1 = bpt_new_node();
-    n1->keys[0] = 6;
-    n1->num_keys = 1;
-    n1->pointers[0] = (void *)l1;
-    l1->parent = n1;
+    BPT_NUM_KEYS(n1) = 1;
+    BPT_KEYS(n1)[0] = 6;
 
-    struct bpt_node *root = bpt_new_node();
-    root->keys[0] = 9;
-    root->num_keys = 1;
-    root->pointers[0] = (void *)n1;
-    n1->parent = root;
+    BPT_POINTERS(root)[0] = BPT_ID(n1);
+    BPT_PARENT(n1) = BPT_ID(root);
 
-    l1->num_keys = 5;
-    l1->keys[4] = 5;
+    struct bpt_node *l1 = bpt_new_node();
+    BPT_IS_LEAF(l1) = 1;
+    BPT_NUM_KEYS(l1) = 5;
+    BPT_KEYS(l1)[0] = 1;
+    BPT_KEYS(l1)[1] = 2;
+    BPT_KEYS(l1)[2] = 3;
+    BPT_KEYS(l1)[3] = 4;
+    BPT_KEYS(l1)[4] = 5;
+
+    BPT_POINTERS(n1)[0] = BPT_ID(l1);
+    BPT_PARENT(l1) = BPT_ID(n1);
+
+    //int V[5] = {2,3,4,5,6};
+    //int *V = (int *) malloc(5*sizeof(int));
+    int *V_0 = (int *) malloc(sizeof(int));
+    *V_0 = 2;
+    int *V_1 = (int *) malloc(sizeof(int));
+    *V_1 = 3;
+    int *V_2 = (int *) malloc(sizeof(int));
+    *V_2 = 4;
+    int *V_3 = (int *) malloc(sizeof(int));
+    *V_3 = 5;
+    int *V_4 = (int *) malloc(sizeof(int));
+    *V_4 = 6;
+
+    // Put the data in the cache
+    TEST_ASSERT_EQUAL(4, cache.seen(cache.cache) + 1);
+    BPT_POINTERS(l1)[0] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_0, free_wrapper);
+
+    BPT_POINTERS(l1)[1] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_1, free_wrapper);
+
+    BPT_POINTERS(l1)[2] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_2, free_wrapper);
+
+    BPT_POINTERS(l1)[3] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_3, free_wrapper);
+
+    BPT_POINTERS(l1)[4] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_4, free_wrapper);
 
 
-    struct bpt_node *lo, *hi;
+
+    uint32_t lo_id, hi_id;
     int split;
-    root = bpt_split_node(root, l1, &lo, &hi, &split, NULL);
+    uint32_t root_id = bpt_split_node(BPT_ID(root),
+                                      BPT_ID(l1),
+                                      &lo_id,
+                                      &hi_id,
+                                      &split,
+                                      NULL);
 
-    TEST_ASSERT_EQUAL(l1, lo);
-    TEST_ASSERT_EQUAL(l1->next, hi);
-    TEST_ASSERT_EQUAL(split, 2);
+    TEST_ASSERT_EQUAL(BPT_ID(l1), lo_id);
+    TEST_ASSERT_EQUAL(BPT_NEXT(l1), hi_id);
+    TEST_ASSERT_EQUAL(2, split);
 
-    TEST_ASSERT_EQUAL(2, l1->num_keys);
-    TEST_ASSERT_EQUAL(3, l1->next->num_keys);
-    TEST_ASSERT_EQUAL(2, n1->num_keys);
 
-    int A_n1[2] = {3,6};
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(l1));
+    struct bpt_node *hi_node = cache.get(cache.cache, hi_id);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(hi_node));
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(n1));
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(n1)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(n1)[1]);
+    TEST_ASSERT_EQUAL(lo_id, BPT_POINTERS(n1)[0]);
+    TEST_ASSERT_EQUAL(hi_id, BPT_POINTERS(n1)[1]);
 
-    int i;
-    for (i = 0; i < n1->num_keys; ++i)
-        TEST_ASSERT_EQUAL(A_n1[i], n1->keys[i]);
+    TEST_ASSERT_EQUAL(lo_id, bpt_find_leaf(root_id, 1));
+    TEST_ASSERT_EQUAL(lo_id, bpt_find_leaf(root_id, 2));
+    TEST_ASSERT_EQUAL(hi_id, bpt_find_leaf(root_id, 3));
+    TEST_ASSERT_EQUAL(hi_id, bpt_find_leaf(root_id, 4));
+    TEST_ASSERT_EQUAL(hi_id, bpt_find_leaf(root_id, 5));
 
-    TEST_ASSERT_EQUAL(l1, bpt_find_leaf(root, 1));
-    TEST_ASSERT_EQUAL(l1, bpt_find_leaf(root, 2));
-    TEST_ASSERT_EQUAL(l1->next, bpt_find_leaf(root, 3));
-    TEST_ASSERT_EQUAL(l1->next, bpt_find_leaf(root, 4));
-    TEST_ASSERT_EQUAL(l1->next, bpt_find_leaf(root, 5));
-
-    TEST_ASSERT_EQUAL(l1, n1->pointers[0]);
-    TEST_ASSERT_EQUAL(l1->next, n1->pointers[1]);
-
-    free(l1->keys);
-    free(l1->pointers);
-    free(l1);
-    free(n1->keys);
-    free(n1->pointers);
-    free(n1);
-    free(root->keys);
-    free(root->pointers);
-    free(root);
-    free(hi->keys);
-    free(hi->pointers);
-    free(hi);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
 //{{{void test_bpt_split_node_root(void)
 void test_bpt_split_node_root(void)
 {
-    int V[5] = {2,3,4,5,6};
+    ORDER = 4;
+
+    int *V_0 = (int *) malloc(sizeof(int));
+    *V_0 = 2;
+    int *V_1 = (int *) malloc(sizeof(int));
+    *V_1 = 3;
+    int *V_2 = (int *) malloc(sizeof(int));
+    *V_2 = 4;
+    int *V_3 = (int *) malloc(sizeof(int));
+    *V_3 = 5;
+    int *V_4 = (int *) malloc(sizeof(int));
+    *V_4 = 6;
+
+    /*
+     * 1,2,3,4,5
+     *
+     * SPLIT
+     *
+     * 3
+     * 1,2 3,4,5
+     */
+
     struct bpt_node *root = bpt_new_node();
-    root->is_leaf = 1;
-    root->num_keys = 5;
-    root->keys[0] = 1;
-    root->keys[1] = 2;
-    root->keys[2] = 3;
-    root->keys[3] = 4;
-    root->keys[4] = 5;
+    BPT_IS_LEAF(root) = 1;
+    BPT_NUM_KEYS(root) = 5;
+    BPT_KEYS(root)[0] = 1;
+    BPT_KEYS(root)[1] = 2;
+    BPT_KEYS(root)[2] = 3;
+    BPT_KEYS(root)[3] = 4;
+    BPT_KEYS(root)[4] = 5;
 
-    root->pointers[0] = (void*)V;
-    root->pointers[1] = (void*)(V + 1);
-    root->pointers[2] = (void*)(V + 2);
-    root->pointers[3] = (void*)(V + 2);
-    root->pointers[4] = (void*)(V + 3);
+    BPT_POINTERS(root)[0] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_0, free_wrapper);
 
-    struct bpt_node *p_root = root;
+    BPT_POINTERS(root)[1] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_1, free_wrapper);
 
-    struct bpt_node *lo, *hi;
+    BPT_POINTERS(root)[2] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_2, free_wrapper);
+
+    BPT_POINTERS(root)[3] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_3, free_wrapper);
+
+    BPT_POINTERS(root)[4] = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, cache.seen(cache.cache) + 1, V_4, free_wrapper);
+
+    uint32_t lo_id, hi_id;
     int split;
-    struct bpt_node *new_root = bpt_split_node(root, p_root, &lo, &hi, &split, NULL);
+    uint32_t root_id = bpt_split_node(BPT_ID(root),
+                                      BPT_ID(root),
+                                      &lo_id,
+                                      &hi_id,
+                                      &split,
+                                      NULL);
 
-    TEST_ASSERT_EQUAL(p_root, lo);
-    TEST_ASSERT_EQUAL(p_root->next, hi);
-    TEST_ASSERT_EQUAL(split, 2);
+    TEST_ASSERT_EQUAL(BPT_ID(root), lo_id);
+    TEST_ASSERT_EQUAL(BPT_NEXT(root), hi_id);
+    TEST_ASSERT_EQUAL(2, split);
 
 
-    TEST_ASSERT_EQUAL(2, p_root->num_keys);
-    TEST_ASSERT_EQUAL(3, p_root->next->num_keys);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(root));
+    TEST_ASSERT_EQUAL(root_id, BPT_PARENT(root));
 
-    bpt_destroy_tree(&new_root);
+    struct bpt_node *next_node = cache.get(cache.cache, BPT_NEXT(root));
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(next_node));
+    TEST_ASSERT_EQUAL(root_id, BPT_PARENT(next_node));
+
+    struct bpt_node *new_root = cache.get(cache.cache, root_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(new_root));
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(new_root)[0]);
+    TEST_ASSERT_EQUAL(lo_id, BPT_POINTERS(new_root)[0]);
+    TEST_ASSERT_EQUAL(hi_id, BPT_POINTERS(new_root)[1]);
+
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
@@ -280,229 +447,591 @@ void test_bpt_insert(void)
      *  4,6 8,10,12
      *   2,3 4,5 6,7 8,9 10,11 12,13,14
      */
-    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
+    ORDER = 4;
+ 
+    int *V_0 = (int *) malloc(sizeof(int));
+    *V_0 = 1;
+    int *V_1 = (int *) malloc(sizeof(int));
+    *V_1 = 2;
+    int *V_2 = (int *) malloc(sizeof(int));
+    *V_2 = 3;
+    int *V_3 = (int *) malloc(sizeof(int));
+    *V_3 = 4;
+    int *V_4 = (int *) malloc(sizeof(int));
+    *V_4 = 5;
+    int *V_5 = (int *) malloc(sizeof(int));
+    *V_5 = 6;
+    int *V_6 = (int *) malloc(sizeof(int));
+    *V_6 = 7;
+    int *V_7 = (int *) malloc(sizeof(int));
+    *V_7 = 8;
+    int *V_8 = (int *) malloc(sizeof(int));
+    *V_8 = 9;
+    int *V_9 = (int *) malloc(sizeof(int));
+    *V_9 = 10;
+    int *V_10 = (int *) malloc(sizeof(int));
+    *V_10 = 11;
+    int *V_11 = (int *) malloc(sizeof(int));
+    *V_11 = 12;
+    int *V_12 = (int *) malloc(sizeof(int));
+    *V_12 = 13;
+    int *V_13 = (int *) malloc(sizeof(int));
+    *V_13 = 14;
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
+    //cache = lru_cache_init(10000);
+    cache.cache = cache.init(10000);
+   
+    uint32_t leaf_id;
     int pos;
+    uint32_t V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_0, free_wrapper);
 
+    //2
+    uint32_t root_id = bpt_insert(0, 2, V_id, &leaf_id, &pos);
 
-    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
-
-    TEST_ASSERT_EQUAL(1, root->num_keys);
-    TEST_ASSERT_EQUAL(2, root->keys[0]);
-    TEST_ASSERT_EQUAL(1, root->is_leaf);
-    TEST_ASSERT_EQUAL(root, leaf);
+    struct bpt_node *root = cache.get(cache.cache, root_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(root));
+    TEST_ASSERT_EQUAL(root_id, leaf_id);
     TEST_ASSERT_EQUAL(0, pos);
 
     // 4
     //  2,3 4,5,6
-    root = bpt_insert(root, 3, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(root, leaf);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_1, free_wrapper);
+    root_id = bpt_insert(root_id, 3, V_id, &leaf_id, &pos);
+    TEST_ASSERT_EQUAL(root_id, leaf_id);
     TEST_ASSERT_EQUAL(1, pos);
 
-    root = bpt_insert(root, 4, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(root, leaf);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_2, free_wrapper);
+    root_id = bpt_insert(root_id, 4, V_id, &leaf_id, &pos);
+    TEST_ASSERT_EQUAL(root_id, leaf_id);
     TEST_ASSERT_EQUAL(2, pos);
-    root = bpt_insert(root, 5, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(root, leaf);
+
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_3, free_wrapper);
+    root_id = bpt_insert(root_id, 5, V_id, &leaf_id, &pos);
+    TEST_ASSERT_EQUAL(root_id, leaf_id);
     TEST_ASSERT_EQUAL(3, pos);
-    root = bpt_insert(root, 6, (void *)(V + v++), &leaf, &pos);
+
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_4, free_wrapper);
+    root_id = bpt_insert(root_id, 6, V_id, &leaf_id, &pos);
     TEST_ASSERT_EQUAL(2, pos);
 
-    TEST_ASSERT_FALSE(root == leaf);
-    TEST_ASSERT_EQUAL(root->pointers[1], leaf);
+    TEST_ASSERT_FALSE(root_id == leaf_id);
+    root = cache.get(cache.cache, root_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(root));
+    TEST_ASSERT_EQUAL(leaf_id, BPT_POINTERS(root)[1]);
 
-    TEST_ASSERT_EQUAL(1, root->num_keys);
-    TEST_ASSERT_EQUAL(4, root->keys[0]);
-    TEST_ASSERT_EQUAL(0, root->is_leaf);
+    struct bpt_node *node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node));
 
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->num_keys);
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->keys[0]);
-    TEST_ASSERT_EQUAL(3, ((struct bpt_node*)root->pointers[0])->keys[1]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[0])->is_leaf);
-    TEST_ASSERT_EQUAL(root->pointers[1], 
-                      ((struct bpt_node*)root->pointers[0])->next);
-
-    TEST_ASSERT_EQUAL(3, ((struct bpt_node*)root->pointers[1])->num_keys);
-    TEST_ASSERT_EQUAL(4, ((struct bpt_node*)root->pointers[1])->keys[0]);
-    TEST_ASSERT_EQUAL(5, ((struct bpt_node*)root->pointers[1])->keys[1]);
-    TEST_ASSERT_EQUAL(6, ((struct bpt_node*)root->pointers[1])->keys[2]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[1])->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, ((struct bpt_node*)root->pointers[1])->next);
+    node = cache.get(cache.cache, BPT_NEXT(node));
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(node)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node));
 
     // 4,6
     //  2,3 4,5 6,7,8
-    root = bpt_insert(root, 7, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(root->pointers[1], leaf);
-    TEST_ASSERT_EQUAL(3, pos);
-    root = bpt_insert(root, 8, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(root->pointers[2], leaf);
-    TEST_ASSERT_EQUAL(2, pos);
- 
-    TEST_ASSERT_EQUAL(2, root->num_keys);
-    TEST_ASSERT_EQUAL(4, root->keys[0]);
-    TEST_ASSERT_EQUAL(6, root->keys[1]);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_5, free_wrapper);
+    root_id = bpt_insert(root_id, 7, V_id, &leaf_id, &pos);
 
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->num_keys);
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->keys[0]);
-    TEST_ASSERT_EQUAL(3, ((struct bpt_node*)root->pointers[0])->keys[1]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[0])->is_leaf);
-    TEST_ASSERT_EQUAL(root->pointers[1], 
-                      ((struct bpt_node*)root->pointers[0])->next);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_6, free_wrapper);
+    root_id = bpt_insert(root_id, 8, V_id, &leaf_id, &pos);
 
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[1])->num_keys);
-    TEST_ASSERT_EQUAL(4, ((struct bpt_node*)root->pointers[1])->keys[0]);
-    TEST_ASSERT_EQUAL(5, ((struct bpt_node*)root->pointers[1])->keys[1]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[1])->is_leaf);
-    TEST_ASSERT_EQUAL(root->pointers[2], 
-                      ((struct bpt_node*)root->pointers[1])->next);
+    root = cache.get(cache.cache, root_id);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(root)[1]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(root));
 
-    TEST_ASSERT_EQUAL(3, ((struct bpt_node*)root->pointers[2])->num_keys);
-    TEST_ASSERT_EQUAL(6, ((struct bpt_node*)root->pointers[2])->keys[0]);
-    TEST_ASSERT_EQUAL(7, ((struct bpt_node*)root->pointers[2])->keys[1]);
-    TEST_ASSERT_EQUAL(8, ((struct bpt_node*)root->pointers[2])->keys[2]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[2])->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, ((struct bpt_node*)root->pointers[2])->next);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node));
+
+    TEST_ASSERT_EQUAL(BPT_POINTERS(root)[1], BPT_NEXT(node));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node));
+
+    TEST_ASSERT_EQUAL(BPT_POINTERS(root)[2], BPT_NEXT(node));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[2]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(node)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node));
 
     // 8
-    //  4,6 8,10,12
-    //   2,3 4,5 6,7 8,9 10,11 12,13,14
+    //   4,6 8,10,12
+    //     2,3 4,5 6,7 8,9 10,11 12,13,14
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_7, free_wrapper);
+    root_id = bpt_insert(root_id, 9, V_id, &leaf_id, &pos);
 
-    root = bpt_insert(root, 9, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 10, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 11, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 12, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 13, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 14, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(((struct bpt_node*)root->pointers[1])->pointers[3], leaf);
- 
-    TEST_ASSERT_EQUAL(1, root->num_keys);
-    TEST_ASSERT_EQUAL(8, root->keys[0]);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_8, free_wrapper);
+    root_id = bpt_insert(root_id, 10, V_id, &leaf_id, &pos);
 
-    //  4,6 8,10,12
-    struct bpt_node *n1 = (struct bpt_node *)root->pointers[0];
-    struct bpt_node *n2 = (struct bpt_node *)root->pointers[1];
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_9, free_wrapper);
+    root_id = bpt_insert(root_id, 11, V_id, &leaf_id, &pos);
 
-    TEST_ASSERT_EQUAL(2, n1->num_keys);
-    TEST_ASSERT_EQUAL(4, n1->keys[0]);
-    TEST_ASSERT_EQUAL(6, n1->keys[1]);
-    TEST_ASSERT_EQUAL(0, n1->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, n1->next);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_10, free_wrapper);
+    root_id = bpt_insert(root_id, 12, V_id, &leaf_id, &pos);
 
-    TEST_ASSERT_EQUAL(3, n2->num_keys);
-    TEST_ASSERT_EQUAL(8, n2->keys[0]);
-    TEST_ASSERT_EQUAL(10, n2->keys[1]);
-    TEST_ASSERT_EQUAL(12, n2->keys[2]);
-    TEST_ASSERT_EQUAL(0, n2->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, n2->next);
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_11, free_wrapper);
+    root_id = bpt_insert(root_id, 13, V_id, &leaf_id, &pos);
 
-    //   2,3 4,5 6,7 8,9 10,11 12,13,14
-    struct bpt_node *l1 = (struct bpt_node *)n1->pointers[0];
-    struct bpt_node *l2 = (struct bpt_node *)n1->pointers[1];
-    struct bpt_node *l3 = (struct bpt_node *)n1->pointers[2];
-    //struct bpt_node *l3 = (struct bpt_node *)n2->pointers[0];
-    struct bpt_node *l4 = (struct bpt_node *)n2->pointers[1];
-    struct bpt_node *l5 = (struct bpt_node *)n2->pointers[2];
-    struct bpt_node *l6 = (struct bpt_node *)n2->pointers[3];
+    V_id = cache.seen(cache.cache) + 1;
+    cache.add(cache.cache, V_id, V_12, free_wrapper);
+    root_id = bpt_insert(root_id, 14, V_id, &leaf_id, &pos);
 
-    TEST_ASSERT_EQUAL(2, l1->num_keys);
-    TEST_ASSERT_EQUAL(2, l1->keys[0]);
-    TEST_ASSERT_EQUAL(3, l1->keys[1]);
-    TEST_ASSERT_EQUAL(1, l1->is_leaf);
-    TEST_ASSERT_EQUAL(l2, l1->next);
+    // 8
+    //   4,6 8,10,12
+    //     2,3 4,5 6,7 8,9 10,11 12,13,14
+    root = cache.get(cache.cache, root_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(root));
 
-    TEST_ASSERT_EQUAL(2, l2->num_keys);
-    TEST_ASSERT_EQUAL(4, l2->keys[0]);
-    TEST_ASSERT_EQUAL(5, l2->keys[1]);
-    TEST_ASSERT_EQUAL(1, l2->is_leaf);
-    TEST_ASSERT_EQUAL(l3, l2->next);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(node));
 
-    TEST_ASSERT_EQUAL(2, l3->num_keys);
-    TEST_ASSERT_EQUAL(6, l3->keys[0]);
-    TEST_ASSERT_EQUAL(7, l3->keys[1]);
-    TEST_ASSERT_EQUAL(1, l3->is_leaf);
-    TEST_ASSERT_EQUAL(l4, l3->next);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(10, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(12, BPT_KEYS(node)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(node));
 
-    TEST_ASSERT_EQUAL(2, l4->num_keys);
-    TEST_ASSERT_EQUAL(8, l4->keys[0]);
-    TEST_ASSERT_EQUAL(9, l4->keys[1]);
-    TEST_ASSERT_EQUAL(1, l4->is_leaf);
-    TEST_ASSERT_EQUAL(l5, l4->next);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *leaf_1 = cache.get(cache.cache, BPT_POINTERS(node)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_1));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(leaf_1)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(leaf_1)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_1));
 
-    TEST_ASSERT_EQUAL(2, l5->num_keys);
-    TEST_ASSERT_EQUAL(10, l5->keys[0]);
-    TEST_ASSERT_EQUAL(11, l5->keys[1]);
-    TEST_ASSERT_EQUAL(1, l5->is_leaf);
-    TEST_ASSERT_EQUAL(l6, l5->next);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *leaf_2 = cache.get(cache.cache, BPT_POINTERS(node)[1]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_2));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(leaf_2)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(leaf_2)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_2));
 
-    TEST_ASSERT_EQUAL(3, l6->num_keys);
-    TEST_ASSERT_EQUAL(12, l6->keys[0]);
-    TEST_ASSERT_EQUAL(13, l6->keys[1]);
-    TEST_ASSERT_EQUAL(14, l6->keys[2]);
-    TEST_ASSERT_EQUAL(1, l6->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, l6->next);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *leaf_3 = cache.get(cache.cache, BPT_POINTERS(node)[2]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_3));
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(leaf_3)[0]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(leaf_3)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_3));
 
-    bpt_destroy_tree(&root);
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    struct bpt_node *leaf_4 = cache.get(cache.cache, BPT_POINTERS(node)[1]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_4));
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(leaf_4)[0]);
+    TEST_ASSERT_EQUAL(9, BPT_KEYS(leaf_4)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_4));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    struct bpt_node *leaf_5 = cache.get(cache.cache, BPT_POINTERS(node)[2]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_5));
+    TEST_ASSERT_EQUAL(10, BPT_KEYS(leaf_5)[0]);
+    TEST_ASSERT_EQUAL(11, BPT_KEYS(leaf_5)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_5));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    struct bpt_node *leaf_6 = cache.get(cache.cache, BPT_POINTERS(node)[3]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(leaf_6));
+    TEST_ASSERT_EQUAL(12, BPT_KEYS(leaf_6)[0]);
+    TEST_ASSERT_EQUAL(13, BPT_KEYS(leaf_6)[1]);
+    TEST_ASSERT_EQUAL(14, BPT_KEYS(leaf_6)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_6));
+
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_2), BPT_NEXT(leaf_1));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_3), BPT_NEXT(leaf_2));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_4), BPT_NEXT(leaf_3));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_5), BPT_NEXT(leaf_4));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_6), BPT_NEXT(leaf_5));
+
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
-//{{{void test_bpt_insert(void)
-void test_bpt_insert_out_of_order(void)
+//{{{ void test_bpt_insert_new_value(void)
+void test_bpt_insert_new_value(void)
 {
     /*
-     * 2,3,4,5
-     *
-     * 4
-     *  2,3 4,5,6
-     *
-     * 4,6
-     *  2,3 4,5 6,7,8
-     *
-     * 4,6,8
-     *  2,3 4,5 6,7 8,9,10
-     *
-     * 4,6,8,10
-     *  2,3 4,5 6,7 8,9 10,11,12
-     *
      * 8 
      *  4,6 8,10,12
      *   2,3 4,5 6,7 8,9 10,11 12,13,14
      */
-    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
+    ORDER = 4;
+ 
+    int *V_0 = (int *) malloc(sizeof(int));
+    *V_0 = 1;
+    int *V_1 = (int *) malloc(sizeof(int));
+    *V_1 = 2;
+    int *V_2 = (int *) malloc(sizeof(int));
+    *V_2 = 3;
+    int *V_3 = (int *) malloc(sizeof(int));
+    *V_3 = 4;
+    int *V_4 = (int *) malloc(sizeof(int));
+    *V_4 = 5;
+    int *V_5 = (int *) malloc(sizeof(int));
+    *V_5 = 6;
+    int *V_6 = (int *) malloc(sizeof(int));
+    *V_6 = 7;
+    int *V_7 = (int *) malloc(sizeof(int));
+    *V_7 = 8;
+    int *V_8 = (int *) malloc(sizeof(int));
+    *V_8 = 9;
+    int *V_9 = (int *) malloc(sizeof(int));
+    *V_9 = 10;
+    int *V_10 = (int *) malloc(sizeof(int));
+    *V_10 = 11;
+    int *V_11 = (int *) malloc(sizeof(int));
+    *V_11 = 12;
+    int *V_12 = (int *) malloc(sizeof(int));
+    *V_12 = 13;
+    int *V_13 = (int *) malloc(sizeof(int));
+    *V_13 = 14;
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
+    cache.cache = cache.init(10000);
+   
+    uint32_t leaf_id;
     int pos;
+    uint32_t V_id, root_id;
 
+    root_id = bpt_insert_new_value(0,
+                                   2,
+                                   V_0,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   3,
+                                   V_1,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   4,
+                                   V_2,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   5,
+                                   V_3,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   6,
+                                   V_4,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   7,
+                                   V_5,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   8,
+                                   V_6,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   9,
+                                   V_7,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    root_id = bpt_insert_new_value(root_id,
+                                   10,
+                                   V_8,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+
+    root_id = bpt_insert_new_value(root_id,
+                                   11,
+                                   V_9,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+
+    root_id = bpt_insert_new_value(root_id,
+                                   12,
+                                   V_10,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+
+    root_id = bpt_insert_new_value(root_id,
+                                   13,
+                                   V_11,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+
+    root_id = bpt_insert_new_value(root_id,
+                                   14,
+                                   V_12,
+                                   free_wrapper,
+                                   &V_id,
+                                   &leaf_id,
+                                   &pos);
+
+    // 8
+    //   4,6 8,10,12
+    //     2,3 4,5 6,7 8,9 10,11 12,13,14
+    struct bpt_node *root = cache.get(cache.cache, root_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(root));
+
+    struct bpt_node *node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(node));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(node));
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(node)[0]);
+    TEST_ASSERT_EQUAL(10, BPT_KEYS(node)[1]);
+    TEST_ASSERT_EQUAL(12, BPT_KEYS(node)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(node));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *leaf_1 = cache.get(cache.cache, BPT_POINTERS(node)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_1));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(leaf_1)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(leaf_1)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_1));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *leaf_2 = cache.get(cache.cache, BPT_POINTERS(node)[1]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_2));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(leaf_2)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(leaf_2)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_2));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *leaf_3 = cache.get(cache.cache, BPT_POINTERS(node)[2]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_3));
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(leaf_3)[0]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(leaf_3)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_3));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    struct bpt_node *leaf_4 = cache.get(cache.cache, BPT_POINTERS(node)[1]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_4));
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(leaf_4)[0]);
+    TEST_ASSERT_EQUAL(9, BPT_KEYS(leaf_4)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_4));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    struct bpt_node *leaf_5 = cache.get(cache.cache, BPT_POINTERS(node)[2]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_5));
+    TEST_ASSERT_EQUAL(10, BPT_KEYS(leaf_5)[0]);
+    TEST_ASSERT_EQUAL(11, BPT_KEYS(leaf_5)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_5));
+
+    node = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    struct bpt_node *leaf_6 = cache.get(cache.cache, BPT_POINTERS(node)[3]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(leaf_6));
+    TEST_ASSERT_EQUAL(12, BPT_KEYS(leaf_6)[0]);
+    TEST_ASSERT_EQUAL(13, BPT_KEYS(leaf_6)[1]);
+    TEST_ASSERT_EQUAL(14, BPT_KEYS(leaf_6)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_6));
+
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_2), BPT_NEXT(leaf_1));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_3), BPT_NEXT(leaf_2));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_4), BPT_NEXT(leaf_3));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_5), BPT_NEXT(leaf_4));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_6), BPT_NEXT(leaf_5));
+
+    cache.destroy(&(cache.cache));
+
+}
+//}}}
+
+//{{{ void test_bpt_insert_new_value(void)
+void test_bpt_rand_order_insert_new_value(void)
+{
+    /*
+     * 8 
+     *  4,6 8,10,12
+     *   2,3 4,5 6,7 8,9 10,11 12,13,14
+     */
+    ORDER = 4;
+ 
+    int *V_0 = (int *) malloc(sizeof(int));
+    *V_0 = 1;
+    int *V_1 = (int *) malloc(sizeof(int));
+    *V_1 = 2;
+    int *V_2 = (int *) malloc(sizeof(int));
+    *V_2 = 3;
+    int *V_3 = (int *) malloc(sizeof(int));
+    *V_3 = 4;
+    int *V_4 = (int *) malloc(sizeof(int));
+    *V_4 = 5;
+    int *V_5 = (int *) malloc(sizeof(int));
+    *V_5 = 6;
+    int *V_6 = (int *) malloc(sizeof(int));
+    *V_6 = 7;
+    int *V_7 = (int *) malloc(sizeof(int));
+    *V_7 = 8;
+    int *V_8 = (int *) malloc(sizeof(int));
+    *V_8 = 9;
+    int *V_9 = (int *) malloc(sizeof(int));
+    *V_9 = 10;
+    int *V_10 = (int *) malloc(sizeof(int));
+    *V_10 = 11;
+    int *V_11 = (int *) malloc(sizeof(int));
+    *V_11 = 12;
+    int *V_12 = (int *) malloc(sizeof(int));
+    *V_12 = 13;
+    int *V_13 = (int *) malloc(sizeof(int));
+    *V_13 = 14;
+
+    cache.cache = cache.init(10000);
+   
+    uint32_t l;
+    int p;
+    uint32_t v, r;
+
+    r = bpt_insert_new_value(0, 4, V_2, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 3, V_1, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 2, V_0, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 14, V_12, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 5, V_3, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 12, V_10, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 7, V_5, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 9, V_7, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 8, V_6, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 13, V_11, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 11, V_9, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 6, V_4, free_wrapper, &v, &l, &p);
+
+    r = bpt_insert_new_value(r, 10, V_8, free_wrapper, &v, &l, &p);
 
     /*
-     * 4
-     *  2,3 4,5,6
+     * 4,7,9,12
+     * 2,3, 4,5,6 7,8, 9,10,11 12,13,14
      */
-    root = bpt_insert(root, 3, (void *)(V + 0), &leaf, &pos);
-    root = bpt_insert(root, 5, (void *)(V + 1), &leaf, &pos);
-    root = bpt_insert(root, 4, (void *)(V + 2), &leaf, &pos);
-    root = bpt_insert(root, 6, (void *)(V + 3), &leaf, &pos);
-    root = bpt_insert(root, 2, (void *)(V + 4), &leaf, &pos);
 
-    TEST_ASSERT_EQUAL(1, root->num_keys);
+    struct bpt_node *root = cache.get(cache.cache, r);
+    TEST_ASSERT_EQUAL(4, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(root)[1]);
+    TEST_ASSERT_EQUAL(9, BPT_KEYS(root)[2]);
+    TEST_ASSERT_EQUAL(12, BPT_KEYS(root)[3]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(root));
 
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->num_keys);
-    TEST_ASSERT_EQUAL(3, ((struct bpt_node*)root->pointers[1])->num_keys);
+    struct bpt_node *leaf_1 = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_1));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(leaf_1)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(leaf_1)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_1));
 
-    struct bpt_node *n = (struct bpt_node*)root->pointers[0];
-    TEST_ASSERT_EQUAL(V[4], *((uint32_t *)(n->pointers[0])));
-    TEST_ASSERT_EQUAL(V[0], *((uint32_t *)(n->pointers[1])));
+    struct bpt_node *leaf_2 = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(leaf_2));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(leaf_2)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(leaf_2)[1]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(leaf_2)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_2));
 
-    n = (struct bpt_node*)root->pointers[1];
-    TEST_ASSERT_EQUAL(V[2], *((uint32_t *)(n->pointers[0])));
-    TEST_ASSERT_EQUAL(V[1], *((uint32_t *)(n->pointers[1])));
-    TEST_ASSERT_EQUAL(V[3], *((uint32_t *)(n->pointers[2])));
+    struct bpt_node *leaf_3 = cache.get(cache.cache, BPT_POINTERS(root)[2]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(leaf_3));
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(leaf_3)[0]);
+    TEST_ASSERT_EQUAL(8, BPT_KEYS(leaf_3)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_3));
 
-    bpt_destroy_tree(&root);
+    struct bpt_node *leaf_4 = cache.get(cache.cache, BPT_POINTERS(root)[3]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(leaf_4));
+    TEST_ASSERT_EQUAL(9, BPT_KEYS(leaf_4)[0]);
+    TEST_ASSERT_EQUAL(10, BPT_KEYS(leaf_4)[1]);
+    TEST_ASSERT_EQUAL(11, BPT_KEYS(leaf_4)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_4));
+
+    struct bpt_node *leaf_5 = cache.get(cache.cache, BPT_POINTERS(root)[4]);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(leaf_5));
+    TEST_ASSERT_EQUAL(12, BPT_KEYS(leaf_5)[0]);
+    TEST_ASSERT_EQUAL(13, BPT_KEYS(leaf_5)[1]);
+    TEST_ASSERT_EQUAL(14, BPT_KEYS(leaf_5)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(leaf_5));
+
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_2), BPT_NEXT(leaf_1));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_3), BPT_NEXT(leaf_2));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_4), BPT_NEXT(leaf_3));
+    TEST_ASSERT_EQUAL(BPT_ID(leaf_5), BPT_NEXT(leaf_4));
+
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
@@ -510,22 +1039,24 @@ void test_bpt_insert_out_of_order(void)
 void test_bpt_insert_id_updated_bpt_node(void)
 {
     int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf;
-    int pos;
+    cache.cache = cache.init(10000);
 
-    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 5, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 10, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 15, (void *)(V + v++), &leaf, &pos);
+    uint32_t r = 0, l, v = 0, v_id;
+    int p;
 
-    root = bpt_insert(root, 1, (void *)(V + v++), &leaf, &pos);
-    TEST_ASSERT_EQUAL(root->pointers[0], leaf);
+    //r = bpt_insert_new_value(0, 4, V_2, free_wrapper, &v, &l, &p);
 
-    bpt_destroy_tree(&root);
+    r = bpt_insert_new_value(r, 2, (V + v++), NULL, &v_id, &l, &p);
+    r = bpt_insert_new_value(r, 5, (V + v++), NULL, &v_id, &l, &p);
+    r = bpt_insert_new_value(r, 10, (V + v++), NULL, &v_id, &l, &p);
+    r = bpt_insert_new_value(r, 15, (V + v++), NULL, &v_id, &l, &p);
 
+    r = bpt_insert_new_value(r, 1, (void *)(V + v++), NULL, &v_id, &l, &p);
+    struct bpt_node *root = cache.get(cache.cache, r);
+    TEST_ASSERT_EQUAL(BPT_POINTERS(root)[0], l);
+
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
@@ -578,55 +1109,53 @@ void test_find(void)
      *
      */
 
+    cache.cache = cache.init(10000);
+
     int V[13] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
     int v=0;
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf;
-
+    uint32_t r_id = 0, l_id, v_id;
     int pos;
 
     int i;
     for (i = 0; i < 13; ++i)
-        root = bpt_insert(root, (i+1)*2, (void *)(V + v++), &leaf, &pos);
+        r_id = bpt_insert_new_value(r_id,
+                                    (i+1)*2,
+                                    (V + v++),
+                                    NULL,
+                                    &v_id,
+                                    &l_id,
+                                    &pos);
 
+    uint32_t r_i;
     int *r, pos_r, pos_r_i = 0;
     v=0;
     int POS_R[13] = {0,1,0,1,0,1,0,1,0,1,0,1,2};
     for (i = 1; i <= 13; ++i) {
-        r = (int *)bpt_find(root, &leaf, &pos_r, i);
+        r_i = bpt_find(r_id, &l_id, &pos_r, i);
         if (i % 2 != 0)
-            TEST_ASSERT_EQUAL(NULL, r);
+            TEST_ASSERT_EQUAL(0, r_i);
         else  {
+            r = cache.get(cache.cache, r_i);
             TEST_ASSERT_EQUAL(i/2, *r);
             TEST_ASSERT_EQUAL(POS_R[pos_r_i], pos_r);
             pos_r_i += 1;
         }
     }
 
-    bpt_destroy_tree(&root);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
 //{{{void test_split_repair(void)
 void decrement_repair(struct bpt_node *a, struct bpt_node *b)
 {
-    /*
-    struct bpt_node 
-    {
-        struct bpt_node *parent;
-        uint32_t *keys, num_keys, is_leaf;
-        void **pointers;
-        struct bpt_node *next;
-    };
-    */
-
     uint32_t i;
-    for (i = 0; i < a->num_keys; ++i)
-        a->keys[i] = a->keys[i] - 1;
+    for (i = 0; i < BPT_NUM_KEYS(a); ++i)
+        BPT_KEYS(a)[i] = BPT_KEYS(a)[i] - 1;
 
-    for (i = 0; i < b->num_keys; ++i)
-        b->keys[i] = b->keys[i] + 1;
+    for (i = 0; i < BPT_NUM_KEYS(b); ++i)
+        BPT_KEYS(b)[i] = BPT_KEYS(b)[i] + 1;
 
 }
 
@@ -654,104 +1183,68 @@ void test_split_repair(void)
     int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
     int v=0;
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
-
-    int pos;
-
     repair = decrement_repair;
 
-    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
+    cache.cache = cache.init(10000);
 
-    TEST_ASSERT_EQUAL(1, root->num_keys);
-    TEST_ASSERT_EQUAL(2, root->keys[0]);
-    TEST_ASSERT_EQUAL(1, root->is_leaf);
+    uint32_t r_id = 0, l_id, v_id;
+    int pos;
+
+    //root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
+    int i;
+    r_id = bpt_insert_new_value(r_id, 2, (V + v++), NULL, &v_id, &l_id, &pos);
+
+
+    struct bpt_node *root = cache.get(cache.cache, r_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(root));
+
+    //  2,3,4,5
+    r_id = bpt_insert_new_value(r_id, 3, (V + v++), NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 4, (V + v++), NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 5, (V + v++), NULL, &v_id, &l_id, &pos);
+
+    root = cache.get(cache.cache, r_id);
+    TEST_ASSERT_EQUAL(4, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(3, BPT_KEYS(root)[1]);
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[2]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(root)[3]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(root));
 
     // 4
     //  2,3 4,5,6
-    root = bpt_insert(root, 3, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 4, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 5, (void *)(V + v++), &leaf, &pos);
-
-    TEST_ASSERT_EQUAL(4, root->num_keys);
-    TEST_ASSERT_EQUAL(2, root->keys[0]);
-    TEST_ASSERT_EQUAL(1, root->is_leaf);
-
-    root = bpt_insert(root, 6, (void *)(V + v++), &leaf, &pos);
+    r_id = bpt_insert_new_value(r_id, 6, (V + v++), NULL, &v_id, &l_id, &pos);
 
     // Using a silly split repair function just to test, 
     // -1 the keys in the left bpt_node and + those in the right
 
     // 5
     //  1,2 5,6,7
-    TEST_ASSERT_EQUAL(1, root->num_keys);
-    TEST_ASSERT_EQUAL(5, root->keys[0]);
-    TEST_ASSERT_EQUAL(0, root->is_leaf);
+    root = cache.get(cache.cache, r_id);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(0, BPT_IS_LEAF(root));
 
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->num_keys);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[0])->keys[0]);
-    TEST_ASSERT_EQUAL(2, ((struct bpt_node*)root->pointers[0])->keys[1]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[0])->is_leaf);
-    TEST_ASSERT_EQUAL(root->pointers[1], 
-                      ((struct bpt_node*)root->pointers[0])->next);
+    struct bpt_node *node_l = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    struct bpt_node *node_r = cache.get(cache.cache, BPT_POINTERS(root)[1]);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(node_l));
+    TEST_ASSERT_EQUAL(1, BPT_KEYS(node_l)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(node_l)[1]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node_l));
+    TEST_ASSERT_EQUAL(BPT_POINTERS(root)[1], BPT_NEXT(node_l));
 
-    TEST_ASSERT_EQUAL(3, ((struct bpt_node*)root->pointers[1])->num_keys);
-    TEST_ASSERT_EQUAL(5, ((struct bpt_node*)root->pointers[1])->keys[0]);
-    TEST_ASSERT_EQUAL(6, ((struct bpt_node*)root->pointers[1])->keys[1]);
-    TEST_ASSERT_EQUAL(7, ((struct bpt_node*)root->pointers[1])->keys[2]);
-    TEST_ASSERT_EQUAL(1, ((struct bpt_node*)root->pointers[1])->is_leaf);
-    TEST_ASSERT_EQUAL(NULL, ((struct bpt_node*)root->pointers[1])->next);
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(node_r));
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(node_r)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(node_r)[1]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(node_r)[2]);
+    TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node_r));
+    TEST_ASSERT_EQUAL(0, BPT_NEXT(node_r));
 
     repair = NULL;
 
-    bpt_destroy_tree(&root);
-}
-//}}}
-
-//{{{ void test_bpt_destroy_tree(void)
-void test_bpt_destroy_tree(void)
-{
-    /*
-     * 2,3,4,5
-     *
-     * 4
-     *  2,3 4,5,6
-     *
-     * 4,6
-     *  2,3 4,5 6,7,8
-     *
-     * 4,6,8
-     *  2,3 4,5 6,7 8,9,10
-     *
-     * 4,6,8,10
-     *  2,3 4,5 6,7 8,9 10,11,12
-     *
-     * 8 
-     *  4,6 8,10,12
-     *   2,3 4,5 6,7 8,9 10,11 12,13,14
-     */
-    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
-
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
-    int pos;
-
-    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 3, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 4, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 5, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 6, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 7, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 8, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 9, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 10, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 11, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 12, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 13, (void *)(V + v++), &leaf, &pos);
-    root = bpt_insert(root, 14, (void *)(V + v++), &leaf, &pos);
-
-    bpt_destroy_tree(&root);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
@@ -759,9 +1252,12 @@ void test_bpt_destroy_tree(void)
 void test_rand_test(void)
 {
     repair = NULL;
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
+    ORDER = 10;
+    cache.cache = cache.init(CACHE_SIZE);
+
+    uint32_t r_id = 0, l_id, v_id;
     int pos;
+
     uint32_t size = 1000;
 
     uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
@@ -774,123 +1270,135 @@ void test_rand_test(void)
     for (i = 0; i < size; ++i) {
         d[i] = rand() % 100000;
         v[i] = d[i] /2;
-        root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
+        r_id = bpt_insert_new_value(r_id,
+                                    d[i],
+                                    (v + i),
+                                    NULL,
+                                    &v_id,
+                                    &l_id,
+                                    &pos);
     }
 
-    uint32_t *r;
     int pos_i;
     for (i = 0; i < size; ++i) {
-        r = (uint32_t *)bpt_find(root, &leaf, &pos_i, d[i]);
+        uint32_t r_i = bpt_find(r_id, &l_id, &pos_i, d[i]);
+        int *r = cache.get(cache.cache, r_i);
         TEST_ASSERT_EQUAL(d[i]/2, *r);
     }
 
     free(d);
     free(v);
-    bpt_destroy_tree(&root);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
 //{{{ void test_bpt_insert_repeat(void)
 void test_bpt_insert_repeat(void)
 {
-    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
+    repair = NULL;
+    ORDER = 4;
+    cache.cache = cache.init(CACHE_SIZE);
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
+    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
+
+    uint32_t r_id = 0, v_id, l_id;
     int pos;
 
+    r_id = bpt_insert_new_value(r_id, 3, V, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 5, V + 1, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 4, V + 2, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 6, V + 3, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 2, V + 4, NULL, &v_id, &l_id, &pos);
 
-    /*
-     * 4
-     *  2,3 4,5,6
-     */
-    root = bpt_insert(root, 3, (void *)(V + 0),  &leaf, &pos);
-    root = bpt_insert(root, 5, (void *)(V + 1),  &leaf, &pos);
-    root = bpt_insert(root, 4, (void *)(V + 2),  &leaf, &pos);
-    root = bpt_insert(root, 6, (void *)(V + 3),  &leaf, &pos);
-    root = bpt_insert(root, 2, (void *)(V + 4),  &leaf, &pos);
+    r_id = bpt_insert_new_value(r_id, 2, V + 5, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 3, V + 6, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 4, V + 7, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 5, V + 8, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 6, V + 9, NULL, &v_id, &l_id, &pos);
 
-    root = bpt_insert(root, 2, (void *)(V + 5),  &leaf, &pos);
-    root = bpt_insert(root, 3, (void *)(V + 6),  &leaf, &pos);
-    root = bpt_insert(root, 4, (void *)(V + 7),  &leaf, &pos);
-    root = bpt_insert(root, 5, (void *)(V + 8),  &leaf, &pos);
-    root = bpt_insert(root, 6, (void *)(V + 9),  &leaf, &pos);
 
-    int pos_i;
-    uint32_t *r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 2);
+    uint32_t r_i = bpt_find(r_id, &l_id, &pos, 2);
+    int *r = cache.get(cache.cache, r_i);
     TEST_ASSERT_EQUAL(V[5], *r);
 
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 3);
+    r_i = bpt_find(r_id, &l_id, &pos, 3);
+    r = cache.get(cache.cache, r_i);
     TEST_ASSERT_EQUAL(V[6], *r);
-    
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 4);
+
+    r_i = bpt_find(r_id, &l_id, &pos, 4);
+    r = cache.get(cache.cache, r_i);
     TEST_ASSERT_EQUAL(V[7], *r);
 
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 5);
+    r_i = bpt_find(r_id, &l_id, &pos, 5);
+    r = cache.get(cache.cache, r_i);
     TEST_ASSERT_EQUAL(V[8], *r);
 
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 6);
+    r_i = bpt_find(r_id, &l_id, &pos, 6);
+    r = cache.get(cache.cache, r_i);
     TEST_ASSERT_EQUAL(V[9], *r);
 
-    bpt_destroy_tree(&root);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
 //{{{ void test_bpt_insert_repeat_append(void)
 
-void append_sum(void *new_value, void **curr_value)
+void append_sum(uint32_t new_value_id, uint32_t curr_value_id)
 {
-    uint32_t *new = (uint32_t *)new_value;
-    uint32_t **curr = (uint32_t **)curr_value;
 
-    **curr = **curr + *new;
+    int *new_value = cache.get(cache.cache, new_value_id);
+    int *curr_value = cache.get(cache.cache, curr_value_id);
+    *curr_value = *curr_value + *new_value;
 }
 
 void test_bpt_insert_repeat_append(void)
 {
-    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
+    append = append_sum;
+    repair = NULL;
+    ORDER = 4;
+    cache.cache = cache.init(CACHE_SIZE);
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
+    int R[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
+    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
+
+    uint32_t r_id = 0, v_id, l_id;
     int pos;
 
-    append = append_sum;
+    r_id = bpt_insert_new_value(r_id, 3, V, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 5, V + 1, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 4, V + 2, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 6, V + 3, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 2, V + 4, NULL, &v_id, &l_id, &pos);
 
-    /*
-     * 4
-     *  2,3 4,5,6
-     */
-    root = bpt_insert(root, 2, (void *)(V + 0),  &leaf, &pos); //1
-    root = bpt_insert(root, 3, (void *)(V + 1),  &leaf, &pos); //2
-    root = bpt_insert(root, 4, (void *)(V + 2),  &leaf, &pos); //3
-    root = bpt_insert(root, 5, (void *)(V + 3),  &leaf, &pos); //4
-    root = bpt_insert(root, 6, (void *)(V + 4),  &leaf, &pos); //5
+    r_id = bpt_insert_new_value(r_id, 2, V + 5, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 3, V + 6, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 4, V + 7, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 5, V + 8, NULL, &v_id, &l_id, &pos);
+    r_id = bpt_insert_new_value(r_id, 6, V + 9, NULL, &v_id, &l_id, &pos);
 
-    root = bpt_insert(root, 2, (void *)(V + 5),  &leaf, &pos); //7
-    root = bpt_insert(root, 3, (void *)(V + 6),  &leaf, &pos); //7
-    root = bpt_insert(root, 4, (void *)(V + 7),  &leaf, &pos); //8
-    root = bpt_insert(root, 5, (void *)(V + 8),  &leaf, &pos); //9
-    root = bpt_insert(root, 6, (void *)(V + 9),  &leaf, &pos); //10
 
-    int pos_i;
-    uint32_t *r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 2);
-    TEST_ASSERT_EQUAL(7, *r);
+    uint32_t r_i = bpt_find(r_id, &l_id, &pos, 2);
+    int *r = cache.get(cache.cache, r_i);
+    TEST_ASSERT_EQUAL(R[5] + R[4], *r);
 
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 3);
-    TEST_ASSERT_EQUAL(9, *r);
-    
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 4);
-    TEST_ASSERT_EQUAL(11, *r);
+    r_i = bpt_find(r_id, &l_id, &pos, 3);
+    r = cache.get(cache.cache, r_i);
+    TEST_ASSERT_EQUAL(R[6] + R[0], *r);
 
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 5);
-    TEST_ASSERT_EQUAL(13, *r);
+    r_i = bpt_find(r_id, &l_id, &pos, 4);
+    r = cache.get(cache.cache, r_i);
+    TEST_ASSERT_EQUAL(R[7] + R[2], *r);
 
-    r = (uint32_t *)bpt_find(root, &leaf, &pos_i, 6);
-    TEST_ASSERT_EQUAL(15, *r);
+    r_i = bpt_find(r_id, &l_id, &pos, 5);
+    r = cache.get(cache.cache, r_i);
+    TEST_ASSERT_EQUAL(R[8] + R[1], *r);
 
-    bpt_destroy_tree(&root);
+    r_i = bpt_find(r_id, &l_id, &pos, 6);
+    r = cache.get(cache.cache, r_i);
+    TEST_ASSERT_EQUAL(R[9] + R[3], *r);
+
+    cache.destroy(&(cache.cache));
+
     append = NULL;
 }
 //}}}
@@ -898,11 +1406,9 @@ void test_bpt_insert_repeat_append(void)
 //{{{ void test_rand_test_high_order(void)
 void test_rand_test_high_order(void)
 {
+    cache.cache = cache.init(10);
     ORDER=50;
     repair = NULL;
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
-    int pos;
     uint32_t size = 100000;
 
     uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
@@ -911,157 +1417,220 @@ void test_rand_test_high_order(void)
     time_t t = time(NULL);
     srand(t);
 
+    uint32_t r_id = 0, v_id, l_id;
+    int pos;
+
+ 
     uint32_t i, j;
     for (i = 0; i < size; ++i) {
         d[i] = rand();
         v[i] = d[i] /2;
-        root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
+        r_id = bpt_insert_new_value(r_id,
+                                    d[i],
+                                    v + i,
+                                    NULL,
+                                    &v_id,
+                                    &l_id,
+                                    &pos);
     }
 
     uint32_t *r;
     int pos_r;
     for (i = 0; i < size; ++i) {
-        r = (uint32_t *)bpt_find(root, &leaf, &pos_r, d[i]);
-        TEST_ASSERT_EQUAL(d[i]/2, *r);
+        uint32_t r_i = bpt_find(r_id, &l_id, &pos, d[i]);
+        int *r = cache.get(cache.cache, r_i);
+        TEST_ASSERT_EQUAL(v[i], *r);
     }
 
     free(d);
     free(v);
-    bpt_destroy_tree(&root);
+    cache.destroy(&(cache.cache));
 }
 //}}}
 
-//{{{ void test_bpt_find_null(void)
-void test_bpt_find_null(void)
-{
-    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
-    int v=0;
 
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
-    int pos_r;
-
-    int *r = (int *)bpt_find(root, &leaf, &pos_r, 0);
-
-    TEST_ASSERT_EQUAL(NULL, r);
-
-    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos_r);
-
-    r = (int *)bpt_find(root, &leaf, &pos_r, 2);
-    TEST_ASSERT_EQUAL(V, r);
-
-    r = (int *)bpt_find(root, &leaf, &pos_r, 1);
-    TEST_ASSERT_EQUAL(NULL, r);
-
-    bpt_destroy_tree(&root);
-}
-//}}}
-
-//{{{void test_bpt_write_tree(void)
-void test_bpt_write_tree(void)
-{
-    ORDER=5;
-    repair = NULL;
-    struct bpt_node *root = NULL;
-    struct bpt_node *leaf = NULL;
-    int pos;
-    uint32_t size = 20;
-
-    uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
-    uint32_t *v = (uint32_t *)malloc(size * sizeof(uint32_t));
-
-    time_t t = time(NULL);
-    //srand(t);
-
-    uint32_t i, j;
-    for (i = 0; i < size; ++i) {
-        d[i] = rand();
-        v[i] = d[i] /2;
-        root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
-    }
-
-    FILE *f = fopen(".tmp.bpt.out", "wb");
-    struct ordered_set *addr_to_id;
-    struct indexed_list *id_to_offset_size;
-    long table_offset;
-    bpt_write_tree(root, f, &addr_to_id, &id_to_offset_size, &table_offset);
-    fclose(f);
-
-    f = fopen(".tmp.bpt.out", "rb");
-
-    uint32_t r;
-
-    fread(&r, sizeof(uint32_t), 1, f);
-    TEST_ASSERT_EQUAL(ORDER, r);
-
-    fread(&r, sizeof(uint32_t), 1, f);
-
-    uint32_t id = 1;
-    struct offset_size_pair *p =
-        (struct offset_size_pair*)indexed_list_get(id_to_offset_size, 1);
-
-    char *raw_node = (char *)malloc(p->size * sizeof(char));
-
-    uint32_t root_size = 0;
-    //is_leaf
-    root_size += sizeof(uint32_t);
-    //parent
-    root_size += sizeof(uint32_t);
-    //num_keys
-    root_size += sizeof(uint32_t);
-    //keys
-    root_size += (root->num_keys)*sizeof(uint32_t);
-    //pointers
-    root_size += (root->num_keys+1)*sizeof(uint32_t);
-    //next
-    root_size += sizeof(uint32_t);
-    //leading
-    root_size += sizeof(uint32_t);
-
-    TEST_ASSERT_EQUAL(root_size, p->size);
-
-    fseek(f, p->offset, SEEK_SET);
-    fread(raw_node, sizeof(char), p->size, f);
-
-    uint32_t *is_leaf, *parent, *num_keys, *key, *pointer, *next, *leading;
-
-    uint32_t offset = 0;
-    is_leaf = (uint32_t *)(raw_node + offset);
-    offset += sizeof(uint32_t);
-
-    parent = (uint32_t *)(raw_node + offset);
-    offset += sizeof(uint32_t);
-
-    num_keys = (uint32_t *)(raw_node + offset);
-    offset += sizeof(uint32_t);
-
-    TEST_ASSERT_EQUAL(0, *is_leaf);
-    TEST_ASSERT_EQUAL(0, *parent);
-    TEST_ASSERT_EQUAL(root->num_keys, *num_keys);
-
-    for (i = 0; i < *num_keys; ++i) {
-        key = (uint32_t *)(raw_node + offset);
-        offset += sizeof(uint32_t);
-        TEST_ASSERT_EQUAL(root->keys[i], *key);
-    }
-
-    for (i = 0; i < *num_keys + 1; ++i) {
-        pointer = (uint32_t *)(raw_node + offset);
-        offset += sizeof(uint32_t);
-        struct pointer_uint_pair *pu_r = (struct pointer_uint_pair *)
-                        ordered_set_get(addr_to_id, root->pointers[i]);
-        uint32_t pointer_id = pu_r->uint;
-        TEST_ASSERT_EQUAL(pointer_id, *pointer);
-    }
-
-    next = (uint32_t *)(raw_node + offset);
-    offset += sizeof(uint32_t);
-    TEST_ASSERT_EQUAL(0, *next);
-
-    leading = (uint32_t *)(raw_node + offset);
-    offset += sizeof(uint32_t);
-    TEST_ASSERT_EQUAL(0, *leading);
-
-    fclose(f);
-}
-//}}}
+#if 0
+////{{{ void test_bpt_destroy_tree(void)
+//void test_bpt_destroy_tree(void)
+//{
+//    TEST_IGNORE()
+//
+//    /*
+//     * 2,3,4,5
+//     *
+//     * 4
+//     *  2,3 4,5,6
+//     *
+//     * 4,6
+//     *  2,3 4,5 6,7,8
+//     *
+//     * 4,6,8
+//     *  2,3 4,5 6,7 8,9,10
+//     *
+//     * 4,6,8,10
+//     *  2,3 4,5 6,7 8,9 10,11,12
+//     *
+//     * 8 
+//     *  4,6 8,10,12
+//     *   2,3 4,5 6,7 8,9 10,11 12,13,14
+//     */
+//    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
+//    int v=0;
+//
+//    struct bpt_node *root = NULL;
+//    struct bpt_node *leaf = NULL;
+//    int pos;
+//
+//    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 3, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 4, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 5, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 6, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 7, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 8, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 9, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 10, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 11, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 12, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 13, (void *)(V + v++), &leaf, &pos);
+//    root = bpt_insert(root, 14, (void *)(V + v++), &leaf, &pos);
+//
+//    bpt_destroy_tree(&root);
+//}
+////}}}
+////{{{ void test_bpt_find_null(void)
+//void test_bpt_find_null(void)
+//{
+//    TEST_IGNORE()
+//    int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
+//    int v=0;
+//
+//    struct bpt_node *root = NULL;
+//    struct bpt_node *leaf = NULL;
+//    int pos_r;
+//
+//    int *r = (int *)bpt_find(root, &leaf, &pos_r, 0);
+//
+//    TEST_ASSERT_EQUAL(NULL, r);
+//
+//    root = bpt_insert(root, 2, (void *)(V + v++), &leaf, &pos_r);
+//
+//    r = (int *)bpt_find(root, &leaf, &pos_r, 2);
+//    TEST_ASSERT_EQUAL(V, r);
+//
+//    r = (int *)bpt_find(root, &leaf, &pos_r, 1);
+//    TEST_ASSERT_EQUAL(NULL, r);
+//
+//    bpt_destroy_tree(&root);
+//}
+////}}}
+////{{{void test_bpt_write_tree(void)
+//void test_bpt_write_tree(void)
+//{
+//    TEST_IGNORE()
+//    ORDER=5;
+//    repair = NULL;
+//    struct bpt_node *root = NULL;
+//    struct bpt_node *leaf = NULL;
+//    int pos;
+//    uint32_t size = 20;
+//
+//    uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
+//    uint32_t *v = (uint32_t *)malloc(size * sizeof(uint32_t));
+//
+//    time_t t = time(NULL);
+//    //srand(t);
+//
+//    uint32_t i, j;
+//    for (i = 0; i < size; ++i) {
+//        d[i] = rand();
+//        v[i] = d[i] /2;
+//        root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
+//    }
+//
+//    FILE *f = fopen(".tmp.bpt.out", "wb");
+//    struct ordered_set *addr_to_id;
+//    struct indexed_list *id_to_offset_size;
+//    long table_offset;
+//    bpt_write_tree(root, f, &addr_to_id, &id_to_offset_size, &table_offset);
+//    fclose(f);
+//
+//    f = fopen(".tmp.bpt.out", "rb");
+//
+//    uint32_t r;
+//
+//    fread(&r, sizeof(uint32_t), 1, f);
+//    TEST_ASSERT_EQUAL(ORDER, r);
+//
+//    fread(&r, sizeof(uint32_t), 1, f);
+//
+//    uint32_t id = 1;
+//    struct offset_size_pair *p =
+//        (struct offset_size_pair*)indexed_list_get(id_to_offset_size, 1);
+//
+//    char *raw_node = (char *)malloc(p->size * sizeof(char));
+//
+//    uint32_t root_size = 0;
+//    //is_leaf
+//    root_size += sizeof(uint32_t);
+//    //parent
+//    root_size += sizeof(uint32_t);
+//    //num_keys
+//    root_size += sizeof(uint32_t);
+//    //keys
+//    root_size += (root->num_keys)*sizeof(uint32_t);
+//    //pointers
+//    root_size += (root->num_keys+1)*sizeof(uint32_t);
+//    //next
+//    root_size += sizeof(uint32_t);
+//    //leading
+//    root_size += sizeof(uint32_t);
+//
+//    TEST_ASSERT_EQUAL(root_size, p->size);
+//
+//    fseek(f, p->offset, SEEK_SET);
+//    fread(raw_node, sizeof(char), p->size, f);
+//
+//    uint32_t *is_leaf, *parent, *num_keys, *key, *pointer, *next, *leading;
+//
+//    uint32_t offset = 0;
+//    is_leaf = (uint32_t *)(raw_node + offset);
+//    offset += sizeof(uint32_t);
+//
+//    parent = (uint32_t *)(raw_node + offset);
+//    offset += sizeof(uint32_t);
+//
+//    num_keys = (uint32_t *)(raw_node + offset);
+//    offset += sizeof(uint32_t);
+//
+//    TEST_ASSERT_EQUAL(0, *is_leaf);
+//    TEST_ASSERT_EQUAL(0, *parent);
+//    TEST_ASSERT_EQUAL(root->num_keys, *num_keys);
+//
+//    for (i = 0; i < *num_keys; ++i) {
+//        key = (uint32_t *)(raw_node + offset);
+//        offset += sizeof(uint32_t);
+//        TEST_ASSERT_EQUAL(root->keys[i], *key);
+//    }
+//
+//    for (i = 0; i < *num_keys + 1; ++i) {
+//        pointer = (uint32_t *)(raw_node + offset);
+//        offset += sizeof(uint32_t);
+//        struct pointer_uint_pair *pu_r = (struct pointer_uint_pair *)
+//                        ordered_set_get(addr_to_id, root->pointers[i]);
+//        uint32_t pointer_id = pu_r->uint;
+//        TEST_ASSERT_EQUAL(pointer_id, *pointer);
+//    }
+//
+//    next = (uint32_t *)(raw_node + offset);
+//    offset += sizeof(uint32_t);
+//    TEST_ASSERT_EQUAL(0, *next);
+//
+//    leading = (uint32_t *)(raw_node + offset);
+//    offset += sizeof(uint32_t);
+//    TEST_ASSERT_EQUAL(0, *leading);
+//
+//    fclose(f);
+//}
+////}}}
+#endif

@@ -78,8 +78,16 @@ struct unordered_list *unordered_list_init(uint32_t init_size)
 //}}}
 
 //{{{void unordered_list_destroy(struct unordered_list **ul)
-void unordered_list_destroy(struct unordered_list **ul)
+void unordered_list_destroy(struct unordered_list **ul,
+                            void (*free_data)(void **data))
 {
+    if (free_data != NULL) {
+        uint32_t i;
+        for (i = 0; i < (*ul)->num; ++i) {
+            free_data(&((*ul)->data[i]));
+        }
+    }
+
     free((*ul)->data);
     (*ul)->data = NULL;
 
@@ -142,6 +150,25 @@ struct ordered_set
     return os;
 }
 //}}}
+
+//{{{
+void ordered_set_destroy(struct ordered_set **os,
+                         void (*free_data)(void **data))
+{
+
+    if (free_data != NULL) {
+        uint32_t i;
+        for (i = 0; i < (*os)->num; ++i) {
+            free_data(&((*os)->data[i]));
+        }
+    }
+
+    free((*os)->data);
+    free(*os);
+    *os = NULL;
+}
+//}}}
+
 
 //{{{void *ordered_set_add(struct ordered_set *os,
 void *ordered_set_add(struct ordered_set *os,
@@ -507,40 +534,48 @@ void cc_hash_destroy(struct cc_hash **hash)
 //}}}
 
 //{{{ lru_cache
-/*
-struct lru_cache
-{
 
-    struct cc_hash *hash_table;
-    struct linked_list_node *head, *tail;
+struct cache_def lru_cache_def = {
+    NULL,
+    lru_cache_init,
+    lru_cache_seen,
+    lru_cache_add,
+    lru_cache_get,
+    lru_cache_remove,
+    lru_cache_destroy
 };
-*/
-/*
-struct linked_list_node
-{
-    void *value; 
-    struct linked_list_node *next;
-};
-*/
 
 //{{{struct lru_cache *lru_cache_init(uint32_t init_size)
-struct lru_cache *lru_cache_init(uint32_t init_size)
+void *lru_cache_init(uint32_t init_size)
 {
     struct lru_cache *lruc = (struct lru_cache *)
             malloc(sizeof(struct lru_cache));
     lruc->size = init_size;
     lruc->num = 0;
+    lruc->seen = 0;
     lruc->hash_table = cc_hash_init(init_size * 2.5);
     lruc->head = NULL;
     lruc->tail = NULL;
-
     return lruc;
 }
 //}}}
 
-//{{{void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
-void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
+//{{{uint32_t lru_cache_seen(struct lru_cache *lruc)
+//uint32_t lru_cache_seen(struct lru_cache *lruc)
+uint32_t lru_cache_seen(void *_lruc)
 {
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
+    return lruc->seen;
+}
+//}}}
+
+//{{{void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
+void lru_cache_add(void *_lruc,
+                   uint32_t key,
+                   void *value,
+                   void (*free_value)(void **data))
+{
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
     if (cc_hash_get(lruc->hash_table, key) != NULL)
         return;
 
@@ -557,6 +592,9 @@ void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
         if (to_rem_h != to_rem_l)
             errx(1, "Inconsistency in LRU cache");
 
+        if (to_rem_l->free_value != NULL)
+            to_rem_l->free_value(&(to_rem_l->value));
+
         free(to_rem_l);
         lruc->num -= 1;
     }
@@ -564,6 +602,7 @@ void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
     struct linked_list_node *ll = (struct linked_list_node *)
             malloc(sizeof(struct linked_list_node));
     ll->key = key;
+    ll->free_value = free_value;
     ll->prev = NULL;
     ll->next = NULL;
     ll->value = value;
@@ -580,12 +619,14 @@ void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
     int r = cc_hash_add(lruc->hash_table, key, ll);
 
     lruc->num += 1;
+    lruc->seen += 1;
 }
 //}}}
 
 //{{{void *lru_cache_get(struct lru_cache *lruc, uint32_t key)
-void *lru_cache_get(struct lru_cache *lruc, uint32_t key)
+void *lru_cache_get(void *_lruc, uint32_t key)
 {
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
     struct linked_list_node *ll =
         (struct linked_list_node *) cc_hash_get(lruc->hash_table, key);
 
@@ -613,9 +654,41 @@ void *lru_cache_get(struct lru_cache *lruc, uint32_t key)
 }
 //}}}
 
-//{{{void lru_cache_destroy(struct lru_cache **lruc)
-void lru_cache_destroy(struct lru_cache **lruc)
+//{{{void lru_cache_remove(struct lru_cache *lruc, uint32_t key)
+void lru_cache_remove(void *_lruc, uint32_t key)
 {
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
+    struct linked_list_node *to_rem = 
+                (struct linked_list_node *)
+                cc_hash_remove(lruc->hash_table, key);
+
+    if (to_rem == NULL)
+        return;
+
+    // Take it out of the list
+    if (to_rem == lruc->head) {
+        lruc->head = NULL;
+        lruc->tail = NULL;
+    } else if (to_rem == lruc->tail) {
+        lruc->tail->prev->next = NULL;
+        lruc->tail = lruc->tail->prev;
+    } else {
+        to_rem->prev->next = to_rem->next;
+    }
+
+
+    if (to_rem->free_value != NULL)
+        to_rem->free_value(&(to_rem->value));
+
+    free(to_rem);
+    lruc->num -= 1;
+}
+//}}}
+
+//{{{void lru_cache_destroy(struct lru_cache **lruc)
+void lru_cache_destroy(void **_lruc)
+{
+    struct lru_cache **lruc = (struct lru_cache **)_lruc;
     cc_hash_destroy(&((*lruc)->hash_table));
 
     struct linked_list_node *curr, *tmp;
@@ -623,6 +696,12 @@ void lru_cache_destroy(struct lru_cache **lruc)
 
     while (curr != NULL) {
         tmp = curr->next;;
+        /*
+        if ( (*lruc)->free_value != NULL)
+            (*lruc)->free_value(&(curr->value));
+        */
+        if (curr->free_value != NULL)
+            curr->free_value(&(curr->value));
         free(curr);
         curr = tmp;
     }
@@ -630,4 +709,87 @@ void lru_cache_destroy(struct lru_cache **lruc)
     *lruc = NULL;
 }
 //}}}
+//}}}
+
+//{{{ simple_cache
+void *simple_cache_init(uint32_t init_size)
+{
+    struct simple_cache *sc = (struct simple_cache *)
+            malloc(sizeof(struct simple_cache));
+    sc->size = init_size;
+    sc->num = 0;
+    sc->seen = 0;
+    sc->il = indexed_list_init(init_size, sizeof(struct value_free_value_pair));
+    return sc;
+}
+
+uint32_t simple_cache_seen(void *_sc)
+{
+    struct simple_cache *sc = (struct simple_cache *)_sc;
+    return sc->seen;
+}
+
+void simple_cache_add(void *_sc,
+                      uint32_t key,
+                      void *value,
+                      void (*free_value)(void **data))
+{
+    struct simple_cache *sc = (struct simple_cache *)_sc;
+
+    struct value_free_value_pair vf;
+    vf.value = value;
+    vf.free_value = free_value;
+    indexed_list_add(sc->il, key, &vf);
+    sc->num += 1;
+    sc->seen += 1;
+}
+
+void *simple_cache_get(void *_sc, uint32_t key)
+{
+    struct simple_cache *sc = (struct simple_cache *)_sc;
+    struct value_free_value_pair *vf = indexed_list_get(sc->il, key);
+
+    if (vf == NULL)
+        return NULL;
+    else 
+        return vf->value;
+}
+
+void simple_cache_destroy(void **_sc)
+{
+    struct simple_cache **sc = (struct simple_cache **)_sc;
+
+    uint32_t i;
+    for (i = 0; i <= (*sc)->seen; ++i) {
+        struct value_free_value_pair *vf = indexed_list_get((*sc)->il, i);
+        if (vf != NULL) {
+            if (vf->free_value != NULL)
+                vf->free_value(&(vf->value));
+        }
+    }
+
+    indexed_list_destroy(&((*sc)->il));
+    free(*sc);
+    *sc = NULL;
+}
+//}}}
+
+//{{{void free_wrapper(void **v)
+void free_wrapper(void **v)
+{
+    free(*v);
+    *v = NULL;
+}
+//}}}
+
+//{{{void str_uint_pair_free(void **p)
+void str_uint_pair_free(void **_p)
+{
+    struct str_uint_pair **p = (struct str_uint_pair **)_p;
+    if (*p != NULL) {
+        free((*p)->str);
+        free(*p);
+        *p = NULL;
+    }
+}
 //}}}

@@ -4,6 +4,7 @@ CC=gcc
 SRC=../../src/
 TEST_SRC=$(wildcard *.c)
 TEST_NAMES=$(TEST_SRC:.c=)
+
 PREFIX=Runner_
 RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 

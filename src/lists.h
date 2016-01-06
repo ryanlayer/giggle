@@ -27,7 +27,8 @@ struct unordered_list
 };
 
 struct unordered_list *unordered_list_init(uint32_t init_size);
-void unordered_list_destroy(struct unordered_list **ul);
+void unordered_list_destroy(struct unordered_list **ul,
+                            void (*free_data)(void **data));
 uint32_t unordered_list_add(struct unordered_list *ul,
                             void *data);
 void *unordered_list_get(struct unordered_list *ul, uint32_t i);
@@ -47,7 +48,8 @@ struct ordered_set
                 int (*sort_element_cmp)(const void *a, const void *b),
                 int (*search_element_cmp)(const void *a, const void *b),
                 int (*search_key_cmp)(const void *a, const void *b));
-void ordered_set_destroy(struct ordered_set **os);
+void ordered_set_destroy(struct ordered_set **os,
+                         void (*free_data)(void **data));
 void *ordered_set_add(struct ordered_set *os,
                        void *data);
 void *ordered_set_get(struct ordered_set *os, void *key);
@@ -57,6 +59,9 @@ struct str_uint_pair
     char *str;
     uint32_t uint;
 };
+
+void str_uint_pair_free(void **p);
+
 int str_uint_pair_sort_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_key_cmp(const void *a, const void *b);
@@ -100,6 +105,22 @@ void byte_array_destory(struct byte_array **ba);
 void byte_array_append(struct byte_array *ba, void *data, uint32_t size);
 void byte_array_append_zeros(struct byte_array *ba, uint32_t size);
 
+
+// CACHES
+
+struct cache_def {
+    void *cache;
+    void *(*init)(uint32_t size);
+    uint32_t (*seen)(void *cache);
+    void (*add)(void *cache,
+                uint32_t key,
+                void *data,
+                void (*free_value)(void **data));
+    void *(*get)(void *cache, uint32_t key);
+    void (*remove)(void *cache, uint32_t key);
+    void (*destroy)(void **cache);
+};
+
 struct cc_hash
 {
     uint32_t num, sizes, *keys[2];
@@ -121,19 +142,52 @@ struct linked_list_node
     void *value; 
     uint32_t key;
     struct linked_list_node *prev, *next;
+    void (*free_value)(void **data);
 };
 
 struct lru_cache
 {
     struct cc_hash *hash_table;
     struct linked_list_node *head, *tail;
-    uint32_t size, num;
+    uint32_t size, num, seen;
 };
 
-struct lru_cache *lru_cache_init(uint32_t init_size);
-void *lru_cache_get(struct lru_cache *cache, uint32_t key);
-void lru_cache_add(struct lru_cache *cache, uint32_t key, void *value);
-void lru_cache_destroy(struct lru_cache **lruc);
+void *lru_cache_init(uint32_t init_size);
+uint32_t lru_cache_seen(void *lruc); 
+void *lru_cache_get(void *cache, uint32_t key);
+void lru_cache_remove(void *cache, uint32_t key);
+void lru_cache_add(void *cache,
+                   uint32_t key,
+                   void *value,
+                   void (*free_value)(void **data));
+void lru_cache_destroy(void **lruc);
+
+struct cache_def lru_cache_def;
+
+
+struct value_free_value_pair
+{
+    void *value;
+    void (*free_value)(void **value);
+};
+
+struct simple_cache
+{
+    struct indexed_list *il;
+    uint32_t size, num, seen;
+};
+
+void *simple_cache_init(uint32_t init_size);
+uint32_t simple_cache_seen(void *cache); 
+void *simple_cache_get(void *cache, uint32_t key);
+void simple_cache_remove(void *cache, uint32_t key);
+void simple_cache_add(void *cache,
+                      uint32_t key,
+                      void *value,
+                      void (*free_value)(void **data));
+void simple_cache_destroy(void **cache);
+
+void free_wrapper(void **v);
 
 #endif
 

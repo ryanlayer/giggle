@@ -19,7 +19,7 @@ void test_unordered_list_init(void)
     TEST_ASSERT_EQUAL(ul->num, 0);
     TEST_ASSERT_EQUAL(ul->size, 10);
 
-    unordered_list_destroy(&ul);
+    unordered_list_destroy(&ul, NULL);
 
     TEST_ASSERT_EQUAL(ul, NULL);
 }
@@ -48,7 +48,7 @@ void test_unordered_list_add(void)
         TEST_ASSERT_EQUAL(20, ul->size);
     }
 
-    unordered_list_destroy(&ul);
+    unordered_list_destroy(&ul, NULL);
 }
 //}}}
 
@@ -73,7 +73,7 @@ void test_unordered_list_get(void)
     void *r = unordered_list_get(ul, 5000);
     TEST_ASSERT_EQUAL(NULL, r);
     
-    unordered_list_destroy(&ul);
+    unordered_list_destroy(&ul, NULL);
 }
 //}}}
 
@@ -455,7 +455,8 @@ void test_lru_cache(void)
 
     int V[10] = {2,4,6,8,10,12,14,16,18,20};
 
-    lru_cache_add(lruc, 1, V);
+    lru_cache_add(lruc, 1, V, NULL);
+    TEST_ASSERT_EQUAL(1, lruc->seen);
 
     TEST_ASSERT_EQUAL(V, lruc->head->value);
     TEST_ASSERT_EQUAL(V, lruc->tail->value);
@@ -465,7 +466,8 @@ void test_lru_cache(void)
     TEST_ASSERT_EQUAL(V[0], *r);
     TEST_ASSERT_EQUAL(NULL, lru_cache_get(lruc, 2));
 
-    lru_cache_add(lruc, 2, V+1);
+    lru_cache_add(lruc, 2, V+1, NULL);
+    TEST_ASSERT_EQUAL(2, lruc->seen);
 
     TEST_ASSERT_EQUAL(V, lruc->head->value);
     TEST_ASSERT_EQUAL(V+1, lruc->tail->value);
@@ -475,10 +477,14 @@ void test_lru_cache(void)
     TEST_ASSERT_EQUAL(V+1, lruc->head->value);
     TEST_ASSERT_EQUAL(V, lruc->tail->value);
 
-    lru_cache_add(lruc, 3, V+2);
-    lru_cache_add(lruc, 4, V+3);
-    lru_cache_add(lruc, 5, V+4);
-    lru_cache_add(lruc, 6, V+5);
+    lru_cache_add(lruc, 3, V+2, NULL);
+    TEST_ASSERT_EQUAL(3, lruc->seen);
+    lru_cache_add(lruc, 4, V+3, NULL);
+    TEST_ASSERT_EQUAL(4, lruc->seen);
+    lru_cache_add(lruc, 5, V+4, NULL);
+    TEST_ASSERT_EQUAL(5, lruc->seen);
+    lru_cache_add(lruc, 6, V+5, NULL);
+    TEST_ASSERT_EQUAL(6, lruc->seen);
 
     TEST_ASSERT_EQUAL(NULL, lru_cache_get(lruc, 2));
     r = (int *)lru_cache_get(lruc, 1);
@@ -492,6 +498,35 @@ void test_lru_cache(void)
     r = (int *)lru_cache_get(lruc, 6);
     TEST_ASSERT_EQUAL(V[5], *r);
 
-    lru_cache_destroy(&lruc);
+    TEST_ASSERT_EQUAL(6, lruc->seen);
+
+    lru_cache_destroy((void **)&lruc);
+}
+///}}}
+
+//{{{void test_simple_cache(void)
+void test_simple_cache(void)
+{
+    struct simple_cache *sc = simple_cache_init(5);
+
+    int V[10] = {2,4,6,8,10,12,14,16,18,20};
+
+    simple_cache_add(sc, 1, V, NULL);
+    TEST_ASSERT_EQUAL(1, simple_cache_seen(sc));
+
+    int *r = (int *)simple_cache_get(sc, 1);
+    TEST_ASSERT_EQUAL(V[0], *r);
+
+    uint32_t i;
+    for (i = 1; i<10; ++i)
+        simple_cache_add(sc, i+1, V+i, NULL);
+    TEST_ASSERT_EQUAL(10, simple_cache_seen(sc));
+
+    for (i = 0; i<10; ++i) {
+        int *r = (int *)simple_cache_get(sc, i+1);
+        TEST_ASSERT_EQUAL(V[i], *r);
+    }
+
+    simple_cache_destroy((void **)&sc);
 }
 ///}}}

@@ -10,8 +10,20 @@
 #include "lists.h"
 #include "file_read.h"
 
+void *(*new_non_leading)() = NULL;
+void *(*new_leading)() = NULL;
+void (*non_leading_SA_add_scalar)(void *non_leading, void *scalar) = NULL;
+void (*non_leading_SE_add_scalar)(void *non_leading, void *scalar) = NULL;
+void (*leading_B_add_scalar)(void *leading, void *scalar) = NULL;
+void (*leading_union_with_B)(void **result, void *leading) = NULL;
+void (*non_leading_union_with_SA)(void **result, void *non_leading) = NULL;
+void (*non_leading_union_with_SA_subtract_SE)(void **result,
+                                              void *non_leading) = NULL;
+void (*non_leading_free)(void **non_leading) = NULL;
+void (*leading_free)(void **leading) = NULL;
+
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
-uint32_t giggle_insert(struct bpt_node **root,
+uint32_t giggle_insert(uint32_t *root_id,
                        uint32_t start,
                        uint32_t end,
                        uint32_t id)
@@ -62,41 +74,59 @@ uint32_t giggle_insert(struct bpt_node **root,
     fprintf(stderr, "%u %u\n", start, end);
 #endif
 
+    uint32_t start_leaf_id = 0;
+    int start_pos;
 
-    struct bpt_node *start_leaf_r = NULL;
-    int start_pos_r;
+    uint32_t start_id = bpt_find(*root_id,
+                                 &start_leaf_id,
+                                 &start_pos,
+                                 start);
 
-    void *start_r = bpt_find(*root,
-                             &start_leaf_r,
-                             &start_pos_r,
-                             start);
-
-    if (start_r == NULL) {
+    if (start_id == 0) {
         void *d = new_non_leading();
         non_leading_SA_add_scalar(d, &id);
-        *root = bpt_insert(*root, start, d, &start_leaf_r, &start_pos_r);
+        uint32_t v_id;
+        int pos;
+        *root_id = bpt_insert_new_value(*root_id,
+                                        start,
+                                        d,
+                                        non_leading_free,
+                                        &v_id,
+                                        &start_leaf_id,
+                                        &start_pos);
     } else {
-        non_leading_SA_add_scalar(start_r, &id);
+        void *start_v = cache.get(cache.cache, start_id);
+        non_leading_SA_add_scalar(start_v, &id);
     }
 
-    struct bpt_node *end_leaf_r = NULL;
-    int end_pos_r;
+    uint32_t end_leaf_id = 0;
+    int end_pos;
 
-    void *end_r = bpt_find(*root,
-                           &end_leaf_r,
-                           &end_pos_r,
-                           end + 1);
+    uint32_t end_id = bpt_find(*root_id,
+                               &end_leaf_id,
+                               &end_pos,
+                               end + 1);
 
-    if (end_r == NULL) {
+    if (end_id == 0) {
         void *d = new_non_leading();
         non_leading_SE_add_scalar(d, &id);
-        *root = bpt_insert(*root, end + 1, d, &end_leaf_r, &end_pos_r);
+
+        uint32_t v_id;
+        int pos;
+        *root_id = bpt_insert_new_value(*root_id,
+                                        end + 1,
+                                        d,
+                                        non_leading_free,
+                                        &v_id,
+                                        &end_leaf_id,
+                                        &end_pos);
     } else {
-        non_leading_SE_add_scalar(end_r, &id);
+        void *end_v = cache.get(cache.cache, end_id);
+        non_leading_SE_add_scalar(end_v, &id);
     }
 
 #if DEBUG
-    fprintf(stderr, "s:%p e:%p\t", start_leaf_r, end_leaf_r);
+    fprintf(stderr, "s_id:%u e_id:%u\t", start_leaf_id, end_leaf_id);
 #endif
 
 
@@ -104,33 +134,38 @@ uint32_t giggle_insert(struct bpt_node **root,
     // because it is possible that the leaf split on the second insert but both
     // keys ended up on the same leaf.  If they are differnet we just double
     // check to see that this is not the case.
-    if (start_leaf_r != end_leaf_r) 
-        start_leaf_r = bpt_find_leaf(*root, start);
+    
+    if (start_leaf_id != end_leaf_id) 
+        start_leaf_id = bpt_find_leaf(*root_id, start);
 
 #if DEBUG
-    fprintf(stderr, "s:%p e:%p\n", start_leaf_r, end_leaf_r);
+    fprintf(stderr, "s_id:%u e_id:%u\n", start_leaf_id, end_leaf_id);
 #endif
 
-    if (start_leaf_r != end_leaf_r) {
-        struct bpt_node *curr_leaf = start_leaf_r;
+    if (start_leaf_id != end_leaf_id) {
+        struct bpt_node *curr_leaf = cache.get(cache.cache, start_leaf_id);
         do {
-            curr_leaf = curr_leaf->next;
+            curr_leaf = cache.get(cache.cache, BPT_NEXT(curr_leaf));
 
-            if (curr_leaf->leading == NULL) {
+            if (BPT_LEADING(curr_leaf) == 0) {
                 void *d = new_leading();
+                uint32_t v_id = cache.seen(cache.cache) + 1;
+                cache.add(cache.cache, v_id, d, leading_free);
                 leading_B_add_scalar(d, &id);
+                BPT_LEADING(curr_leaf) = v_id; 
             } else {
-                leading_B_add_scalar(curr_leaf->leading, &id);
+                void *d = cache.get(cache.cache, BPT_LEADING(curr_leaf));
+                leading_B_add_scalar(d, &id);
             }
-        } while (curr_leaf != end_leaf_r);
+        } while (BPT_ID(curr_leaf) != end_leaf_id);
     }
 
     return 0;
 }
 //}}}
 
-//{{{struct uint32_t_ll *giggle_search(struct bpt_node *root,
-void *giggle_search(struct bpt_node *root,
+//{{{ void *giggle_search(uint32_t root_id,
+void *giggle_search(uint32_t root_id,
                     uint32_t start,
                     uint32_t end)
 {
@@ -139,82 +174,102 @@ void *giggle_search(struct bpt_node *root,
     fprintf(stderr, "start:%u\tend:%u\n", start, end);
 #endif
 
-    if (root == NULL)
-        return NULL;
+    if (root_id == 0)
+        return 0;
+
+    uint32_t leaf_start_id;
+    int pos_start_id;
+
+    uint32_t nld_start_id = bpt_find(root_id,
+                                     &leaf_start_id, 
+                                     &pos_start_id,
+                                     start);
+    struct bpt_node *leaf_start = cache.get(cache.cache, leaf_start_id);
+    if ((pos_start_id == 0) && (BPT_KEYS(leaf_start)[0] != start))
+        pos_start_id = -1;
+
+#if DEBUG
+    fprintf(stderr, "pos_start_id:%d\t", pos_start_id);
+#endif
+
+    uint32_t leaf_end_id;
+    int pos_end_id;
 
     void *r = NULL;
 
-    struct bpt_node *leaf_start_r, *leaf_end_r;
-    int pos_start_r, pos_end_r;
+    uint32_t nld_end_id = bpt_find(root_id,
+                                   &leaf_end_id, 
+                                   &pos_end_id,
+                                   end);
 
-    void *nld_start_r = bpt_find(root,
-                                 &leaf_start_r, 
-                                 &pos_start_r,
-                                 start);
-    if ((pos_start_r == 0) && (leaf_start_r->keys[0] != start))
-        pos_start_r = -1;
-
-#if DEBUG
-    fprintf(stderr, "pos_start_r:%d\t", pos_start_r);
-#endif
-
-    void *nld_end_r = bpt_find(root,
-                               &leaf_end_r, 
-                               &pos_end_r,
-                               end);
-
-    if ((pos_end_r == 0) && (leaf_end_r->keys[0] != end))
-        pos_end_r = -1;
-    else if ( (pos_end_r >=0) && 
-              (pos_end_r < leaf_end_r->num_keys) &&
-              (leaf_end_r->keys[pos_end_r] > end))
-        pos_end_r -= 1;
+    struct bpt_node *leaf_end = cache.get(cache.cache, leaf_end_id);
+    if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
+        pos_end_id = -1;
+    else if ( (pos_end_id >=0) && 
+              (pos_end_id < BPT_NUM_KEYS(leaf_end)) &&
+              (BPT_KEYS(leaf_end)[pos_end_id] > end))
+        pos_end_id -= 1;
 
 #if DEBUG
-    fprintf(stderr, "pos_end_r:%d %u\n", pos_end_r,
-            ( ((pos_end_r >=0)&&(pos_end_r<leaf_end_r->num_keys)) ?
-              leaf_end_r->keys[pos_end_r] : 0)
+    fprintf(stderr, "pos_end_id:%d %u\n", pos_end_id,
+            ( ((pos_end_id >=0)&&(pos_end_id<BPT_NUM_KEYS(leaf_end))) ?
+              BPT_KEYS(leaf_end)[pos_end_r] : 0)
             );
 #endif
 
     // get everything in the leading value
-    if (leaf_start_r->leading != NULL)
-        leading_union_with_B(&r, leaf_start_r->leading);
+    if (BPT_LEADING(leaf_start) != 0) {
+        struct uint32_t_ll_bpt_leading_data *ld = 
+                cache.get(cache.cache, BPT_LEADING(leaf_start));
+        leading_union_with_B(&r, ld);
+    }
 
     // add any SA and remove any that are an SE up to and including this point
     int i;
-    for (i = 0; (i < leaf_start_r->num_keys) && (i <= pos_start_r); ++i) {
-        non_leading_union_with_SA_subtract_SE(&r,
-                                              leaf_start_r->pointers[i]);
+    for (i = 0; (i < BPT_NUM_KEYS(leaf_start)) && (i <= pos_start_id); ++i) {
+        struct uint32_t_ll_bpt_non_leading_data *nld = 
+                cache.get(cache.cache, BPT_POINTERS(leaf_start)[i]);
+        non_leading_union_with_SA_subtract_SE(&r, nld);
     }
 
     // now process everything in between the start and end
-    struct bpt_node *leaf_curr = leaf_start_r;
-    int pos_curr = pos_start_r + 1;
+    struct bpt_node *leaf_curr = leaf_start;
+    int pos_curr_id = pos_start_id + 1;
 
     // any intermediate leaves
-    while (leaf_curr != leaf_end_r) {
+    while (BPT_ID(leaf_curr) != leaf_end_id) {
         // do from pos_curr to the last key
-        for (i = pos_curr; i < leaf_curr->num_keys; ++i) {
-            non_leading_union_with_SA(&r,
-                                      leaf_curr->pointers[i]);
+        for (i = pos_curr_id; i < BPT_NUM_KEYS(leaf_curr); ++i) {
+            struct uint32_t_ll_bpt_non_leading_data *nld = 
+                    cache.get(cache.cache, BPT_POINTERS(leaf_curr)[i]);
+            non_leading_union_with_SA(&r, nld);
         }
 
-        leaf_curr = leaf_curr->next;
-        pos_curr = 0;
+        leaf_curr = cache.get(cache.cache, BPT_NEXT(leaf_curr));
+        pos_curr_id = 0;
     }
 
-    if (leaf_curr == leaf_end_r) {
+    if (BPT_ID(leaf_curr) == leaf_end_id) {
         // add all SA's from here to either the end point
-        for ( i = pos_curr;
-             (i < leaf_curr->num_keys) && (i <= pos_end_r); 
+        for ( i = pos_curr_id;
+             (i < BPT_NUM_KEYS(leaf_curr)) && (i <= pos_end_id); 
               ++i) {
-            non_leading_union_with_SA(&r,
-                                      leaf_curr->pointers[i]);
+            struct uint32_t_ll_bpt_non_leading_data *nld = 
+                    cache.get(cache.cache, BPT_POINTERS(leaf_curr)[i]);
+            non_leading_union_with_SA(&r, nld);
         }
     }
 
-    return (struct uint32_t_ll *)r;
+    /*
+    if (r != NULL) {
+        uint32_t v_id = cache.seen(cache.cache) + 1;
+        cache.add(cache.cache, v_id, r, uint32_t_ll_free);
+        return v_id;
+    } else {
+        return 0;
+    }
+    */
+    return r;
 }
 //}}}
 
@@ -223,10 +278,12 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
+
     gi->len = init_size;
+
     gi->num = 0;
 
-    gi->roots = (struct bpt_node **)malloc(gi->len * sizeof(struct bpt_node *));
+    gi->root_ids = (uint32_t *)calloc(sizeof(uint32_t), gi->len);
 
     gi->chrm_index = ordered_set_init(init_size,
                                       str_uint_pair_sort_element_cmp,
@@ -237,13 +294,22 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 
     gi->offset_index = unordered_list_init(1000);
 
-    int i;
-    for (i = 0; i < gi->len; ++i)
-        gi->roots[i] = NULL;
+    cache.cache = cache.init(CACHE_SIZE);
 
     return gi;
 }
 //}}}
+
+void giggle_index_destroy(struct giggle_index **gi)
+{
+    free((*gi)->root_ids);
+    unordered_list_destroy(&((*gi)->file_index), free_wrapper);
+    unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
+    ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
+    cache.destroy(&(cache.cache));
+    free(*gi);
+    *gi = NULL;
+}
 
 //{{{int giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
@@ -263,12 +329,12 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
         gi->num += 1;
 
         if (gi->len < gi->chrm_index->size) {
-            gi->roots = realloc(gi->roots,
-                                gi->chrm_index->size*sizeof(struct bpt_node *));
+            gi->root_ids = realloc(gi->root_ids,
+                                   gi->chrm_index->size*sizeof(uint32_t));
             gi->len = gi->chrm_index->size;
             uint32_t i;
             for (i = gi->num; i < gi->len; ++i)
-                gi->roots[i] = NULL;
+                gi->root_ids[i] = 0;
         }
     }
 
@@ -306,12 +372,15 @@ uint32_t giggle_index_file(struct giggle_index *gi,
         p->file_id = file_id;
         intrv_id = unordered_list_add(gi->offset_index, p);
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
-        uint32_t r = giggle_insert(&(gi->roots[chrm_id]), start, end, intrv_id);
+        uint32_t r = giggle_insert(&(gi->root_ids[chrm_id]),
+                                   start,
+                                   end,
+                                   intrv_id);
         j += 1;
     }
 
     input_file_destroy(&i);
-
+    free(chrm);
     return(j);
 }
 //}}}
@@ -324,7 +393,7 @@ void *giggle_query_region(struct giggle_index *gi,
 {
     uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
     struct uint32_t_ll *R = (struct uint32_t_ll *)
-            giggle_search(gi->roots[chr_id], start, end);
+            giggle_search(gi->root_ids[chr_id], start, end);
     return R;
 }
 //}}}

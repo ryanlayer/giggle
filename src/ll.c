@@ -27,6 +27,10 @@ void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val)
 //{{{void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val)
 void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_uniq_append\n");
+    fprintf(stderr, "val:%u\n", val);
+#endif
     struct uint32_t_ll_node *n = (struct uint32_t_ll_node *)
         malloc(sizeof(struct uint32_t_ll_node));
     n->val = val;
@@ -115,8 +119,10 @@ uint32_t uint32_t_ll_contains(struct uint32_t_ll *ll, uint32_t val)
 //}}}
 
 //{{{void uint32_t_ll_free(struct uint32_t_ll **ll)
-void uint32_t_ll_free(struct uint32_t_ll **ll)
+//void uint32_t_ll_free(struct uint32_t_ll **ll)
+void uint32_t_ll_free(void **_ll)
 {
+    struct uint32_t_ll **ll = (struct uint32_t_ll **)_ll;
     struct uint32_t_ll_node *curr, *tmp;
 
     if (*ll != NULL) {
@@ -133,6 +139,29 @@ void uint32_t_ll_free(struct uint32_t_ll **ll)
 }
 //}}}
 
+//{{{void uint32_t_ll_non_leading_free(void **_d)
+void uint32_t_ll_non_leading_free(void **_d)
+{
+    struct uint32_t_ll_bpt_non_leading_data **d = 
+            (struct uint32_t_ll_bpt_non_leading_data **)_d;
+    uint32_t_ll_free((void **)&((*d)->SA));
+    uint32_t_ll_free((void **)&((*d)->SE));
+    free(*d);
+    *d = NULL;
+}
+//}}}
+
+//{{{ void uint32_t_ll_leading_free(void **_d)
+void uint32_t_ll_leading_free(void **_d)
+{
+    struct uint32_t_ll_bpt_leading_data **d = 
+            (struct uint32_t_ll_bpt_leading_data **)_d;
+    uint32_t_ll_free((void **)&((*d)->B));
+    free(*d);
+    *d = NULL;
+}
+//}}}
+
 //{{{void leading_repair(struct bpt_node *a, struct bpt_node *b)
 void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
 {
@@ -140,16 +169,16 @@ void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
     fprintf(stderr, "leading_repair\n");
 #endif
 
-    if ( (a->is_leaf == 1) && (b->is_leaf == 1) ) {
+    if ( (BPT_IS_LEAF(a) == 1) && (BPT_IS_LEAF(b) == 1) ) {
         struct uint32_t_ll_bpt_leading_data *d = 
             (struct uint32_t_ll_bpt_leading_data *)
             malloc(sizeof(struct uint32_t_ll_bpt_leading_data));
 
         d->B = NULL;
 
-        if (a->leading != NULL) {
+        if (BPT_LEADING(a) != 0) {
             struct uint32_t_ll_bpt_leading_data *l =  
-                    (struct uint32_t_ll_bpt_leading_data *)a->leading;
+                    cache.get(cache.cache, BPT_LEADING(a));
 
             struct uint32_t_ll_node *curr = l->B->head;
 
@@ -163,9 +192,9 @@ void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
         }
 
         uint32_t i;
-        for (i = 0 ; i < a->num_keys; ++i) {
+        for (i = 0 ; i < BPT_NUM_KEYS(a); ++i) {
             struct uint32_t_ll_bpt_non_leading_data *nl = 
-                (struct uint32_t_ll_bpt_non_leading_data *)a->pointers[i];
+                    cache.get(cache.cache, BPT_POINTERS(a)[i]);
 
             if (nl->SA != NULL) {
                 struct uint32_t_ll_node *curr = nl->SA->head;
@@ -190,8 +219,14 @@ void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
             }
         }
 
-        if (d->B != NULL)
-            b->leading = d;
+        if (d->B != NULL) {
+            uint32_t v_id = cache.seen(cache.cache) + 1;
+            cache.add(cache.cache, v_id, d, uint32_t_ll_leading_free);
+
+            BPT_LEADING(b) = v_id;
+        } else {
+            free(d);
+        }
     }
 }
 //}}}
@@ -224,9 +259,16 @@ void *uint32_t_ll_new_leading()
 //{{{void uint32_t_ll_non_leading_SA_add_scalar(void *d, void *v)
 void uint32_t_ll_non_leading_SA_add_scalar(void *d, void *v)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_non_leading_SA_add_scalar\n");
+#endif
     struct uint32_t_ll_bpt_non_leading_data *nld =
             (struct uint32_t_ll_bpt_non_leading_data *)d;
     uint32_t *id = (uint32_t *)v;
+
+#if DEBUG
+    fprintf(stderr, "id:%u\n", *id);
+#endif
 
     uint32_t_ll_uniq_append(&(nld->SA), *id);
 }
@@ -235,9 +277,16 @@ void uint32_t_ll_non_leading_SA_add_scalar(void *d, void *v)
 //{{{void uint32_t_ll_non_leading_SE_add_scalar(void *d, void *v)
 void uint32_t_ll_non_leading_SE_add_scalar(void *d, void *v)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_non_leading_SE_add_scalar\n");
+#endif
     struct uint32_t_ll_bpt_non_leading_data *nld =
             (struct uint32_t_ll_bpt_non_leading_data *)d;
     uint32_t *id = (uint32_t *)v;
+
+#if DEBUG
+    fprintf(stderr, "id:%u\n", *id);
+#endif
 
     uint32_t_ll_uniq_append(&(nld->SE), *id);
 }
@@ -246,9 +295,16 @@ void uint32_t_ll_non_leading_SE_add_scalar(void *d, void *v)
 //{{{void uint32_t_ll_leading_B_add_scalar(void *d, void *v)
 void uint32_t_ll_leading_B_add_scalar(void *d, void *v)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_leading_B_add_scalar\n");
+#endif
     struct uint32_t_ll_bpt_leading_data *ld =
             (struct uint32_t_ll_bpt_leading_data *)d;
     uint32_t *id = (uint32_t *)v;
+
+#if DEBUG
+    fprintf(stderr, "id:%u\n", *id);
+#endif
 
     uint32_t_ll_uniq_append(&(ld->B), *id);
 }

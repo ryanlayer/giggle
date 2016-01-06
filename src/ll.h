@@ -29,7 +29,7 @@ void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val);
 void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val);
 void uint32_t_ll_remove(struct uint32_t_ll **ll, uint32_t val);
 uint32_t uint32_t_ll_contains(struct uint32_t_ll *ll, uint32_t val);
-void uint32_t_ll_free(struct uint32_t_ll **ll);
+void uint32_t_ll_free(void **ll);
 void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b);
 void *uint32_t_ll_new_non_leading();
 void *uint32_t_ll_new_leading();
@@ -40,5 +40,8 @@ void uint32_t_ll_leading_B_add_scalar(void *, void *);
 void uint32_t_ll_leading_union_with_B(void **, void *);
 void uint32_t_ll_non_leading_union_with_SA_subtract_SE(void **R, void *d);
 void uint32_t_ll_non_leading_union_with_SA(void **R, void *d);
+void uint32_t_ll_non_leading_free(void **);
+void uint32_t_ll_leading_free(void **);
+
 
 #endif
