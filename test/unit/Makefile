@@ -20,7 +20,7 @@ all: check-env clean $(TEST_NAMES) test
 
 check-env:
 ifdef TRAVIS_BUILD_DIR
-HTS_ROOT=$(TRAVIS_BUILD_DIR)/src/htslib
+HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib
 endif
 
 
