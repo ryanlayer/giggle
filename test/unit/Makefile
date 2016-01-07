@@ -37,7 +37,6 @@ endif
 	    $(HTS_ROOT)/libhts.a \
 	    -pthread \
 	    $(SRC_FILES) \
-	    -ll \
 	    $@.c $@_Runner.c -lm 
 	rm $@_Runner.c
 
