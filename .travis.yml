@@ -5,6 +5,8 @@ before_install:
     - git clone https://github.com/samtools/htslib.git
     - cd htslib
     - make
+    - cd $TRAVIS_BUILD_DIR
+
 
 script:
     - cd test/unit/
