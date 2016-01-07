@@ -16,7 +16,13 @@ NO_PRE_SRC_FILES=giggle.c \
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))
 
-all: clean $(TEST_NAMES) test
+all: check-env clean $(TEST_NAMES) test
+
+check-env:
+ifdef TRAVIS_BUILD_DIR
+HTS_ROOT=$(TRAVIS_BUILD_DIR)/src/htslib
+endif
+
 
 %: %.c
 	#ruby $(UNITY_ROOT)/auto/generate_test_runner.rb $@.c
