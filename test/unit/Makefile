@@ -28,6 +28,7 @@ endif
 	#ruby $(UNITY_ROOT)/auto/generate_test_runner.rb $@.c
 	ruby $(UNITY_ROOT)/generate_test_runner.rb $@.c
 	$(CC) -Werror -g -o $@ \
+	    -lz \
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
 	    -I$(HTS_ROOT) \
@@ -35,7 +36,6 @@ endif
 	    -DSAMTOOLS=1 \
 	    -pthread \
 	    $(SRC_FILES) \
-	    -lz \
 	    $(HTS_ROOT)/libhts.a \
 	    $@.c $@_Runner.c -lm 
 	rm $@_Runner.c
