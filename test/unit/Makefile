@@ -37,6 +37,7 @@ endif
 	    -DSAMTOOLS=1 \
 	    -pthread \
 	    $(SRC_FILES) \
+	    -lz \
 	    $@.c $@_Runner.c -lm 
 	rm $@_Runner.c
 
