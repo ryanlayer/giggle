@@ -32,11 +32,11 @@ endif
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
 	    -I$(HTS_ROOT) \
+	    $(HTS_ROOT)/libhts.a \
 	    -DTEST $(UNITY_ROOT)/unity.c \
 	    -DSAMTOOLS=1 \
 	    -pthread \
 	    $(SRC_FILES) \
-	    $(HTS_ROOT)/libhts.a \
 	    $@.c $@_Runner.c -lm 
 	rm $@_Runner.c
 
