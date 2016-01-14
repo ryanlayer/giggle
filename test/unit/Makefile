@@ -11,7 +11,9 @@ RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 NO_PRE_SRC_FILES=giggle.c \
 		 bpt.c \
 		 ll.c \
+		 util.c \
 		 file_read.c \
+		 disk_store.c \
 		 lists.c 
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))

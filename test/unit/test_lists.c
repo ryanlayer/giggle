@@ -108,6 +108,7 @@ void test_ordered_set_add(void)
 
     r = (struct str_uint_pair *) ordered_set_add(os, p);
     TEST_ASSERT_EQUAL(0, r->uint);
+    str_uint_pair_free((void **)&p);
 
     p = (struct str_uint_pair *) malloc(sizeof(struct str_uint_pair));
     p->uint = os->num;
@@ -123,8 +124,7 @@ void test_ordered_set_add(void)
     r = (struct str_uint_pair *) ordered_set_add(os, p);
     TEST_ASSERT_EQUAL(3, r->uint);
 
-
-
+    ordered_set_destroy(&os, str_uint_pair_free);
 }
 //}}}
 
@@ -172,6 +172,83 @@ void test_ordered_set_get(void)
     char *four = "four";
     r = (struct str_uint_pair *) ordered_set_get(os, four);
     TEST_ASSERT_EQUAL(2, r->uint);
+
+    ordered_set_destroy(&os, str_uint_pair_free);
+}
+//}}}
+
+//{{{void test_uint_pair(void)
+void test_uint_pair(void)
+{
+    /*
+    struct uint_pair
+    {
+        uint32_t first,second;
+    };
+    int uint_pair_sort_by_first_element_cmp(const void *a, const void *b);
+    int uint_pair_search_by_first_element_cmp(const void *a, const void *b);
+    int uint_pair_search_by_first_cmp(const void *a, const void *b);
+    */
+
+
+    struct ordered_set *os =
+            ordered_set_init(3,
+                             uint_pair_sort_by_first_element_cmp,
+                             uint_pair_search_by_first_element_cmp,
+                             uint_pair_search_by_first_key_cmp);
+
+    struct uint_pair *p = (struct uint_pair *)
+            malloc(sizeof(struct uint_pair));
+    p->first = 10;
+    p->second = os->num;
+    struct uint_pair *r = ordered_set_add(os, p);
+
+    p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+    p->first = 50;
+    p->second = os->num;
+    r = ordered_set_add(os, p);
+
+    p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+    p->first = 1;
+    p->second = os->num;
+    r = ordered_set_add(os, p);
+
+    p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+    p->first = 100;
+    p->second = os->num;
+    r = ordered_set_add(os, p);
+
+
+    uint32_t k = 100;
+    r = ordered_set_get(os, &k);
+    TEST_ASSERT_EQUAL(3, r->second);
+
+    k = 1;
+    r = ordered_set_get(os, &k);
+    TEST_ASSERT_EQUAL(2, r->second);
+
+    k = 50;
+    r = ordered_set_get(os, &k);
+    TEST_ASSERT_EQUAL(1, r->second);
+
+    k = 10;
+    r = ordered_set_get(os, &k);
+    TEST_ASSERT_EQUAL(0, r->second);
+
+    k = 70;
+    r = ordered_set_get(os, &k);
+    TEST_ASSERT_EQUAL(NULL, r);
+
+    p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+    p->first = 100;
+    p->second = os->num;
+    r = ordered_set_add(os, p);
+    TEST_ASSERT_EQUAL(3, r->second);
+
+
+    ordered_set_destroy(&os, free_wrapper);
+
+    TEST_ASSERT_EQUAL(NULL, os);
 }
 //}}}
 
@@ -202,18 +279,18 @@ void test_fifo_q(void)
     fifo_q_push(&q, V + v++);
 
     r = (int *)fifo_q_peek(q);
-    TEST_ASSERT_EQUAL(V[4], *r);
+    TEST_ASSERT_EQUAL(V[0], *r);
 
     r = (int *)fifo_q_pop(&q);
-    TEST_ASSERT_EQUAL(V[--v], *r);
+    TEST_ASSERT_EQUAL(V[0], *r);
     r = (int *)fifo_q_pop(&q);
-    TEST_ASSERT_EQUAL(V[--v], *r);
+    TEST_ASSERT_EQUAL(V[1], *r);
     r = (int *)fifo_q_pop(&q);
-    TEST_ASSERT_EQUAL(V[--v], *r);
+    TEST_ASSERT_EQUAL(V[2], *r);
     r = (int *)fifo_q_pop(&q);
-    TEST_ASSERT_EQUAL(V[--v], *r);
+    TEST_ASSERT_EQUAL(V[3], *r);
     r = (int *)fifo_q_pop(&q);
-    TEST_ASSERT_EQUAL(V[--v], *r);
+    TEST_ASSERT_EQUAL(V[4], *r);
     TEST_ASSERT_EQUAL(NULL, q);
 }
 //}}}
@@ -258,6 +335,8 @@ void test_pointer_uint_pair(void)
     TEST_ASSERT_EQUAL(3,r->uint);
     r = (struct pointer_uint_pair *) ordered_set_get(os, V+2);
     TEST_ASSERT_EQUAL(NULL,r);
+
+    ordered_set_destroy(&os, free_wrapper);
 }
 //}}}
 
@@ -329,6 +408,8 @@ void test_uint_offset_size_pair(void)
     s = 0;
     r = (struct uint_offset_size_pair *) ordered_set_get(os, &s);
     TEST_ASSERT_EQUAL(NULL, r);
+
+    ordered_set_destroy(&os, free_wrapper);
 }
 //}}}
 
@@ -381,6 +462,8 @@ void test_indexed_list(void)
 
     struct offset_size_pair p, *r;
 
+    uint32_t max_size = 50;
+
     struct indexed_list *il =
             indexed_list_init(5,
                               sizeof(struct offset_size_pair));
@@ -390,7 +473,20 @@ void test_indexed_list(void)
         p.size = i*2;
         TEST_ASSERT_EQUAL(0, indexed_list_add(il, i, &p));
     }
-   for (i = 0; i < 5; ++i) {
+
+    p.offset = i;
+    p.size = i*2;
+    TEST_ASSERT_EQUAL(1, indexed_list_add(il, i, &p));
+
+    i += 1;
+
+    for (; i < max_size; ++i) {
+        p.offset = i;
+        p.size = i*2;
+        indexed_list_add(il, i, &p);
+    }
+
+   for (i = 0; i < max_size; ++i) {
         r = (struct offset_size_pair*)indexed_list_get(il, i);
         TEST_ASSERT_EQUAL(i, r->offset);
         TEST_ASSERT_EQUAL(i*2, r->size);
@@ -404,10 +500,58 @@ void test_indexed_list(void)
     TEST_ASSERT_EQUAL(100, r->offset);
     TEST_ASSERT_EQUAL(200, r->size);
 
-    for (i = 0; i < 5; ++i) {
+    for (i = 0; i < max_size; ++i) {
         r = (struct offset_size_pair*)indexed_list_get(il, i);
         TEST_ASSERT_EQUAL(i, r->offset);
         TEST_ASSERT_EQUAL(i*2, r->size);
+    }
+
+    FILE *f = fopen("test_indexed_list.tmp", "wb");
+    indexed_list_write(il, f, "test_indexed_list.tmp");
+    fclose(f);
+
+    f = fopen("test_indexed_list.tmp", "rb");
+    struct indexed_list *il_1 = indexed_list_load(f, "test_indexed_list.tmp");
+    fclose(f);
+
+    struct offset_size_pair *a, *b;
+    for (i = 0; i < max_size; ++i) {
+        a = (struct offset_size_pair*)indexed_list_get(il, i);
+        b = (struct offset_size_pair*)indexed_list_get(il_1, i);
+        TEST_ASSERT_EQUAL(a->offset, b->offset);
+        TEST_ASSERT_EQUAL(a->size, b->size);
+    }
+
+    indexed_list_destroy(&il);
+    indexed_list_destroy(&il_1);
+    TEST_ASSERT_EQUAL(NULL, il);
+    TEST_ASSERT_EQUAL(NULL, il_1);
+}
+//}}}
+
+//{{{void test_indexed_list(void)
+void test_indexed_list_nulls(void)
+{
+    struct offset_size_pair p, *r;
+
+    uint32_t max_size = 50;
+
+    struct indexed_list *il =
+            indexed_list_init(max_size,
+                              sizeof(struct offset_size_pair));
+    /*
+    uint32_t i;
+    for (i = 0; i < 5; ++i) {
+        p.offset = i;
+        p.size = i*2;
+        TEST_ASSERT_EQUAL(0, indexed_list_add(il, i, &p));
+    }
+    */
+
+    uint32_t i;
+    for (i = 0; i < max_size; ++i) {
+        r = (struct offset_size_pair*)indexed_list_get(il, i);
+        TEST_ASSERT_EQUAL(NULL, r);
     }
 
     indexed_list_destroy(&il);
@@ -530,3 +674,16 @@ void test_simple_cache(void)
     simple_cache_destroy((void **)&sc);
 }
 ///}}}
+
+//{{{ void test_bit_map(void)
+void test_bit_map(void)
+{
+    struct bit_map *bm = bit_map_init(100);
+
+    TEST_ASSERT_EQUAL(0, bit_map_get(bm, 1000));
+
+    bit_map_set(bm, 1000);
+
+    TEST_ASSERT_EQUAL(1, bit_map_get(bm, 1000));
+}
+//}}}

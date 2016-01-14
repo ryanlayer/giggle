@@ -7,6 +7,8 @@
 #include <inttypes.h>
 #include <string.h>
 #include "bpt.h"
+#include "lists.h"
+#include "disk_store.h"
 
 //{{{ int uint32_t_cmp(const void *a, const void *b)
 static int uint32_t_cmp(const void *a, const void *b)
@@ -140,6 +142,7 @@ void test_bpt_node_macros(void)
     TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[4]);
     TEST_ASSERT_EQUAL(0, BPT_POINTERS(node)[5]);
 
+    free(node);
 }
 //}}}
 
@@ -475,8 +478,6 @@ void test_bpt_insert(void)
     *V_11 = 12;
     int *V_12 = (int *) malloc(sizeof(int));
     *V_12 = 13;
-    int *V_13 = (int *) malloc(sizeof(int));
-    *V_13 = 14;
 
     //cache = lru_cache_init(10000);
     cache.cache = cache.init(10000);
@@ -717,8 +718,6 @@ void test_bpt_insert_new_value(void)
     *V_11 = 12;
     int *V_12 = (int *) malloc(sizeof(int));
     *V_12 = 13;
-    int *V_13 = (int *) malloc(sizeof(int));
-    *V_13 = 14;
 
     cache.cache = cache.init(10000);
    
@@ -945,8 +944,6 @@ void test_bpt_rand_order_insert_new_value(void)
     *V_11 = 12;
     int *V_12 = (int *) malloc(sizeof(int));
     *V_12 = 13;
-    int *V_13 = (int *) malloc(sizeof(int));
-    *V_13 = 14;
 
     cache.cache = cache.init(10000);
    
@@ -1448,6 +1445,95 @@ void test_rand_test_high_order(void)
 }
 //}}}
 
+//{{{void test_bpt_write_tree(void)
+void test_bpt_write_tree(void)
+{
+    ORDER=5;
+    cache.cache = cache.init(10);
+    repair = NULL;
+    uint32_t size = 20;
+
+    uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
+    uint32_t *v = (uint32_t *)malloc(size * sizeof(uint32_t));
+
+    time_t t = time(NULL);
+    srand(t);
+
+    uint32_t r_id = 0, v_id, l_id;
+    int pos;
+
+    uint32_t i, j;
+    for (i = 0; i < size; ++i) {
+        d[i] = rand();
+        v[i] = d[i] /2;
+        r_id = bpt_insert_new_value(r_id,
+                                    d[i],
+                                    v + i,
+                                    NULL,
+                                    &v_id,
+                                    &l_id,
+                                    &pos);
+    }
+
+    char *bpt_file_out = "test_bpt_write_tree.out";
+
+    FILE *f = fopen(bpt_file_out, "wb");
+    bpt_write_tree(r_id, f, bpt_file_out);
+    fclose(f);
+
+    f = NULL;
+
+    struct disk_store *ds = disk_store_load(&f, bpt_file_out);
+
+
+    struct bpt_node *read_root = (struct bpt_node *)
+            malloc(sizeof(struct bpt_node));
+    uint64_t node_size;
+    read_root->data = disk_store_get(ds, 0, &node_size);
+
+    struct bpt_node *mem_root = cache.get(cache.cache, r_id);
+
+    TEST_ASSERT_EQUAL(1, BPT_ID(read_root));
+    TEST_ASSERT_EQUAL(BPT_NUM_KEYS(mem_root), BPT_NUM_KEYS(read_root));
+
+    for (i = 0; i < BPT_NUM_KEYS(mem_root); ++i) 
+        TEST_ASSERT_EQUAL(BPT_KEYS(mem_root)[i], BPT_KEYS(read_root)[i]);
+
+    for (i = 0; i <= BPT_NUM_KEYS(mem_root); ++i) {
+        struct bpt_node *mem_node = cache.get(cache.cache,
+                                              BPT_POINTERS(mem_root)[i]);
+        struct bpt_node *read_node = (struct bpt_node *)
+                malloc(sizeof(struct bpt_node));
+        read_node->data = disk_store_get(ds,
+                                         BPT_POINTERS(read_root)[i] - 1,
+                                         &node_size);
+        TEST_ASSERT_EQUAL(BPT_NUM_KEYS(mem_node), BPT_NUM_KEYS(read_node));
+
+        for (j = 0; j < BPT_NUM_KEYS(mem_node); ++j) {
+            TEST_ASSERT_EQUAL(BPT_KEYS(mem_node)[j], BPT_KEYS(read_node)[j]);
+
+            uint32_t *mem_val = cache.get(cache.cache,
+                                          BPT_POINTERS(mem_node)[j]);
+            uint32_t *read_val = disk_store_get(ds,
+                                                BPT_POINTERS(read_node)[j] - 1,
+                                                &node_size);
+            TEST_ASSERT_EQUAL(*mem_val, *read_val);
+            free(read_val);
+        }
+
+        free(read_node->data);
+        free(read_node);
+    }
+
+    free(read_root->data);
+    free(read_root);
+
+    free(d);
+    free(v);
+    cache.destroy(&(cache.cache));
+    disk_store_destroy(&ds);
+}
+//}}}
 
 #if 0
 ////{{{ void test_bpt_destroy_tree(void)
@@ -1522,115 +1608,6 @@ void test_rand_test_high_order(void)
 //    TEST_ASSERT_EQUAL(NULL, r);
 //
 //    bpt_destroy_tree(&root);
-//}
-////}}}
-////{{{void test_bpt_write_tree(void)
-//void test_bpt_write_tree(void)
-//{
-//    TEST_IGNORE()
-//    ORDER=5;
-//    repair = NULL;
-//    struct bpt_node *root = NULL;
-//    struct bpt_node *leaf = NULL;
-//    int pos;
-//    uint32_t size = 20;
-//
-//    uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
-//    uint32_t *v = (uint32_t *)malloc(size * sizeof(uint32_t));
-//
-//    time_t t = time(NULL);
-//    //srand(t);
-//
-//    uint32_t i, j;
-//    for (i = 0; i < size; ++i) {
-//        d[i] = rand();
-//        v[i] = d[i] /2;
-//        root = bpt_insert(root, d[i], (void *)(v + i), &leaf, &pos);
-//    }
-//
-//    FILE *f = fopen(".tmp.bpt.out", "wb");
-//    struct ordered_set *addr_to_id;
-//    struct indexed_list *id_to_offset_size;
-//    long table_offset;
-//    bpt_write_tree(root, f, &addr_to_id, &id_to_offset_size, &table_offset);
-//    fclose(f);
-//
-//    f = fopen(".tmp.bpt.out", "rb");
-//
-//    uint32_t r;
-//
-//    fread(&r, sizeof(uint32_t), 1, f);
-//    TEST_ASSERT_EQUAL(ORDER, r);
-//
-//    fread(&r, sizeof(uint32_t), 1, f);
-//
-//    uint32_t id = 1;
-//    struct offset_size_pair *p =
-//        (struct offset_size_pair*)indexed_list_get(id_to_offset_size, 1);
-//
-//    char *raw_node = (char *)malloc(p->size * sizeof(char));
-//
-//    uint32_t root_size = 0;
-//    //is_leaf
-//    root_size += sizeof(uint32_t);
-//    //parent
-//    root_size += sizeof(uint32_t);
-//    //num_keys
-//    root_size += sizeof(uint32_t);
-//    //keys
-//    root_size += (root->num_keys)*sizeof(uint32_t);
-//    //pointers
-//    root_size += (root->num_keys+1)*sizeof(uint32_t);
-//    //next
-//    root_size += sizeof(uint32_t);
-//    //leading
-//    root_size += sizeof(uint32_t);
-//
-//    TEST_ASSERT_EQUAL(root_size, p->size);
-//
-//    fseek(f, p->offset, SEEK_SET);
-//    fread(raw_node, sizeof(char), p->size, f);
-//
-//    uint32_t *is_leaf, *parent, *num_keys, *key, *pointer, *next, *leading;
-//
-//    uint32_t offset = 0;
-//    is_leaf = (uint32_t *)(raw_node + offset);
-//    offset += sizeof(uint32_t);
-//
-//    parent = (uint32_t *)(raw_node + offset);
-//    offset += sizeof(uint32_t);
-//
-//    num_keys = (uint32_t *)(raw_node + offset);
-//    offset += sizeof(uint32_t);
-//
-//    TEST_ASSERT_EQUAL(0, *is_leaf);
-//    TEST_ASSERT_EQUAL(0, *parent);
-//    TEST_ASSERT_EQUAL(root->num_keys, *num_keys);
-//
-//    for (i = 0; i < *num_keys; ++i) {
-//        key = (uint32_t *)(raw_node + offset);
-//        offset += sizeof(uint32_t);
-//        TEST_ASSERT_EQUAL(root->keys[i], *key);
-//    }
-//
-//    for (i = 0; i < *num_keys + 1; ++i) {
-//        pointer = (uint32_t *)(raw_node + offset);
-//        offset += sizeof(uint32_t);
-//        struct pointer_uint_pair *pu_r = (struct pointer_uint_pair *)
-//                        ordered_set_get(addr_to_id, root->pointers[i]);
-//        uint32_t pointer_id = pu_r->uint;
-//        TEST_ASSERT_EQUAL(pointer_id, *pointer);
-//    }
-//
-//    next = (uint32_t *)(raw_node + offset);
-//    offset += sizeof(uint32_t);
-//    TEST_ASSERT_EQUAL(0, *next);
-//
-//    leading = (uint32_t *)(raw_node + offset);
-//    offset += sizeof(uint32_t);
-//    TEST_ASSERT_EQUAL(0, *leading);
-//
-//    fclose(f);
 //}
 ////}}}
 #endif
