@@ -529,7 +529,7 @@ void test_indexed_list(void)
 }
 //}}}
 
-//{{{void test_indexed_list(void)
+//{{{ void test_indexed_list_nulls(void)
 void test_indexed_list_nulls(void)
 {
     struct offset_size_pair p, *r;
@@ -539,14 +539,6 @@ void test_indexed_list_nulls(void)
     struct indexed_list *il =
             indexed_list_init(max_size,
                               sizeof(struct offset_size_pair));
-    /*
-    uint32_t i;
-    for (i = 0; i < 5; ++i) {
-        p.offset = i;
-        p.size = i*2;
-        TEST_ASSERT_EQUAL(0, indexed_list_add(il, i, &p));
-    }
-    */
 
     uint32_t i;
     for (i = 0; i < max_size; ++i) {
@@ -595,7 +587,7 @@ void test_cc_hash(void)
 //{{{void test_lru_cache(void)
 void test_lru_cache(void)
 {
-    struct lru_cache *lruc = lru_cache_init(5);
+    struct lru_cache *lruc = lru_cache_init(5, NULL);
 
     int V[10] = {2,4,6,8,10,12,14,16,18,20};
 
@@ -651,7 +643,7 @@ void test_lru_cache(void)
 //{{{void test_simple_cache(void)
 void test_simple_cache(void)
 {
-    struct simple_cache *sc = simple_cache_init(5);
+    struct simple_cache *sc = simple_cache_init(5, NULL);
 
     int V[10] = {2,4,6,8,10,12,14,16,18,20};
 
@@ -672,6 +664,48 @@ void test_simple_cache(void)
     }
 
     simple_cache_destroy((void **)&sc);
+}
+///}}}
+
+//{{{void test_simple_cache(void)
+void test_simple_cache_with_disk(void)
+{
+    char *file_name = "test_simple_cache_with_disk.out";
+    FILE *f = NULL;
+    struct disk_store *ds = disk_store_init(10, &f, file_name);
+    uint32_t V[5] = {2,4,6,8,10};
+    uint32_t id = disk_store_append(ds, V, sizeof(uint32_t));
+    id = disk_store_append(ds, V+1, sizeof(uint32_t));
+    id = disk_store_append(ds, V+2, sizeof(uint32_t));
+    id = disk_store_append(ds, V+4, sizeof(uint32_t));
+
+    disk_store_destroy(&ds);
+
+    f = fopen(file_name, "r+");
+
+    struct simple_cache *sc = simple_cache_init(5, f);
+
+#if 0
+    int V[10] = {2,4,6,8,10,12,14,16,18,20};
+
+    simple_cache_add(sc, 1, V, NULL);
+    TEST_ASSERT_EQUAL(1, simple_cache_seen(sc));
+
+    int *r = (int *)simple_cache_get(sc, 1);
+    TEST_ASSERT_EQUAL(V[0], *r);
+
+    uint32_t i;
+    for (i = 1; i<10; ++i)
+        simple_cache_add(sc, i+1, V+i, NULL);
+    TEST_ASSERT_EQUAL(10, simple_cache_seen(sc));
+
+    for (i = 0; i<10; ++i) {
+        int *r = (int *)simple_cache_get(sc, i+1);
+        TEST_ASSERT_EQUAL(V[i], *r);
+    }
+
+    simple_cache_destroy((void **)&sc);
+#endif
 }
 ///}}}
 

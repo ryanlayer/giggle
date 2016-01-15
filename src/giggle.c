@@ -294,7 +294,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 
     gi->offset_index = unordered_list_init(1000);
 
-    cache.cache = cache.init(CACHE_SIZE);
+    cache.cache = cache.init(CACHE_SIZE, NULL);
 
     return gi;
 }

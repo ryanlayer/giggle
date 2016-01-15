@@ -2,9 +2,65 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <err.h>
+#include <sysexits.h>
 #include <string.h>
 
 #include "lists.h"
+#include "util.h"
+
+//{{{ bit_map
+
+struct bit_map *bit_map_init(uint32_t bits)
+{
+    struct bit_map *b = (struct bit_map *) malloc(sizeof(struct bit_map));
+    b->num_bits = bits;
+    b->num_ints = (bits + 32 - 1) / 32;
+    b->bm = (uint32_t *) calloc(b->num_ints, sizeof(uint32_t));
+    return b;
+}
+
+struct bit_map *bit_map_load(FILE *f, char *file_name)
+{
+    return NULL;
+}
+
+void bit_map_store(FILE *f, char *file_name)
+{
+}
+
+void bit_map_destroy(struct bit_map **b)
+{
+    free((*b)->bm);
+    free(*b);
+    *b = NULL;
+}
+
+void bit_map_set(struct bit_map *b, uint32_t i)
+{
+    while (i > b->num_bits) {
+        uint32_t new_bits = (b->num_bits)*2;
+        uint32_t new_ints = (new_bits + 32 - 1) / 32;
+        uint32_t *new_bm = (uint32_t *)calloc(new_ints, sizeof(uint32_t));
+        memcpy(new_bm, b->bm, (b->num_ints)*sizeof(uint32_t));
+
+        free(b->bm);
+        b->num_bits = new_bits;
+        b->num_ints = new_ints;
+        b->bm = new_bm;
+    }
+
+    b->bm[i/32] |= 1 << (31 - (i%32));
+}
+
+uint32_t bit_map_get(struct bit_map *b, uint32_t q)
+{
+    if (q > b->num_bits)
+        return 0;
+
+    return (( b->bm[q/32]) >> (31 - (q%32)) & 1);
+}
+
+//}}}
 
 //{{{ indexed_list
 //{{{ struct indexed_list *indexed_list_init(uint32_t init_size,
@@ -12,10 +68,11 @@ struct indexed_list *indexed_list_init(uint32_t init_size,
                                        uint32_t element_size)
 {
     struct indexed_list *il = (struct indexed_list *)
-            malloc(sizeof(struct indexed_list));
+            calloc(1,sizeof(struct indexed_list));
     il->size = init_size;
     il->element_size = element_size;
     il->data = (char *) calloc(init_size, element_size);
+    il->bm = bit_map_init(init_size);
     return il;
 }
 //}}}
@@ -23,6 +80,7 @@ struct indexed_list *indexed_list_init(uint32_t init_size,
 //{{{void indexed_list_destroy(struct indexed_list **il)
 void indexed_list_destroy(struct indexed_list **il)
 {
+    //bit_map_destroy(&((*il)->bm));
     free((*il)->data);
     free(*il);
     *il = NULL;
@@ -60,6 +118,47 @@ void *indexed_list_get(struct indexed_list *il, uint32_t index)
         return il->data + (index * il->element_size);
 }
 //}}}
+
+//{{{void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
+void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
+{
+    if (fwrite(&(il->size), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing indexed list size to '%s'.",
+            file_name);
+
+    if (fwrite(&(il->element_size), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing indexed list element size to '%s'.",
+            file_name);
+
+    if (fwrite(il->data, il->element_size, il->size, f) != il->size)
+        err(EX_IOERR,
+            "Error writing indexed list data to '%s'.",
+            file_name);
+}
+//}}}
+
+//{{{struct indexed_list *indexed_list_load(FILE *f, char *file_name)
+struct indexed_list *indexed_list_load(FILE *f, char *file_name)
+{
+    struct indexed_list *il = (struct indexed_list *)
+            malloc(sizeof(struct indexed_list));
+
+    size_t fr = fread(&(il->size), sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    fr = fread(&(il->element_size), sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    il->data = (char *) calloc(il->size, il->element_size);
+    fr = fread(il->data, il->element_size, il->size, f);
+    check_file_read(file_name, f, il->size, fr);
+
+    return il;
+}
+//}}}
+
 //}}}
 
 //{{{unordered_list
@@ -169,7 +268,6 @@ void ordered_set_destroy(struct ordered_set **os,
 }
 //}}}
 
-
 //{{{void *ordered_set_add(struct ordered_set *os,
 void *ordered_set_add(struct ordered_set *os,
                       void *data)
@@ -250,6 +348,19 @@ int str_uint_pair_search_key_cmp(const void *a, const void *b)
     return strcmp(key, (*arg)->str);
 }
 //}}}
+
+//{{{void str_uint_pair_free(void **p)
+void str_uint_pair_free(void **_p)
+{
+    struct str_uint_pair **p = (struct str_uint_pair **)_p;
+    if (*p != NULL) {
+        free((*p)->str);
+        free(*p);
+        *p = NULL;
+    }
+}
+//}}}
+
 //}}}
 
 //{{{ pointer_uint_pair
@@ -338,16 +449,75 @@ int uint_offset_size_pair_search_key_cmp(const void *a, const void *b)
 //}}}
 //}}}
 
+//{{{ uint_pair
+//{{{ int uint_pair_sort_by_first_element_cmp(const void *a, const void *b)
+int uint_pair_sort_by_first_element_cmp(const void *a, const void *b)
+{
+    struct uint_pair **pa = (struct uint_pair **)a;
+    struct uint_pair **pb = (struct uint_pair **)b;
+
+    if ((*pa)->first < (*pb)->first) {
+        return -1;
+    } else if ((*pa)->first > (*pb)->first) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+//}}}
+
+//{{{int uint_pair_search_by_first_element_cmp(const void *a, const void *b)
+int uint_pair_search_by_first_element_cmp(const void *a, const void *b)
+{
+    struct uint_pair *key = (struct uint_pair *)a;
+    struct uint_pair **arg = (struct uint_pair **)b;
+
+    if (key->first < (*arg)->first) {
+        return -1;
+    } else if (key->first > (*arg)->first) {
+        return 1;
+    } else {
+        return 0;
+    }
+
+}
+//}}}
+
+//{{{int uint_pair_search_by_first_key_cmp(const void *a, const void *b)
+int uint_pair_search_by_first_key_cmp(const void *a, const void *b)
+{
+    uint32_t *key = (uint32_t *)a;
+    struct uint_pair **arg = (struct uint_pair **)b;
+
+    if (*key < (*arg)->first) {
+        return -1;
+    } else if (*key > (*arg)->first) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+//}}}
+//}}}
+
 //{{{ fifo_q
 //{{{void fifo_q_push(struct fifo_q **q, void *val)
 void fifo_q_push(struct fifo_q **q, void *val)
 {
     int *v = (int *)val;
-    struct fifo_q *n = (struct fifo_q *)malloc(sizeof(struct fifo_q));
+    struct fifo_q_element *n = (struct fifo_q_element *)
+            malloc(sizeof(struct fifo_q_element));
     n->val = val;
-    n->next = *q;
+    n->next = NULL;
 
-    *q = n;
+    if (*q == NULL) {
+        *q = (struct fifo_q *)malloc(sizeof(struct fifo_q));
+        (*q)->head = n;
+        (*q)->tail = n;
+    } else {
+        (*q)->tail->next = n;
+        (*q)->tail = n;
+    }
 }
 //}}}
 
@@ -357,10 +527,16 @@ void *fifo_q_pop(struct fifo_q **q)
     if (*q == NULL)
         return NULL;
 
-    struct fifo_q *t = *q;
-    void *r = t->val;
-    *q = (*q)->next;
-    free(t);
+    struct fifo_q_element *n = (*q)->head;
+    void *r = n->val;
+    (*q)->head = n->next;
+    free(n);
+
+    if ((*q)->head == NULL) {
+        free(*q);
+        *q = NULL;
+    }
+
     return r;
 }
 //}}}
@@ -371,7 +547,7 @@ void *fifo_q_peek(struct fifo_q *q)
     if (q == NULL)
         return NULL;
     else
-        return q->val;
+        return q->head->val;
 }
 //}}}
 //}}}
@@ -546,7 +722,7 @@ struct cache_def lru_cache_def = {
 };
 
 //{{{struct lru_cache *lru_cache_init(uint32_t init_size)
-void *lru_cache_init(uint32_t init_size)
+void *lru_cache_init(uint32_t init_size, FILE *fp)
 {
     struct lru_cache *lruc = (struct lru_cache *)
             malloc(sizeof(struct lru_cache));
@@ -712,7 +888,7 @@ void lru_cache_destroy(void **_lruc)
 //}}}
 
 //{{{ simple_cache
-void *simple_cache_init(uint32_t init_size)
+void *simple_cache_init(uint32_t init_size, FILE *fp)
 {
     struct simple_cache *sc = (struct simple_cache *)
             malloc(sizeof(struct simple_cache));
@@ -782,14 +958,3 @@ void free_wrapper(void **v)
 }
 //}}}
 
-//{{{void str_uint_pair_free(void **p)
-void str_uint_pair_free(void **_p)
-{
-    struct str_uint_pair **p = (struct str_uint_pair **)_p;
-    if (*p != NULL) {
-        free((*p)->str);
-        free(*p);
-        *p = NULL;
-    }
-}
-//}}}

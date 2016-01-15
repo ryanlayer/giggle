@@ -1,10 +1,29 @@
 #ifndef __LISTS_H__
 #define __LISTS_H__
 
+#include <stdint.h>
+#include "disk_store.h"
+
+// BITMAP
+struct bit_map
+{
+    uint32_t num_bits, num_ints;
+    uint32_t *bm;
+};
+
+struct bit_map *bit_map_init(uint32_t bits);
+struct bit_map *bit_map_load(FILE *f, char *file_name);
+void bit_map_store(FILE *f, char *file_name);
+void bit_map_destroy(struct bit_map **b);
+void bit_map_set(struct bit_map *b, uint32_t i);
+uint32_t bit_map_get(struct bit_map *b, uint32_t q);
+
+// INDEXED LIST
 struct indexed_list
 {
     char *data;
-    uint32_t num, size, element_size;
+    uint32_t size, element_size;
+    struct bit_map *bm;
 };
 struct indexed_list *indexed_list_init(uint32_t init_size,
                                        uint32_t element_size);
@@ -13,6 +32,8 @@ uint32_t indexed_list_add(struct indexed_list *il,
                           uint32_t index,
                           void *data);
 void *indexed_list_get(struct indexed_list *il, uint32_t index);
+void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name);
+struct indexed_list *indexed_list_load(FILE *f, char *file_name);
 
 struct offset_size_pair
 {
@@ -20,6 +41,7 @@ struct offset_size_pair
     uint32_t size;
 };
 
+// UNORDERD LIST
 struct unordered_list
 {
     void **data;
@@ -33,6 +55,7 @@ uint32_t unordered_list_add(struct unordered_list *ul,
                             void *data);
 void *unordered_list_get(struct unordered_list *ul, uint32_t i);
 
+// ORDERD SET
 struct ordered_set
 {
     void **data;
@@ -60,11 +83,10 @@ struct str_uint_pair
     uint32_t uint;
 };
 
-void str_uint_pair_free(void **p);
-
 int str_uint_pair_sort_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_key_cmp(const void *a, const void *b);
+void str_uint_pair_free(void **v);
 
 struct pointer_uint_pair
 {
@@ -84,16 +106,32 @@ int uint_offset_size_pair_sort_element_cmp(const void *a, const void *b);
 int uint_offset_size_pair_search_element_cmp(const void *a, const void *b);
 int uint_offset_size_pair_search_key_cmp(const void *a, const void *b);
 
-struct fifo_q
+struct uint_pair
+{
+    uint32_t first,second;
+};
+int uint_pair_sort_by_first_element_cmp(const void *a, const void *b);
+int uint_pair_search_by_first_element_cmp(const void *a, const void *b);
+int uint_pair_search_by_first_key_cmp(const void *a, const void *b);
+
+
+// FIFO Q
+struct fifo_q_element
 {
     void *val;
-    struct fifo_q *next;
+    struct fifo_q_element *next;
+};
+
+struct fifo_q
+{
+    struct fifo_q_element *head, *tail;
 };
 
 void fifo_q_push(struct fifo_q **q, void *val);
 void *fifo_q_pop(struct fifo_q **q);
 void *fifo_q_peek(struct fifo_q *q);
 
+// BYTE ARRAY
 struct byte_array
 {
     char *data;
@@ -107,10 +145,9 @@ void byte_array_append_zeros(struct byte_array *ba, uint32_t size);
 
 
 // CACHES
-
 struct cache_def {
     void *cache;
-    void *(*init)(uint32_t size);
+    void *(*init)(uint32_t size, FILE *fp);
     uint32_t (*seen)(void *cache);
     void (*add)(void *cache,
                 uint32_t key,
@@ -152,7 +189,7 @@ struct lru_cache
     uint32_t size, num, seen;
 };
 
-void *lru_cache_init(uint32_t init_size);
+void *lru_cache_init(uint32_t init_size, FILE *fp);
 uint32_t lru_cache_seen(void *lruc); 
 void *lru_cache_get(void *cache, uint32_t key);
 void lru_cache_remove(void *cache, uint32_t key);
@@ -175,9 +212,10 @@ struct simple_cache
 {
     struct indexed_list *il;
     uint32_t size, num, seen;
+    struct disk_store *ds;
 };
 
-void *simple_cache_init(uint32_t init_size);
+void *simple_cache_init(uint32_t init_size, FILE *fp);
 uint32_t simple_cache_seen(void *cache); 
 void *simple_cache_get(void *cache, uint32_t key);
 void simple_cache_remove(void *cache, uint32_t key);

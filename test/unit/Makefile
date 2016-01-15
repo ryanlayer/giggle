@@ -49,3 +49,4 @@ test:
 clean:
 	rm -f $(TEST_NAMES)
 	rm -f *_Runner.c
+	rm -rf *dSYM/

@@ -7,12 +7,19 @@
 #include "bpt.h"
 #include "lists.h"
 #include "ll.h"
+#include "util.h"
+#include "disk_store.h"
 
 /*
  *  All bpt_nodes have an array of keys, and an array of values.
  *  In non-leaf bpt_nodes, values[i] points to the bpt_node that is either
  *  greater than or equal to key[i-1] or less than key[i].
  */
+
+uint64_t (*serialize_leading)(void *deserialized, uint8_t **serialized) =
+        serialize_uint32_t;
+uint64_t (*serialize_pointer)(void *deserialized, uint8_t **serialized) =
+        serialize_uint32_t;
 
 void (*repair)(struct bpt_node *, struct bpt_node *) = NULL;
 uint32_t ORDER = 4;
@@ -29,7 +36,6 @@ struct cache_def cache = {
     lru_cache_destroy
 };
 */
-
 struct cache_def cache = {
     NULL,
     simple_cache_init,
@@ -39,7 +45,6 @@ struct cache_def cache = {
     NULL,
     simple_cache_destroy
 };
-
 
 //{{{int b_search(int key, int *D, int D_size)
 int b_search(uint32_t key, uint32_t *D, uint32_t D_size)
@@ -61,7 +66,7 @@ int b_search(uint32_t key, uint32_t *D, uint32_t D_size)
 struct bpt_node *bpt_new_node()
 {
     if (cache.cache == NULL) {
-        cache.cache = cache.init(CACHE_SIZE);
+        cache.cache = cache.init(CACHE_SIZE, NULL);
     }
 
     struct bpt_node *n = (struct bpt_node *)malloc(sizeof(struct bpt_node));
@@ -428,120 +433,272 @@ uint32_t bpt_find(uint32_t root_id,
 }
 //}}}
 
-#if 0
-//{{{ struct bpt_node *bpt_to_node(void *n)
-struct bpt_node *bpt_to_node(void *n)
+void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name)
 {
-    return (struct bpt_node*)n;
-}
-//}}}
-
-//{{{void bpt_print_tree(struct bpt_node *curr, int level)
-void bpt_print_tree(struct bpt_node *curr, int level)
-{
-    int i;
-    for (i = 0; i < level; ++i)
-        printf(" ");
-
-    printf("keys %p(%d)(%d):", curr,curr->num_keys, curr->is_leaf);
-
-    for (i = 0; i < curr->num_keys; ++i)
-        printf(" %d", curr->keys[i]);
-    printf("\n");
-
-    for (i = 0; i < level; ++i)
-        printf(" ");
-    printf("values:");
-
-    if (curr->is_leaf == 0) {
-        for (i = 0; i <= curr->num_keys; ++i)
-            printf(" %p", (struct bpt_node *)curr->pointers[i]);
-    } else {
-        for (i = 0; i < curr->num_keys; ++i) {
-            int *v = (int *)curr->pointers[i];
-            printf(" %d", *v);
-        }
-    }
-    printf("\n");
-
-    if (curr->is_leaf == 0) {
-        for (i = 0; i <= curr->num_keys; ++i)
-            bpt_print_tree((struct bpt_node *)curr->pointers[i], level+1);
-    }
-}
-//}}}
-
-//{{{ void bpt_print_node(struct bpt_node *n)
-void bpt_print_node(struct bpt_node *n)
-{
-    int i;
-    if (n->is_leaf)
-        printf("+");
-    else
-        printf("-");
-    printf("\t%p\t%p\t",n, n->parent);
-
-    for (i = 0; i < n->num_keys; ++i) {
-        if (i!=0)
-            printf(" ");
-        printf("%u", n->keys[i]);
-    }
-    printf("\n");
-}
-//}}}
-
-//{{{void print_values(struct bpt_node *root)
-void print_values(struct bpt_node *root)
-{
-    struct bpt_node *curr = root;
-    while (curr->is_leaf != 1) {
-        curr = (struct bpt_node *)curr->pointers[0];
-    }
-
-    printf("values: ");
-    int i, *v;
-    while (1) {
-        for (i = 0; i < curr->num_keys; ++i) {
-            v = (int *)curr->pointers[i];
-            printf(" %d", *v);
-        }
-        if (curr->next == NULL)
-            break;
-        else
-            curr = curr->next;
-    }
-    printf("\n");
-}
-//}}}
-
-//{{{ void bpt_destroy_tree(struct bpt_node **curr)
-void bpt_destroy_tree(struct bpt_node **curr)
-{
-#if 1
-    if (*curr == NULL) {
+    if (root_id == 0)
         return;
-    } else if ((*curr)->is_leaf == 1) {
-        free((*curr)->keys);
-        free((*curr)->pointers);
-        free(*curr);
-        *curr = NULL;
-        return;
-    } else {
+    /*
+     * The nodes may not exist in the cache in a way that makes sense to store,
+     * so we will do a BFS traversal of the tree and write/renumber the IDs
+     * accordingly and store the offsets in an indexed array.
+     */
+
+    // Make room in the file for the id -> file offset map so we can come back
+    // after and lay it down.
+    
+    uint32_t num_seen =  cache.seen(cache.cache);
+
+    struct disk_store *ds = disk_store_init(num_seen + 1, &f, file_name);
+
+    struct fifo_q *node_q = NULL, *leaf_q = NULL;
+    uint32_t *id;
+    id = (uint32_t *)malloc(sizeof(uint32_t));
+    *id = root_id;
+
+    struct bpt_node *to_write_node = (struct bpt_node *)
+            malloc(sizeof(struct bpt_node));
+    to_write_node->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS,
+                                             sizeof(uint32_t));
+
+    // We run through the code an renumber the nodes so that are laid our a
+    // nicely
+
+    /*
+     * Use old_id_to_new_id_os to maintain the mapping between the IDs that
+     * are in memory and those that will be written to disk.
+     */
+    struct ordered_set *old_id_to_new_id_os =
+            ordered_set_init(cache.seen(cache.cache),
+                             uint_pair_sort_by_first_element_cmp,
+                             uint_pair_search_by_first_element_cmp,
+                             uint_pair_search_by_first_key_cmp);
+
+    struct uint_pair *p, *r;
+
+    // put root into a map between the current id and the on-disk id
+    p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+    p->first = root_id;
+    p->second = old_id_to_new_id_os->num + 1;
+    r = ordered_set_add(old_id_to_new_id_os, p);
+
+    fifo_q_push(&node_q, id);
+
+    long node_start_offset = ftell(f);
+
+    while (fifo_q_peek(node_q) != NULL) {
+        // Zero out the node that we will write to disk
+        memset(to_write_node->data, 0, BPT_NODE_SIZE);
+
+        // Get the current node's id from the queue and data from the cache
+        uint32_t *curr_idp = fifo_q_pop(&node_q);
+        uint32_t curr_id = *curr_idp;
+        free(curr_idp);
+        struct bpt_node *curr_node = cache.get(cache.cache, curr_id);
+
+        // Get the on-disk id
+        uint32_t key = curr_id;
+        r = ordered_set_get(old_id_to_new_id_os, &key);
+        if (r == NULL)
+            errx(1, "Node %u has not been seen yet.", curr_id);
+
+        // Populate the node that we will write to disk
+        BPT_ID(to_write_node) =  r->second;
+        BPT_PARENT(to_write_node) = BPT_PARENT(curr_node);
+        BPT_IS_LEAF(to_write_node) = BPT_IS_LEAF(curr_node);
+        BPT_LEADING(to_write_node) = BPT_LEADING(curr_node);
+        BPT_NEXT(to_write_node) = BPT_NEXT(curr_node);
+        BPT_NUM_KEYS(to_write_node) = BPT_NUM_KEYS(curr_node);
+
         uint32_t i;
-        for (i = 0; i <= (*curr)->num_keys; ++i) 
-            bpt_destroy_tree((struct bpt_node **)&((*curr)->pointers[i]));
-        free((*curr)->keys);
-        free((*curr)->pointers);
-        free(*curr);
-        *curr = NULL;
-        return;
-    } 
-#endif
+        for (i = 0; i <= BPT_NUM_KEYS(curr_node); ++i)
+            BPT_KEYS(to_write_node)[i] = BPT_KEYS(curr_node)[i];
+
+
+        // If the node is a leaf we need to deal with the leading values
+        if (BPT_IS_LEAF(curr_node)) {
+            if (BPT_LEADING(curr_node) != 0) {
+                // put a map between the current id and the to disk id
+                p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+                p->first = BPT_LEADING(curr_node);
+                p->second = old_id_to_new_id_os->num + 1;
+                r = ordered_set_add(old_id_to_new_id_os, p);
+
+                if (r->second != p->second)
+                    errx(1, "%u has already been seen at %u\n",
+                            p->first, r->first);
+
+                BPT_LEADING(to_write_node) =  p->second;
+            }
+        }
+
+        // loop over all the pointers and if the are nodes put them on the q
+        uint32_t max_pointer;
+        if (BPT_IS_LEAF(curr_node)) 
+            max_pointer = BPT_NUM_KEYS(curr_node) - 1;
+        else 
+            max_pointer = BPT_NUM_KEYS(curr_node);
+
+        for (i = 0; i <= max_pointer; ++i) {
+            /*
+            id = (uint32_t *)malloc(sizeof(uint32_t));
+            *id = BPT_POINTERS(curr_node)[i];
+            */
+
+            //if (*id != 0) {
+            if (BPT_POINTERS(curr_node)[i] != 0) {
+                // put a map between the current id and the to disk id
+                p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+                p->first = BPT_POINTERS(curr_node)[i];
+                p->second = old_id_to_new_id_os->num + 1;
+                r = ordered_set_add(old_id_to_new_id_os, p);
+
+                if (r->second != p->second)
+                    errx(1, "%u has already been seen at %u\n",
+                            p->first, r->first);
+
+                // if the node is a leaf, then its pointers are to data not
+                // other nodes.  that data will be handled later
+                if (! BPT_IS_LEAF(curr_node)) {
+                    id = (uint32_t *)malloc(sizeof(uint32_t));
+                    *id = BPT_POINTERS(curr_node)[i];
+                    fifo_q_push(&node_q, id);
+                }
+
+                if (r->second != p->second)
+                    errx(1, "%u has already been seen at %u\n",
+                            p->first, r->first);
+
+                BPT_POINTERS(to_write_node)[i] =  p->second;
+            }
+        }
+
+        // we need to loop back over the leafs so we can write out the 
+        // data in the pointers and leading
+        if (BPT_IS_LEAF(curr_node)) {
+            id = (uint32_t *)malloc(sizeof(uint32_t));
+            *id = BPT_ID(curr_node);
+            fifo_q_push(&leaf_q, id);
+        }
+
+        uint32_t ret = disk_store_append(ds,
+                                         to_write_node->data,
+                                         BPT_NODE_SIZE);
+
+        if (ret + 1 != BPT_ID(to_write_node))
+                errx(1,
+                     "Disk write is out of sync.  Saw %u.  Expected %u.",
+                     ret + 1, 
+                     BPT_ID(to_write_node));
+    }
+
+    long node_end_offset = ftell(f);
+    long data_start_offset = node_end_offset;
+
+    // Write out the data to disk
+    while (fifo_q_peek(leaf_q) != NULL) {
+        // Get the current node's id from the queue and data from the cache
+        uint32_t *curr_idp = fifo_q_pop(&leaf_q);
+        uint32_t curr_id = *curr_idp;
+        free(curr_idp);
+        struct bpt_node *curr_node = cache.get(cache.cache, curr_id);
+
+        //Write the leading value
+        if (BPT_LEADING(curr_node) != 0) {
+            // Get the on-disk id
+            r = ordered_set_get(old_id_to_new_id_os, &(BPT_LEADING(curr_node)));
+            if (r == NULL)
+                errx(1,
+                     "Node %u has not been seen yet.",
+                     BPT_LEADING(curr_node));
+            uint32_t on_disk_id = r->second;
+
+            // Get the data
+            void *curr_pointer = cache.get(cache.cache, BPT_LEADING(curr_node));
+
+            uint8_t *serialized_data;
+            uint64_t serialized_size = serialize_leading(curr_pointer,
+                                                         &serialized_data);
+            uint32_t ret = disk_store_append(ds,
+                                             serialized_data,
+                                             serialized_size);
+            free(serialized_data);
+
+            if (ret + 1 != on_disk_id)
+                errx(1,
+                     "Disk write is out of sync.  Saw %u.  Expected %u.",
+                     ret + 1, 
+                     on_disk_id);
+        }
+
+        //Write the pointer values
+        uint32_t i;
+        for (i = 0; i < BPT_NUM_KEYS(curr_node); ++i) {
+            if (BPT_POINTERS(curr_node)[i] != 0) {
+                // Get the on-disk id
+                r = ordered_set_get(old_id_to_new_id_os,
+                                    &(BPT_POINTERS(curr_node)[i]));
+                if (r == NULL)
+                    errx(1,
+                         "Node %u has not been seen yet.",
+                         BPT_POINTERS(curr_node)[i]);
+                uint32_t on_disk_id = r->second;
+
+                // get the pointer from cache
+                void *curr_pointer = cache.get(cache.cache,
+                                               BPT_POINTERS(curr_node)[i]);
+                if (curr_pointer == NULL)
+                    errx(1,
+                         "Pointer data %u not in cache.", 
+                         BPT_POINTERS(curr_node)[i]);
+
+                uint8_t *serialized_data;
+                uint64_t serialized_size = serialize_pointer(curr_pointer,
+                                                             &serialized_data);
+                uint32_t ret = disk_store_append(ds,
+                                                 serialized_data,
+                                                 serialized_size);
+                free(serialized_data);
+
+                if (ret + 1 != on_disk_id)
+                    errx(1,
+                         "Disk write is out of sync.  Saw %u.  Expected %u.",
+                         ret + 1, 
+                         on_disk_id);
+            }
+        }
+
+    }
+
+    disk_store_sync(ds);
+    free(ds->file_name);
+    free(ds->offsets);
+    free(ds);
+    ds = NULL;
+
+    // Move back to the end of the file before we return
+    fseek(f, 0, SEEK_END);
+
+    ordered_set_destroy(&old_id_to_new_id_os, free_wrapper);
+    free(to_write_node->data);
+    free(to_write_node);
+}
+
+//{{{ uint64_t serialize_uint32_t(void *deserialized, uint8_t **serialized)
+uint64_t serialize_uint32_t(void *deserialized, uint8_t **serialized)
+{
+    uint32_t *data = (uint32_t *)deserialized;
+    uint64_t size = sizeof(uint32_t);
+
+    *serialized = (uint8_t *)calloc(1,size);
+    memcpy(*serialized, data, size);
+
+    return size;
 }
 //}}}
 
+#if 0
 //{{{void bpt_write_tree(struct bpt_node *root,
-void bpt_write_tree(struct bpt_node *root,
+void bpt_write_tree(uint32_t root_id,
                     FILE *f,
                     struct ordered_set **addr_to_id,
                     struct indexed_list **id_to_offset_size,
@@ -794,7 +951,115 @@ void bpt_write_tree(struct bpt_node *root,
     }
 }
 //}}}
+#endif
 
+#if 0
+//{{{ struct bpt_node *bpt_to_node(void *n)
+struct bpt_node *bpt_to_node(void *n)
+{
+    return (struct bpt_node*)n;
+}
+//}}}
+//{{{void bpt_print_tree(struct bpt_node *curr, int level)
+void bpt_print_tree(struct bpt_node *curr, int level)
+{
+    int i;
+    for (i = 0; i < level; ++i)
+        printf(" ");
+
+    printf("keys %p(%d)(%d):", curr,curr->num_keys, curr->is_leaf);
+
+    for (i = 0; i < curr->num_keys; ++i)
+        printf(" %d", curr->keys[i]);
+    printf("\n");
+
+    for (i = 0; i < level; ++i)
+        printf(" ");
+    printf("values:");
+
+    if (curr->is_leaf == 0) {
+        for (i = 0; i <= curr->num_keys; ++i)
+            printf(" %p", (struct bpt_node *)curr->pointers[i]);
+    } else {
+        for (i = 0; i < curr->num_keys; ++i) {
+            int *v = (int *)curr->pointers[i];
+            printf(" %d", *v);
+        }
+    }
+    printf("\n");
+
+    if (curr->is_leaf == 0) {
+        for (i = 0; i <= curr->num_keys; ++i)
+            bpt_print_tree((struct bpt_node *)curr->pointers[i], level+1);
+    }
+}
+//}}}
+//{{{ void bpt_print_node(struct bpt_node *n)
+void bpt_print_node(struct bpt_node *n)
+{
+    int i;
+    if (n->is_leaf)
+        printf("+");
+    else
+        printf("-");
+    printf("\t%p\t%p\t",n, n->parent);
+
+    for (i = 0; i < n->num_keys; ++i) {
+        if (i!=0)
+            printf(" ");
+        printf("%u", n->keys[i]);
+    }
+    printf("\n");
+}
+//}}}
+//{{{void print_values(struct bpt_node *root)
+void print_values(struct bpt_node *root)
+{
+    struct bpt_node *curr = root;
+    while (curr->is_leaf != 1) {
+        curr = (struct bpt_node *)curr->pointers[0];
+    }
+
+    printf("values: ");
+    int i, *v;
+    while (1) {
+        for (i = 0; i < curr->num_keys; ++i) {
+            v = (int *)curr->pointers[i];
+            printf(" %d", *v);
+        }
+        if (curr->next == NULL)
+            break;
+        else
+            curr = curr->next;
+    }
+    printf("\n");
+}
+//}}}
+//{{{ void bpt_destroy_tree(struct bpt_node **curr)
+void bpt_destroy_tree(struct bpt_node **curr)
+{
+#if 1
+    if (*curr == NULL) {
+        return;
+    } else if ((*curr)->is_leaf == 1) {
+        free((*curr)->keys);
+        free((*curr)->pointers);
+        free(*curr);
+        *curr = NULL;
+        return;
+    } else {
+        uint32_t i;
+        for (i = 0; i <= (*curr)->num_keys; ++i) 
+            bpt_destroy_tree((struct bpt_node **)&((*curr)->pointers[i]));
+        free((*curr)->keys);
+        free((*curr)->pointers);
+        free(*curr);
+        *curr = NULL;
+        return;
+    } 
+#endif
+}
+//}}}
 #endif
 
 #if 0

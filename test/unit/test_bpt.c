@@ -480,7 +480,7 @@ void test_bpt_insert(void)
     *V_12 = 13;
 
     //cache = lru_cache_init(10000);
-    cache.cache = cache.init(10000);
+    cache.cache = cache.init(10000, NULL);
    
     uint32_t leaf_id;
     int pos;
@@ -719,7 +719,7 @@ void test_bpt_insert_new_value(void)
     int *V_12 = (int *) malloc(sizeof(int));
     *V_12 = 13;
 
-    cache.cache = cache.init(10000);
+    cache.cache = cache.init(10000, NULL);
    
     uint32_t leaf_id;
     int pos;
@@ -945,7 +945,7 @@ void test_bpt_rand_order_insert_new_value(void)
     int *V_12 = (int *) malloc(sizeof(int));
     *V_12 = 13;
 
-    cache.cache = cache.init(10000);
+    cache.cache = cache.init(10000, NULL);
    
     uint32_t l;
     int p;
@@ -1037,7 +1037,7 @@ void test_bpt_insert_id_updated_bpt_node(void)
 {
     int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
 
-    cache.cache = cache.init(10000);
+    cache.cache = cache.init(10000, NULL);
 
     uint32_t r = 0, l, v = 0, v_id;
     int p;
@@ -1106,7 +1106,7 @@ void test_find(void)
      *
      */
 
-    cache.cache = cache.init(10000);
+    cache.cache = cache.init(10000, NULL);
 
     int V[13] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
     int v=0;
@@ -1182,7 +1182,7 @@ void test_split_repair(void)
 
     repair = decrement_repair;
 
-    cache.cache = cache.init(10000);
+    cache.cache = cache.init(10000, NULL);
 
     uint32_t r_id = 0, l_id, v_id;
     int pos;
@@ -1250,7 +1250,7 @@ void test_rand_test(void)
 {
     repair = NULL;
     ORDER = 10;
-    cache.cache = cache.init(CACHE_SIZE);
+    cache.cache = cache.init(CACHE_SIZE, NULL);
 
     uint32_t r_id = 0, l_id, v_id;
     int pos;
@@ -1294,7 +1294,7 @@ void test_bpt_insert_repeat(void)
 {
     repair = NULL;
     ORDER = 4;
-    cache.cache = cache.init(CACHE_SIZE);
+    cache.cache = cache.init(CACHE_SIZE, NULL);
 
     int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
 
@@ -1353,7 +1353,7 @@ void test_bpt_insert_repeat_append(void)
     append = append_sum;
     repair = NULL;
     ORDER = 4;
-    cache.cache = cache.init(CACHE_SIZE);
+    cache.cache = cache.init(CACHE_SIZE, NULL);
 
     int R[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
     int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
@@ -1403,7 +1403,7 @@ void test_bpt_insert_repeat_append(void)
 //{{{ void test_rand_test_high_order(void)
 void test_rand_test_high_order(void)
 {
-    cache.cache = cache.init(10);
+    cache.cache = cache.init(10, NULL);
     ORDER=50;
     repair = NULL;
     uint32_t size = 100000;
@@ -1449,7 +1449,7 @@ void test_rand_test_high_order(void)
 void test_bpt_write_tree(void)
 {
     ORDER=5;
-    cache.cache = cache.init(10);
+    cache.cache = cache.init(10, NULL);
     repair = NULL;
     uint32_t size = 20;
 

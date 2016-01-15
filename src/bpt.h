@@ -7,7 +7,9 @@
 uint32_t ORDER;
 uint32_t CACHE_SIZE;
 
-#define BPT_NODE_SIZE ((2*ORDER+8)*sizeof(uint32_t))
+#define BPT_NODE_NUM_ELEMENTS (2*ORDER+9)
+#define BPT_NODE_ELEMENT_SIZE sizeof(uint32_t)
+#define BPT_NODE_SIZE (BPT_NODE_NUM_ELEMENTS*BPT_NODE_ELEMENT_SIZE)
 
 #define BPT_ID(node) ((node)->data[0])
 #define BPT_PARENT(node) ((node)->data[1])
@@ -20,23 +22,7 @@ uint32_t CACHE_SIZE;
 
 struct ordered_set *id_to_offset_map;
 
-/*
-struct cache_def {
-    void *cache;
-    void *(*init)(uint32_t size);
-    uint32_t (*seen)(void *cache);
-    void (*add)(void *cache,
-                uint32_t key,
-                void *data,
-                void (*free_value)(void **data));
-    void *(*get)(void *cache, uint32_t key);
-    void (*remove)(void *cache, uint32_t key);
-    void (*destroy)(void **cache);
-};
-*/
-
 struct cache_def cache;
-
 
 struct bpt_node 
 {
@@ -54,7 +40,6 @@ struct bpt_node
 };
 
 struct bpt_node *bpt_new_node();
-
 struct bpt_node *bpt_copy_node(uint32_t *data);
 
 uint32_t bpt_find_leaf(uint32_t curr, uint32_t key);
@@ -75,6 +60,11 @@ uint32_t bpt_split_node(uint32_t root_id,
                         void (*repair)(struct bpt_node *, struct bpt_node *));
 
 void (*repair)(struct bpt_node *, struct bpt_node *);
+
+uint64_t (*serialize_leading)(void *deserialized, uint8_t **serialized);
+uint64_t (*serialize_pointer)(void *deserialized, uint8_t **serialized);
+
+uint64_t serialize_uint32_t(void *deserialized, uint8_t **serialized);
 
 void (*append)(uint32_t new_value_id, uint32_t existing_value_id);
 
@@ -109,10 +99,5 @@ uint32_t bpt_find(uint32_t root_id,
 
 void bpt_destroy_tree(struct bpt_node **root);
 
-void bpt_write_tree(struct bpt_node *root,
-                    FILE *f,
-                    struct ordered_set **addr_to_id,
-                    struct indexed_list **id_to_offset_size,
-                    long *table_offset);
-
+void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name);
 #endif

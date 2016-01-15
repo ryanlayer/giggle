@@ -30,7 +30,7 @@ void test_uint32_t_ll_giggle_insert(void)
     non_leading_free = uint32_t_ll_non_leading_free;
     leading_free = uint32_t_ll_leading_free;
 
-    cache.cache = cache.init(10);
+    cache.cache = cache.init(10, NULL);
 
     uint32_t root_id = 0;
     uint32_t r = giggle_insert(&root_id, 1, 3, 0);
@@ -240,7 +240,7 @@ void test_uint32_t_ll_giggle_search(void)
 
     ORDER = 7;
 
-    cache.cache = cache.init(10);
+    cache.cache = cache.init(10, NULL);
 
     /*
      *  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
