@@ -300,6 +300,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 }
 //}}}
 
+//{{{void giggle_index_destroy(struct giggle_index **gi)
 void giggle_index_destroy(struct giggle_index **gi)
 {
     free((*gi)->root_ids);
@@ -310,6 +311,7 @@ void giggle_index_destroy(struct giggle_index **gi)
     free(*gi);
     *gi = NULL;
 }
+//}}}
 
 //{{{int giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)

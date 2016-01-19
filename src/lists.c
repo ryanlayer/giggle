@@ -21,11 +21,35 @@ struct bit_map *bit_map_init(uint32_t bits)
 
 struct bit_map *bit_map_load(FILE *f, char *file_name)
 {
-    return NULL;
+    struct bit_map *b = (struct bit_map *) malloc(sizeof(struct bit_map));
+
+    size_t fr = fread(&(b->num_bits), sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+    fr = fread(&(b->num_ints), sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+    b->bm = (uint32_t *) calloc(b->num_ints, sizeof(uint32_t));
+    fr = fread(b->bm, sizeof(uint32_t), b->num_ints, f);
+    check_file_read(file_name, f, b->num_ints, fr);
+
+    return b;
 }
 
-void bit_map_store(FILE *f, char *file_name)
+void bit_map_store(struct bit_map *b, FILE *f, char *file_name)
 {
+    if (fwrite(&(b->num_bits), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing number of bits to '%s'.",
+            file_name);
+
+    if (fwrite(&(b->num_ints), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing number of ints to '%s'.",
+            file_name);
+
+    if (fwrite(b->bm, sizeof(uint32_t), b->num_ints, f) != b->num_ints)
+        err(EX_IOERR,
+            "Error writing number bitmap to '%s'.",
+            file_name);
 }
 
 void bit_map_destroy(struct bit_map **b)
@@ -80,10 +104,12 @@ struct indexed_list *indexed_list_init(uint32_t init_size,
 //{{{void indexed_list_destroy(struct indexed_list **il)
 void indexed_list_destroy(struct indexed_list **il)
 {
-    //bit_map_destroy(&((*il)->bm));
-    free((*il)->data);
-    free(*il);
-    *il = NULL;
+    if (*il != NULL) {
+        bit_map_destroy(&((*il)->bm));
+        free((*il)->data);
+        free(*il);
+        *il = NULL;
+    }
 }
 //}}}
 
@@ -103,6 +129,8 @@ uint32_t indexed_list_add(struct indexed_list *il,
         r = 1;
     }
 
+    bit_map_set(il->bm, index);
+
     memcpy(il->data + (index * il->element_size), data, il->element_size);
 
     return r;
@@ -112,16 +140,18 @@ uint32_t indexed_list_add(struct indexed_list *il,
 //{{{void *indexed_list_get(struct indexed_list *il, uint32_t index)
 void *indexed_list_get(struct indexed_list *il, uint32_t index)
 {
-    if (index >= il->size)
-        return NULL;
-    else
+    if (bit_map_get(il->bm, index))
         return il->data + (index * il->element_size);
+    else
+        return NULL;
 }
 //}}}
 
 //{{{void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
 void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
 {
+
+
     if (fwrite(&(il->size), sizeof(uint32_t), 1, f) != 1)
         err(EX_IOERR,
             "Error writing indexed list size to '%s'.",
@@ -136,6 +166,8 @@ void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
         err(EX_IOERR,
             "Error writing indexed list data to '%s'.",
             file_name);
+
+    bit_map_store(il->bm, f, file_name);
 }
 //}}}
 
@@ -154,6 +186,8 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
     il->data = (char *) calloc(il->size, il->element_size);
     fr = fread(il->data, il->element_size, il->size, f);
     check_file_read(file_name, f, il->size, fr);
+
+    il->bm = bit_map_load(f, file_name);
 
     return il;
 }
@@ -888,23 +922,48 @@ void lru_cache_destroy(void **_lruc)
 //}}}
 
 //{{{ simple_cache
+//{{{void *simple_cache_init(uint32_t init_size, FILE *fp)
 void *simple_cache_init(uint32_t init_size, FILE *fp)
 {
     struct simple_cache *sc = (struct simple_cache *)
             malloc(sizeof(struct simple_cache));
+
+    if (fp != NULL) {
+        sc->ds = disk_store_load(&fp, "NULL");
+    } else {
+        sc->ds = NULL;
+    }
+
+    if (sc->ds != NULL) {
+        while (init_size < sc->ds->num)
+            init_size = init_size * 2;
+    }
+
     sc->size = init_size;
-    sc->num = 0;
-    sc->seen = 0;
+
+    if (sc->ds != NULL) {
+        sc->num = sc->ds->num;
+        sc->seen = sc->ds->num;
+    } else {
+        sc->num = 0;
+        sc->seen = 0;
+    }
+
     sc->il = indexed_list_init(init_size, sizeof(struct value_free_value_pair));
+
     return sc;
 }
+//}}}
 
+//{{{uint32_t simple_cache_seen(void *_sc)
 uint32_t simple_cache_seen(void *_sc)
 {
     struct simple_cache *sc = (struct simple_cache *)_sc;
     return sc->seen;
 }
+//}}}
 
+//{{{void simple_cache_add(void *_sc,
 void simple_cache_add(void *_sc,
                       uint32_t key,
                       void *value,
@@ -919,18 +978,28 @@ void simple_cache_add(void *_sc,
     sc->num += 1;
     sc->seen += 1;
 }
+//}}}
 
+//{{{void *simple_cache_get(void *_sc, uint32_t key)
 void *simple_cache_get(void *_sc, uint32_t key)
 {
     struct simple_cache *sc = (struct simple_cache *)_sc;
     struct value_free_value_pair *vf = indexed_list_get(sc->il, key);
 
-    if (vf == NULL)
-        return NULL;
-    else 
+    if (vf == NULL) {
+        uint64_t size;
+        void *v = disk_store_get(sc->ds, key, &size);
+        if (v == NULL)
+            return NULL;
+    
+        simple_cache_add(_sc, key, v, NULL);
+        return v;
+    } else 
         return vf->value;
 }
+//}}}
 
+//{{{void simple_cache_destroy(void **_sc)
 void simple_cache_destroy(void **_sc)
 {
     struct simple_cache **sc = (struct simple_cache **)_sc;
@@ -949,6 +1018,7 @@ void simple_cache_destroy(void **_sc)
     *sc = NULL;
 }
 //}}}
+//}}}
 
 //{{{void free_wrapper(void **v)
 void free_wrapper(void **v)
@@ -957,4 +1027,3 @@ void free_wrapper(void **v)
     *v = NULL;
 }
 //}}}
-

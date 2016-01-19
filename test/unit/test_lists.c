@@ -11,6 +11,21 @@
 void setUp(void) { }
 void tearDown(void) { }
 
+//{{{ int uint32_t_cmp(const void *a, const void *b)
+static int uint32_t_cmp(const void *a, const void *b)
+{
+    uint32_t _a = *((uint32_t *)a), _b = *((uint32_t *)b);
+
+    if (_a < _b)
+        return -1;
+    else if (_a > _b)
+        return 1;
+    else
+
+    return 0;
+}
+//}}}
+
 //{{{void test_unordered_list_init(void)
 void test_unordered_list_init(void)
 {
@@ -249,6 +264,7 @@ void test_uint_pair(void)
     ordered_set_destroy(&os, free_wrapper);
 
     TEST_ASSERT_EQUAL(NULL, os);
+    free(p);
 }
 //}}}
 
@@ -459,7 +475,6 @@ void test_byte_array(void)
 //{{{void test_indexed_list(void)
 void test_indexed_list(void)
 {
-
     struct offset_size_pair p, *r;
 
     uint32_t max_size = 50;
@@ -667,7 +682,7 @@ void test_simple_cache(void)
 }
 ///}}}
 
-//{{{void test_simple_cache(void)
+//{{{ void test_simple_cache_with_disk(void)
 void test_simple_cache_with_disk(void)
 {
     char *file_name = "test_simple_cache_with_disk.out";
@@ -677,35 +692,34 @@ void test_simple_cache_with_disk(void)
     uint32_t id = disk_store_append(ds, V, sizeof(uint32_t));
     id = disk_store_append(ds, V+1, sizeof(uint32_t));
     id = disk_store_append(ds, V+2, sizeof(uint32_t));
+    id = disk_store_append(ds, V+3, sizeof(uint32_t));
     id = disk_store_append(ds, V+4, sizeof(uint32_t));
 
     disk_store_destroy(&ds);
 
     f = fopen(file_name, "r+");
 
-    struct simple_cache *sc = simple_cache_init(5, f);
+    struct simple_cache *sc = simple_cache_init(10, f);
 
-#if 0
-    int V[10] = {2,4,6,8,10,12,14,16,18,20};
-
-    simple_cache_add(sc, 1, V, NULL);
-    TEST_ASSERT_EQUAL(1, simple_cache_seen(sc));
-
-    int *r = (int *)simple_cache_get(sc, 1);
+    TEST_ASSERT_EQUAL(5, sc->seen);
+    TEST_ASSERT_EQUAL(5, sc->num);
+    
+    uint32_t *r = (uint32_t *)simple_cache_get(sc, 0);
     TEST_ASSERT_EQUAL(V[0], *r);
+    r = (uint32_t *)simple_cache_get(sc, 1);
+    TEST_ASSERT_EQUAL(V[1], *r);
 
-    uint32_t i;
-    for (i = 1; i<10; ++i)
-        simple_cache_add(sc, i+1, V+i, NULL);
-    TEST_ASSERT_EQUAL(10, simple_cache_seen(sc));
+    r = (uint32_t *)simple_cache_get(sc, 1);
+    TEST_ASSERT_EQUAL(V[1], *r);
 
-    for (i = 0; i<10; ++i) {
-        int *r = (int *)simple_cache_get(sc, i+1);
-        TEST_ASSERT_EQUAL(V[i], *r);
-    }
+    r = (uint32_t *)simple_cache_get(sc, 2);
+    TEST_ASSERT_EQUAL(V[2], *r);
+    r = (uint32_t *)simple_cache_get(sc, 3);
+    TEST_ASSERT_EQUAL(V[3], *r);
+    r = (uint32_t *)simple_cache_get(sc, 4);
+    TEST_ASSERT_EQUAL(V[4], *r);
 
     simple_cache_destroy((void **)&sc);
-#endif
 }
 ///}}}
 
@@ -719,5 +733,51 @@ void test_bit_map(void)
     bit_map_set(bm, 1000);
 
     TEST_ASSERT_EQUAL(1, bit_map_get(bm, 1000));
+
+
+    uint32_t A[500];
+
+    uint32_t i;
+
+    A[0] = 1000;
+
+    for (i = 1; i < 500; ++i) {
+        A[i] = rand() % 10000;
+        bit_map_set(bm, A[i]);
+    }
+
+    qsort(A, 500, sizeof(uint32_t), uint32_t_cmp);
+
+    uint32_t j;
+    for (i = 0; i < 499; ++i)  {
+        TEST_ASSERT_EQUAL(1, bit_map_get(bm, A[i]));
+        for (j = A[i]+1; j < A[i+1]; ++j)
+            TEST_ASSERT_EQUAL(0, bit_map_get(bm, j));
+    }
+
+    char *file_name = "test_bit_map.out";
+
+    FILE *f = fopen(file_name, "wb");
+
+    bit_map_store(bm, f, file_name);
+
+    fclose(f);
+
+    f = fopen(file_name, "rb");
+    struct bit_map *bm_r = bit_map_load(f, file_name);
+    fclose(f);
+
+    TEST_ASSERT_EQUAL(bm->num_bits, bm_r->num_bits);
+    TEST_ASSERT_EQUAL(bm->num_ints, bm_r->num_ints);
+
+    for (i = 0; i < 499; ++i)  {
+        TEST_ASSERT_EQUAL(1, bit_map_get(bm_r, A[i]));
+        for (j = A[i]+1; j < A[i+1]; ++j)
+            TEST_ASSERT_EQUAL(0, bit_map_get(bm_r, j));
+    }
+
+
+    bit_map_destroy(&bm);
+    bit_map_destroy(&bm_r);
 }
 //}}}

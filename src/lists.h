@@ -13,7 +13,7 @@ struct bit_map
 
 struct bit_map *bit_map_init(uint32_t bits);
 struct bit_map *bit_map_load(FILE *f, char *file_name);
-void bit_map_store(FILE *f, char *file_name);
+void bit_map_store(struct bit_map *b, FILE *f, char *file_name);
 void bit_map_destroy(struct bit_map **b);
 void bit_map_set(struct bit_map *b, uint32_t i);
 uint32_t bit_map_get(struct bit_map *b, uint32_t q);
