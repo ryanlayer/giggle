@@ -61,7 +61,7 @@ void bit_map_destroy(struct bit_map **b)
 
 void bit_map_set(struct bit_map *b, uint32_t i)
 {
-    while (i > b->num_bits) {
+    while (i >= b->num_bits) {
         uint32_t new_bits = (b->num_bits)*2;
         uint32_t new_ints = (new_bits + 32 - 1) / 32;
         uint32_t *new_bm = (uint32_t *)calloc(new_ints, sizeof(uint32_t));
@@ -72,6 +72,7 @@ void bit_map_set(struct bit_map *b, uint32_t i)
         b->num_ints = new_ints;
         b->bm = new_bm;
     }
+
 
     b->bm[i/32] |= 1 << (31 - (i%32));
 }
@@ -987,13 +988,17 @@ void *simple_cache_get(void *_sc, uint32_t key)
     struct value_free_value_pair *vf = indexed_list_get(sc->il, key);
 
     if (vf == NULL) {
-        uint64_t size;
-        void *v = disk_store_get(sc->ds, key, &size);
-        if (v == NULL)
+        if (sc->ds != NULL) {
+            uint64_t size;
+            void *v = disk_store_get(sc->ds, key, &size);
+            if (v == NULL)
+                return NULL;
+        
+            simple_cache_add(_sc, key, v, NULL);
+            return v;
+        } else {
             return NULL;
-    
-        simple_cache_add(_sc, key, v, NULL);
-        return v;
+        }
     } else 
         return vf->value;
 }

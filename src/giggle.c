@@ -260,15 +260,6 @@ void *giggle_search(uint32_t root_id,
         }
     }
 
-    /*
-    if (r != NULL) {
-        uint32_t v_id = cache.seen(cache.cache) + 1;
-        cache.add(cache.cache, v_id, r, uint32_t_ll_free);
-        return v_id;
-    } else {
-        return 0;
-    }
-    */
     return r;
 }
 //}}}
@@ -394,9 +385,7 @@ void *giggle_query_region(struct giggle_index *gi,
                           uint32_t end)
 {
     uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
-    struct uint32_t_ll *R = (struct uint32_t_ll *)
-            giggle_search(gi->root_ids[chr_id], start, end);
-    return R;
+    return giggle_search(gi->root_ids[chr_id], start, end);
 }
 //}}}
 

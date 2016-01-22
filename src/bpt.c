@@ -434,6 +434,7 @@ uint32_t bpt_find(uint32_t root_id,
 }
 //}}}
 
+#if 0
 //{{{void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name)
 void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name)
 {
@@ -679,6 +680,8 @@ void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name)
     free(to_write_node);
 }
 //}}}
+#endif
+
 
 //{{{void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name)
 void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name)
