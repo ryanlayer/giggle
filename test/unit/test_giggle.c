@@ -221,6 +221,7 @@ void test_uint32_t_ll_giggle_insert(void)
 }
 //}}}
 
+#if 0
 //{{{ void test_uint32_t_ll_giggle_search(void)
 void test_uint32_t_ll_giggle_search(void)
 {
@@ -644,3 +645,4 @@ void test_giggle_index_directory(void)
     giggle_index_destroy(&gi);
 }
 //}}}
+#endif

@@ -13,9 +13,15 @@ void tearDown(void) { }
 
 void test_disk_store(void)
 {
-    char *file_name = "test_disk_store.out";
-    FILE *f = NULL;
-    struct disk_store *ds = disk_store_init(10, &f, file_name);
+    char *index_file_name = "test_disk_store.idx";
+    char *data_file_name = "test_disk_store.dat";
+    FILE *index_f = NULL;
+    FILE *data_f = NULL;
+    struct disk_store *ds = disk_store_init(10,
+                                            &index_f,
+                                            index_file_name,
+                                            &data_f,
+                                            data_file_name);
 
     TEST_ASSERT_EQUAL(0, ds->num);
     TEST_ASSERT_EQUAL(10, ds->size);
@@ -34,10 +40,15 @@ void test_disk_store(void)
     disk_store_destroy(&ds);
     TEST_ASSERT_EQUAL(NULL, ds);
 
-    f = NULL;
+    index_f = NULL;
+    data_f = NULL;
 
-    ds = disk_store_load(&f, file_name);
- 
+    ds = disk_store_load(&index_f,
+                         index_file_name,
+                         &data_f,
+                         data_file_name);
+
+
     TEST_ASSERT_EQUAL(3, ds->num);
     TEST_ASSERT_EQUAL(10, ds->size);
 
@@ -55,10 +66,15 @@ void test_disk_store(void)
 
     disk_store_destroy(&ds);
 
-    f = NULL;
+    index_f = NULL;
+    data_f = NULL;
 
-    ds = disk_store_load(&f, file_name);
- 
+    ds = disk_store_load(&index_f,
+                         index_file_name,
+                         &data_f,
+                         data_file_name);
+
+
     TEST_ASSERT_EQUAL(5, ds->num);
     TEST_ASSERT_EQUAL(10, ds->size);
 
@@ -76,4 +92,7 @@ void test_disk_store(void)
 
     disk_store_destroy(&ds);
     free(v);
+
+    remove(index_file_name);
+    remove(data_file_name);
 }

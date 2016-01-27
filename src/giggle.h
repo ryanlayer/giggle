@@ -14,7 +14,6 @@ struct file_id_offset_pair
 
 struct giggle_index
 {
-    //struct bpt_node **roots;
     uint32_t *root_ids;
     uint32_t len, num;
     struct ordered_set *chrm_index;
@@ -31,16 +30,21 @@ void *giggle_search(uint32_t root_id,
                     uint32_t start,
                     uint32_t end);
 
-void *(*new_non_leading)();
-void *(*new_leading)();
-void (*non_leading_SA_add_scalar)(void *non_leading, void *scalar);
-void (*non_leading_SE_add_scalar)(void *non_leading, void *scalar);
-void (*leading_B_add_scalar)(void *leading, void *scalar);
-void (*leading_union_with_B)(void **result, void *leading);
-void (*non_leading_union_with_SA)(void **result, void *non_leading);
-void (*non_leading_union_with_SA_subtract_SE)(void **result, void *non_leading);
-void (*non_leading_free)(void **non_leading);
-void (*leading_free)(void **leading);
+struct giggle_def = {
+    void *(*new_non_leading)();
+    void *(*new_leading)();
+    void (*non_leading_SA_add_scalar)(void *non_leading, void *scalar);
+    void (*non_leading_SE_add_scalar)(void *non_leading, void *scalar);
+    void (*leading_B_add_scalar)(void *leading, void *scalar);
+    void (*leading_union_with_B)(void **result, void *leading);
+    void (*non_leading_union_with_SA)(void **result, void *non_leading);
+    void (*non_leading_union_with_SA_subtract_SE)(void **result,
+                                                  void *non_leading);
+    void (*non_leading_free)(void **non_leading);
+    void (*leading_free)(void **leading);
+};
+
+struct giggle_def giggle_data_handler;
 
 
 struct giggle_index *giggle_init_index(uint32_t init_size);

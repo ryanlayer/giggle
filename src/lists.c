@@ -141,7 +141,8 @@ uint32_t indexed_list_add(struct indexed_list *il,
 //{{{void *indexed_list_get(struct indexed_list *il, uint32_t index)
 void *indexed_list_get(struct indexed_list *il, uint32_t index)
 {
-    if (bit_map_get(il->bm, index))
+    //fprintf(stderr, "%d\n", bit_map_get(il->bm, index));
+    if (bit_map_get(il->bm, index) != 0)
         return il->data + (index * il->element_size);
     else
         return NULL;
@@ -195,7 +196,7 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
 //}}}
 
 //}}}
-
+#if 0
 //{{{unordered_list
 //{{{struct unordered_list *unordered_list_init(uint32_t init_size)
 struct unordered_list *unordered_list_init(uint32_t init_size)
@@ -745,7 +746,7 @@ void cc_hash_destroy(struct cc_hash **hash)
 //}}}
 
 //{{{ lru_cache
-
+#if 0
 struct cache_def lru_cache_def = {
     NULL,
     lru_cache_init,
@@ -920,19 +921,45 @@ void lru_cache_destroy(void **_lruc)
     *lruc = NULL;
 }
 //}}}
+#endif
 //}}}
 
 //{{{ simple_cache
 //{{{void *simple_cache_init(uint32_t init_size, FILE *fp)
-void *simple_cache_init(uint32_t init_size, FILE *fp)
+void *simple_cache_init(uint32_t size,
+                        uint32_t num_domains,
+                        char **file_names, 
+                        FILE **fps)
 {
     struct simple_cache *sc = (struct simple_cache *)
             malloc(sizeof(struct simple_cache));
 
-    if (fp != NULL) {
-        sc->ds = disk_store_load(&fp, "NULL");
-    } else {
-        sc->ds = NULL;
+    /*
+    struct simple_cache
+    {
+        struct indexed_list **ils;
+        uint32_t *sizes, *nums, *seens;
+        struct disk_store **dss;
+    };
+    */
+
+    sc->ils = (struct indexed_list **)calloc(num_domains,
+                                             sizeof(struct indexed_list *));
+    sc->sizes = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
+    sc->nums = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
+    sc->seens = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
+    sc->dss = (struct disk_store **)calloc(num_domains, 
+                                           sizeof(struct disk_store *));
+
+    if (fps != NULL) {
+        uint32_t i;
+        for ( i = 0; i < num_domains; ++i) {
+            if (fps[i] != NULL) {
+                sc->dss[i] = disk_store_load(&fp, "NULL");
+            } else {
+                sc->dss[i] = NULL;
+            }
+        }
     }
 
     if (sc->ds != NULL) {
@@ -1032,3 +1059,4 @@ void free_wrapper(void **v)
     *v = NULL;
 }
 //}}}
+#endif

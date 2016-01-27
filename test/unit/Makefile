@@ -8,13 +8,12 @@ TEST_NAMES=$(TEST_SRC:.c=)
 PREFIX=Runner_
 RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 
-NO_PRE_SRC_FILES=giggle.c \
-		 bpt.c \
-		 ll.c \
+NO_PRE_SRC_FILES= disk_store.c \
+		 cache.c \
+		 lists.c \
 		 util.c \
-		 file_read.c \
-		 disk_store.c \
-		 lists.c 
+		 giggle.c \
+		 bpt.c
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))
 

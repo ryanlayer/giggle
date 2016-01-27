@@ -2,10 +2,11 @@
 #define __BPT_H__
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "lists.h"
+#include "cache.h"
 
 uint32_t ORDER;
-uint32_t CACHE_SIZE;
 
 #define BPT_NODE_NUM_ELEMENTS (2*ORDER+9)
 #define BPT_NODE_ELEMENT_SIZE sizeof(uint32_t)
@@ -22,8 +23,6 @@ uint32_t CACHE_SIZE;
 
 struct ordered_set *id_to_offset_map;
 
-struct cache_def cache;
-
 struct bpt_node 
 {
     // 0 parent
@@ -34,25 +33,33 @@ struct bpt_node
     // [5 ... 5+(ORDER+1)]
     // [(5+(ORDER+1)) ... ((5+ORDER+1)+1)+(ORDER+2))
     //
-    // Total size is 5+(ORDER+1)+(ORDER+2) = 2*ORDER + 8
+    // Total size is 5+(ORDER+1)+(ORDER+2) = 2*ORDER + 9
     
     uint32_t *data;
 };
 
-struct bpt_node *bpt_new_node();
-struct bpt_node *bpt_copy_node(uint32_t *data);
+uint64_t bpt_node_serialize(void *deserialized, void **serialized);
+uint64_t bpt_node_deserialize(void *serialized,
+                              uint64_t serialized_size,
+                              void **deserialized);
+void bpt_node_free_mem(void **deserialized);
 
-uint32_t bpt_find_leaf(uint32_t curr, uint32_t key);
+struct cache_handler bpt_node_cache_handler;
 
-void bpt_free_node(void **v);
+struct bpt_node *bpt_new_node(uint32_t domain);
 
-uint32_t bpt_place_new_key_value(uint32_t root_id,
+uint32_t bpt_find_leaf(uint32_t domain, uint32_t curr, uint32_t key);
+
+uint32_t bpt_place_new_key_value(uint32_t domain,
+                                 uint32_t root_id,
                                  uint32_t *target_id,
                                  int *target_key_pos,
                                  uint32_t key,
-                                 uint32_t value_id);
+                                 uint32_t value_id,
+                                 struct cache_handler *handler);
 
-uint32_t bpt_split_node(uint32_t root_id,
+uint32_t bpt_split_node(uint32_t domain,
+                        uint32_t root_id,
                         uint32_t bpt_node_id,
                         uint32_t *lo_result_id,
                         uint32_t *hi_result_id,
@@ -61,43 +68,48 @@ uint32_t bpt_split_node(uint32_t root_id,
 
 void (*repair)(struct bpt_node *, struct bpt_node *);
 
-uint64_t (*serialize_leading)(void *deserialized, uint8_t **serialized);
-uint64_t (*serialize_pointer)(void *deserialized, uint8_t **serialized);
+//uint64_t (*serialize_leading)(void *deserialized, uint8_t **serialized);
+//uint64_t (*serialize_pointer)(void *deserialized, uint8_t **serialized);
+//uint64_t serialize_uint32_t(void *deserialized, uint8_t **serialized);
 
-uint64_t serialize_uint32_t(void *deserialized, uint8_t **serialized);
+void (*append)(uint32_t domain,
+               uint32_t new_value_id,
+               uint32_t existing_value_id,
+               struct cache_handler *handler);
 
-void (*append)(uint32_t new_value_id, uint32_t existing_value_id);
+//struct bpt_node *bpt_to_node(void *n);
 
-struct bpt_node *bpt_to_node(void *n);
-
-uint32_t bpt_insert(uint32_t root_id,
+uint32_t bpt_insert(uint32_t domain,
+                    uint32_t root_id,
                     uint32_t key,
                     uint32_t value_id,
+                    struct cache_handler *handler,
                     uint32_t *leaf_id,
                     int *pos);
 
-uint32_t bpt_insert_new_value(uint32_t root_id,
+uint32_t bpt_insert_new_value(uint32_t domain,
+                              uint32_t root_id,
                               uint32_t key,
                               void *value,
-                              void (*free_value)(void **data),
+                              struct cache_handler *handler,
                               uint32_t *value_id,
                               uint32_t *leaf_id,
                               int *pos);
 
-void bpt_print_tree(struct bpt_node *curr, int level);
-
-void pbt_print_node(struct bpt_node *bpt_node);
+//void bpt_print_tree(struct bpt_node *curr, int level);
+//void pbt_print_node(struct bpt_node *bpt_node);
 
 int b_search(uint32_t key, uint32_t *D, uint32_t D_size);
 
 int bpt_find_insert_pos(struct bpt_node *leaf, uint32_t key);
 
-uint32_t bpt_find(uint32_t root_id,
+uint32_t bpt_find(uint32_t domain,
+                  uint32_t root_id,
                   uint32_t *leaf_id,
                   int *pos,
                   uint32_t key);
 
 void bpt_destroy_tree(struct bpt_node **root);
 
-void bpt_write_tree(uint32_t root_id, FILE *f, char *file_name);
+bool bpt_write_tree(uint32_t domain, uint32_t root_id);
 #endif

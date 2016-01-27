@@ -600,59 +600,59 @@ void test_cc_hash(void)
 //}}}
 
 //{{{void test_lru_cache(void)
-void test_lru_cache(void)
-{
-    struct lru_cache *lruc = lru_cache_init(5, NULL);
-
-    int V[10] = {2,4,6,8,10,12,14,16,18,20};
-
-    lru_cache_add(lruc, 1, V, NULL);
-    TEST_ASSERT_EQUAL(1, lruc->seen);
-
-    TEST_ASSERT_EQUAL(V, lruc->head->value);
-    TEST_ASSERT_EQUAL(V, lruc->tail->value);
-
-    int *r = (int *)lru_cache_get(lruc, 1);
-
-    TEST_ASSERT_EQUAL(V[0], *r);
-    TEST_ASSERT_EQUAL(NULL, lru_cache_get(lruc, 2));
-
-    lru_cache_add(lruc, 2, V+1, NULL);
-    TEST_ASSERT_EQUAL(2, lruc->seen);
-
-    TEST_ASSERT_EQUAL(V, lruc->head->value);
-    TEST_ASSERT_EQUAL(V+1, lruc->tail->value);
-
-    r = (int *)lru_cache_get(lruc, 1);
-
-    TEST_ASSERT_EQUAL(V+1, lruc->head->value);
-    TEST_ASSERT_EQUAL(V, lruc->tail->value);
-
-    lru_cache_add(lruc, 3, V+2, NULL);
-    TEST_ASSERT_EQUAL(3, lruc->seen);
-    lru_cache_add(lruc, 4, V+3, NULL);
-    TEST_ASSERT_EQUAL(4, lruc->seen);
-    lru_cache_add(lruc, 5, V+4, NULL);
-    TEST_ASSERT_EQUAL(5, lruc->seen);
-    lru_cache_add(lruc, 6, V+5, NULL);
-    TEST_ASSERT_EQUAL(6, lruc->seen);
-
-    TEST_ASSERT_EQUAL(NULL, lru_cache_get(lruc, 2));
-    r = (int *)lru_cache_get(lruc, 1);
-    TEST_ASSERT_EQUAL(V[0], *r);
-    r = (int *)lru_cache_get(lruc, 3);
-    TEST_ASSERT_EQUAL(V[2], *r);
-    r = (int *)lru_cache_get(lruc, 4);
-    TEST_ASSERT_EQUAL(V[3], *r);
-    r = (int *)lru_cache_get(lruc, 5);
-    TEST_ASSERT_EQUAL(V[4], *r);
-    r = (int *)lru_cache_get(lruc, 6);
-    TEST_ASSERT_EQUAL(V[5], *r);
-
-    TEST_ASSERT_EQUAL(6, lruc->seen);
-
-    lru_cache_destroy((void **)&lruc);
-}
+//void test_lru_cache(void)
+//{
+//    struct lru_cache *lruc = lru_cache_init(5, NULL);
+//
+//    int V[10] = {2,4,6,8,10,12,14,16,18,20};
+//
+//    lru_cache_add(lruc, 1, V, NULL);
+//    TEST_ASSERT_EQUAL(1, lruc->seen);
+//
+//    TEST_ASSERT_EQUAL(V, lruc->head->value);
+//    TEST_ASSERT_EQUAL(V, lruc->tail->value);
+//
+//    int *r = (int *)lru_cache_get(lruc, 1);
+//
+//    TEST_ASSERT_EQUAL(V[0], *r);
+//    TEST_ASSERT_EQUAL(NULL, lru_cache_get(lruc, 2));
+//
+//    lru_cache_add(lruc, 2, V+1, NULL);
+//    TEST_ASSERT_EQUAL(2, lruc->seen);
+//
+//    TEST_ASSERT_EQUAL(V, lruc->head->value);
+//    TEST_ASSERT_EQUAL(V+1, lruc->tail->value);
+//
+//    r = (int *)lru_cache_get(lruc, 1);
+//
+//    TEST_ASSERT_EQUAL(V+1, lruc->head->value);
+//    TEST_ASSERT_EQUAL(V, lruc->tail->value);
+//
+//    lru_cache_add(lruc, 3, V+2, NULL);
+//    TEST_ASSERT_EQUAL(3, lruc->seen);
+//    lru_cache_add(lruc, 4, V+3, NULL);
+//    TEST_ASSERT_EQUAL(4, lruc->seen);
+//    lru_cache_add(lruc, 5, V+4, NULL);
+//    TEST_ASSERT_EQUAL(5, lruc->seen);
+//    lru_cache_add(lruc, 6, V+5, NULL);
+//    TEST_ASSERT_EQUAL(6, lruc->seen);
+//
+//    TEST_ASSERT_EQUAL(NULL, lru_cache_get(lruc, 2));
+//    r = (int *)lru_cache_get(lruc, 1);
+//    TEST_ASSERT_EQUAL(V[0], *r);
+//    r = (int *)lru_cache_get(lruc, 3);
+//    TEST_ASSERT_EQUAL(V[2], *r);
+//    r = (int *)lru_cache_get(lruc, 4);
+//    TEST_ASSERT_EQUAL(V[3], *r);
+//    r = (int *)lru_cache_get(lruc, 5);
+//    TEST_ASSERT_EQUAL(V[4], *r);
+//    r = (int *)lru_cache_get(lruc, 6);
+//    TEST_ASSERT_EQUAL(V[5], *r);
+//
+//    TEST_ASSERT_EQUAL(6, lruc->seen);
+//
+//    lru_cache_destroy((void **)&lruc);
+//}
 ///}}}
 
 //{{{void test_simple_cache(void)

@@ -145,16 +145,31 @@ void byte_array_append_zeros(struct byte_array *ba, uint32_t size);
 
 
 // CACHES
+#if 0
+struct cache_handler
+{
+    uint64_t (*serialize)(void *deserialized, uint8_t **serialized);
+    uint64_t (*deserialize)(void *serialized,
+                            uint64_t serialized_size,
+                            uint8_t **deserialized);
+    void (*free_mem)(void **deserialized);
+};
+
 struct cache_def {
-    void *cache;
-    void *(*init)(uint32_t size, FILE *fp);
-    uint32_t (*seen)(void *cache);
+    void *cache; //needs to hanlde multiple domains
+    void *(*init)(uint32_t size, uint32_t num_domains, FILE **fp);
+    uint32_t (*seen)(void *cache, uint32_t domain);
     void (*add)(void *cache,
+                uint32_t domain,
                 uint32_t key,
                 void *data,
-                void (*free_value)(void **data));
-    void *(*get)(void *cache, uint32_t key);
-    void (*remove)(void *cache, uint32_t key);
+                struct cache_handler *handler);
+                //void (*free_value)(void **data));
+    void *(*get)(void *cache,
+                 uint32_t domain,
+                 uint32_t key,
+                 struct cache_handler *handler);
+    void (*remove)(void *cache, uint32_t domain, uint32_t key);
     void (*destroy)(void **cache);
 };
 
@@ -210,12 +225,12 @@ struct value_free_value_pair
 
 struct simple_cache
 {
-    struct indexed_list *il;
-    uint32_t size, num, seen;
-    struct disk_store *ds;
+    struct indexed_list **ils;
+    uint32_t *sizes, *nums, *seens;
+    struct disk_store **dss;
 };
 
-void *simple_cache_init(uint32_t init_size, FILE *fp);
+void *simple_cache_init(uint32_t size, uint32_t num_domains, FILE **fps);
 uint32_t simple_cache_seen(void *cache); 
 void *simple_cache_get(void *cache, uint32_t key);
 void simple_cache_remove(void *cache, uint32_t key);
@@ -226,6 +241,6 @@ void simple_cache_add(void *cache,
 void simple_cache_destroy(void **cache);
 
 void free_wrapper(void **v);
-
+#endif
 #endif
 
