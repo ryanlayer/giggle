@@ -4,15 +4,16 @@ CC=gcc
 SRC=../../src/
 TEST_SRC=$(wildcard *.c)
 TEST_NAMES=$(TEST_SRC:.c=)
-
 PREFIX=Runner_
 RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 
 NO_PRE_SRC_FILES= disk_store.c \
 		 cache.c \
+		 giggle.c \
 		 lists.c \
 		 util.c \
-		 giggle.c \
+		 ll.c \
+		 file_read.c \
 		 bpt.c
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))

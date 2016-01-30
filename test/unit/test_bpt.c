@@ -1476,7 +1476,7 @@ void test_find(void)
 //}}}
 
 //{{{void test_split_repair(void)
-void decrement_repair(struct bpt_node *a, struct bpt_node *b)
+void decrement_repair(uint32_t domain, struct bpt_node *a, struct bpt_node *b)
 {
     uint32_t i;
     for (i = 0; i < BPT_NUM_KEYS(a); ++i)
@@ -1511,7 +1511,7 @@ void test_split_repair(void)
     int V[14] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14};
     int v=0;
 
-    repair = decrement_repair;
+    bpt_node_repair = decrement_repair;
 
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
@@ -1611,7 +1611,7 @@ void test_split_repair(void)
     TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(node_r));
     TEST_ASSERT_EQUAL(0, BPT_NEXT(node_r));
 
-    repair = NULL;
+    bpt_node_repair = NULL;
 
     cache.destroy();
 }
@@ -1620,7 +1620,7 @@ void test_split_repair(void)
 //{{{ void test_rand_test(void)
 void test_rand_test(void)
 {
-    repair = NULL;
+    bpt_node_repair = NULL;
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
@@ -1666,7 +1666,7 @@ void test_rand_test(void)
 //{{{ void test_bpt_insert_repeat(void)
 void test_bpt_insert_repeat(void)
 {
-    repair = NULL;
+    bpt_node_repair = NULL;
     ORDER = 4;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
@@ -1799,7 +1799,7 @@ void append_sum(uint32_t domain,
 void test_bpt_insert_repeat_append(void)
 {
     append = append_sum;
-    repair = NULL;
+    bpt_node_repair = NULL;
     ORDER = 4;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
@@ -1925,7 +1925,7 @@ void test_rand_test_high_order(void)
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
     ORDER=50;
-    repair = NULL;
+    bpt_node_repair = NULL;
     uint32_t size = 100000;
 
     uint32_t *d = (uint32_t *)malloc(size * sizeof(uint32_t));
@@ -1980,7 +1980,7 @@ void test_bpt_write_tree(void)
     struct simple_cache *sc = simple_cache_init(5, 1, bpt_file_out);
     uint32_t domain = 0;
     ORDER=5;
-    repair = NULL;
+    bpt_node_repair = NULL;
     uint32_t size = 20;
 
     uint32_t *keys = (uint32_t *)malloc(size * sizeof(uint32_t));

@@ -64,9 +64,11 @@ uint32_t bpt_split_node(uint32_t domain,
                         uint32_t *lo_result_id,
                         uint32_t *hi_result_id,
                         int *lo_hi_split_point,
-                        void (*repair)(struct bpt_node *, struct bpt_node *));
+                        void (*repair)(uint32_t domain,
+                                       struct bpt_node *,
+                                       struct bpt_node *));
 
-void (*repair)(struct bpt_node *, struct bpt_node *);
+void (*bpt_node_repair)(uint32_t domain, struct bpt_node *, struct bpt_node *);
 
 //uint64_t (*serialize_leading)(void *deserialized, uint8_t **serialized);
 //uint64_t (*serialize_pointer)(void *deserialized, uint8_t **serialized);

@@ -196,7 +196,7 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
 //}}}
 
 //}}}
-#if 0
+
 //{{{unordered_list
 //{{{struct unordered_list *unordered_list_init(uint32_t init_size)
 struct unordered_list *unordered_list_init(uint32_t init_size)
@@ -635,7 +635,7 @@ void byte_array_append_zeros(struct byte_array *ba, uint32_t size)
 }
 //}}}
 //}}}
-
+#if 0
 //{{{ cc_hash
 
 uint32_t hash_A(uint32_t x, uint32_t limit)

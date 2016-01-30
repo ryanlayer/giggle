@@ -26,7 +26,8 @@ void (*leading_free)(void **leading) = NULL;
 #endif
 
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
-uint32_t giggle_insert(uint32_t *root_id,
+uint32_t giggle_insert(uint32_t domain,
+                       uint32_t *root_id,
                        uint32_t start,
                        uint32_t end,
                        uint32_t id)
@@ -80,52 +81,63 @@ uint32_t giggle_insert(uint32_t *root_id,
     uint32_t start_leaf_id = 0;
     int start_pos;
 
-    uint32_t start_id = bpt_find(*root_id,
+    uint32_t start_id = bpt_find(domain,
+                                 *root_id,
                                  &start_leaf_id,
                                  &start_pos,
                                  start);
 
     if (start_id == 0) {
-        void *d = giggle_data_handler.new_non_leading();
-        giggle_data_handler.non_leading_SA_add_scalar(d, &id);
+        void *d = giggle_data_handler.new_non_leading(domain);
+        giggle_data_handler.non_leading_SA_add_scalar(domain, d, &id);
         uint32_t v_id;
         int pos;
-        *root_id = bpt_insert_new_value(*root_id,
-                                        start,
-                                        d,
-                                        non_leading_free,
-                                        &v_id,
-                                        &start_leaf_id,
-                                        &start_pos);
+        *root_id =bpt_insert_new_value(
+                domain,
+                *root_id,
+                start,
+                d,
+                &giggle_data_handler.non_leading_cache_handler,
+                &v_id,
+                &start_leaf_id,
+                &start_pos);
     } else {
-        void *start_v = cache.get(cache.cache, start_id);
-        giggle_data_handler.non_leading_SA_add_scalar(start_v, &id);
+        void *start_v = cache.get(
+                domain,
+                start_id - 1,
+                &giggle_data_handler.non_leading_cache_handler);
+        giggle_data_handler.non_leading_SA_add_scalar(domain, start_v, &id);
     }
 
     uint32_t end_leaf_id = 0;
     int end_pos;
 
-    uint32_t end_id = bpt_find(*root_id,
+    uint32_t end_id = bpt_find(domain,
+                               *root_id,
                                &end_leaf_id,
                                &end_pos,
                                end + 1);
 
     if (end_id == 0) {
-        void *d = giggle_data_handler.new_non_leading();
-        gigle_data_handler.non_leading_SE_add_scalar(d, &id);
+        void *d = giggle_data_handler.new_non_leading(domain);
+        giggle_data_handler.non_leading_SE_add_scalar(domain, d, &id);
 
         uint32_t v_id;
         int pos;
-        *root_id = bpt_insert_new_value(*root_id,
-                                        end + 1,
-                                        d,
-                                        non_leading_free,
-                                        &v_id,
-                                        &end_leaf_id,
-                                        &end_pos);
+        *root_id = bpt_insert_new_value(
+                domain,
+                *root_id,
+                end + 1,
+                d,
+                &giggle_data_handler.non_leading_cache_handler,
+                &v_id,
+                &end_leaf_id,
+                &end_pos);
     } else {
-        void *end_v = cache.get(cache.cache, end_id);
-        gigle_data_handler.non_leading_SE_add_scalar(end_v, &id);
+        void *end_v = cache.get(domain,
+                                end_id - 1,
+                                &giggle_data_handler.non_leading_cache_handler);
+        giggle_data_handler.non_leading_SE_add_scalar(domain, end_v, &id);
     }
 
 #if DEBUG
@@ -139,26 +151,35 @@ uint32_t giggle_insert(uint32_t *root_id,
     // check to see that this is not the case.
     
     if (start_leaf_id != end_leaf_id) 
-        start_leaf_id = bpt_find_leaf(*root_id, start);
+        start_leaf_id = bpt_find_leaf(domain, *root_id, start);
 
 #if DEBUG
     fprintf(stderr, "s_id:%u e_id:%u\n", start_leaf_id, end_leaf_id);
 #endif
 
     if (start_leaf_id != end_leaf_id) {
-        struct bpt_node *curr_leaf = cache.get(cache.cache, start_leaf_id);
+        struct bpt_node *curr_leaf = cache.get(domain,
+                                               start_leaf_id - 1,
+                                               &bpt_node_cache_handler);
         do {
-            curr_leaf = cache.get(cache.cache, BPT_NEXT(curr_leaf));
+            curr_leaf = cache.get(domain,
+                                  BPT_NEXT(curr_leaf) - 1,
+                                  &bpt_node_cache_handler);
 
             if (BPT_LEADING(curr_leaf) == 0) {
-                void *d = giggle_data_handler.new_leading();
-                uint32_t v_id = cache.seen(cache.cache) + 1;
-                cache.add(cache.cache, v_id, d, leading_free);
-                giggle_data_handler.leading_B_add_scalar(d, &id);
+                void *d = giggle_data_handler.new_leading(domain);
+                uint32_t v_id = cache.seen(domain) + 1;
+                cache.add(domain,
+                          v_id - 1,
+                          d,
+                          &giggle_data_handler.leading_cache_handler);
+                giggle_data_handler.leading_B_add_scalar(domain, d, &id);
                 BPT_LEADING(curr_leaf) = v_id; 
             } else {
-                void *d = cache.get(cache.cache, BPT_LEADING(curr_leaf));
-                giggle_data_handler.leading_B_add_scalar(d, &id);
+                void *d = cache.get(domain,
+                                    BPT_LEADING(curr_leaf) - 1,
+                                    &giggle_data_handler.leading_cache_handler);
+                giggle_data_handler.leading_B_add_scalar(domain, d, &id);
             }
         } while (BPT_ID(curr_leaf) != end_leaf_id);
     }
@@ -167,9 +188,9 @@ uint32_t giggle_insert(uint32_t *root_id,
 }
 //}}}
 
-#if 0
-//{{{ void *giggle_search(uint32_t root_id,
-void *giggle_search(uint32_t root_id,
+//{{{ void *giggle_search(uint32_t domain,
+void *giggle_search(uint32_t domain,
+                    uint32_t root_id,
                     uint32_t start,
                     uint32_t end)
 {
@@ -184,11 +205,14 @@ void *giggle_search(uint32_t root_id,
     uint32_t leaf_start_id;
     int pos_start_id;
 
-    uint32_t nld_start_id = bpt_find(root_id,
+    uint32_t nld_start_id = bpt_find(domain,
+                                     root_id,
                                      &leaf_start_id, 
                                      &pos_start_id,
                                      start);
-    struct bpt_node *leaf_start = cache.get(cache.cache, leaf_start_id);
+    struct bpt_node *leaf_start = cache.get(domain,
+                                            leaf_start_id - 1,
+                                            &bpt_node_cache_handler);
     if ((pos_start_id == 0) && (BPT_KEYS(leaf_start)[0] != start))
         pos_start_id = -1;
 
@@ -201,12 +225,15 @@ void *giggle_search(uint32_t root_id,
 
     void *r = NULL;
 
-    uint32_t nld_end_id = bpt_find(root_id,
+    uint32_t nld_end_id = bpt_find(domain,
+                                   root_id,
                                    &leaf_end_id, 
                                    &pos_end_id,
                                    end);
 
-    struct bpt_node *leaf_end = cache.get(cache.cache, leaf_end_id);
+    struct bpt_node *leaf_end = cache.get(domain,
+                                          leaf_end_id - 1,
+                                          &bpt_node_cache_handler);
     if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
         pos_end_id = -1;
     else if ( (pos_end_id >=0) && 
@@ -223,17 +250,22 @@ void *giggle_search(uint32_t root_id,
 
     // get everything in the leading value
     if (BPT_LEADING(leaf_start) != 0) {
-        struct uint32_t_ll_bpt_leading_data *ld = 
-                cache.get(cache.cache, BPT_LEADING(leaf_start));
-        giggle_data_handler.leading_union_with_B(&r, ld);
+        //struct uint32_t_ll_bpt_leading_data *ld = 
+        void *ld = cache.get(domain,
+                             BPT_LEADING(leaf_start) - 1,
+                             &giggle_data_handler.leading_cache_handler);
+        giggle_data_handler.leading_union_with_B(domain, &r, ld);
     }
 
     // add any SA and remove any that are an SE up to and including this point
     int i;
     for (i = 0; (i < BPT_NUM_KEYS(leaf_start)) && (i <= pos_start_id); ++i) {
-        struct uint32_t_ll_bpt_non_leading_data *nld = 
-                cache.get(cache.cache, BPT_POINTERS(leaf_start)[i]);
-        giggle_data_handler.non_leading_union_with_SA_subtract_SE(&r, nld);
+        //struct uint32_t_ll_bpt_non_leading_data *nld = 
+        void *nld = cache.get(domain,
+                              BPT_POINTERS(leaf_start)[i] - 1,
+                              &giggle_data_handler.non_leading_cache_handler);
+        giggle_data_handler.
+                non_leading_union_with_SA_subtract_SE(domain,&r, nld);
     }
 
     // now process everything in between the start and end
@@ -244,12 +276,17 @@ void *giggle_search(uint32_t root_id,
     while (BPT_ID(leaf_curr) != leaf_end_id) {
         // do from pos_curr to the last key
         for (i = pos_curr_id; i < BPT_NUM_KEYS(leaf_curr); ++i) {
-            struct uint32_t_ll_bpt_non_leading_data *nld = 
-                    cache.get(cache.cache, BPT_POINTERS(leaf_curr)[i]);
-            giggle_data_handler.non_leading_union_with_SA(&r, nld);
+            //struct uint32_t_ll_bpt_non_leading_data *nld = 
+            void *nld = cache.get(
+                    domain,
+                    BPT_POINTERS(leaf_curr)[i] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+            giggle_data_handler.non_leading_union_with_SA(domain, &r, nld);
         }
 
-        leaf_curr = cache.get(cache.cache, BPT_NEXT(leaf_curr));
+        leaf_curr = cache.get(domain,
+                              BPT_NEXT(leaf_curr) - 1,
+                              &bpt_node_cache_handler);
         pos_curr_id = 0;
     }
 
@@ -258,9 +295,12 @@ void *giggle_search(uint32_t root_id,
         for ( i = pos_curr_id;
              (i < BPT_NUM_KEYS(leaf_curr)) && (i <= pos_end_id); 
               ++i) {
-            struct uint32_t_ll_bpt_non_leading_data *nld = 
-                    cache.get(cache.cache, BPT_POINTERS(leaf_curr)[i]);
-            giggle_data_handler.non_leading_union_with_SA(&r, nld);
+            //struct uint32_t_ll_bpt_non_leading_data *nld = 
+            void *nld = cache.get(
+                    domain,
+                    BPT_POINTERS(leaf_curr)[i] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+            giggle_data_handler.non_leading_union_with_SA(domain, &r, nld);
         }
     }
 
@@ -273,13 +313,9 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
-
     gi->len = init_size;
-
     gi->num = 0;
-
     gi->root_ids = (uint32_t *)calloc(sizeof(uint32_t), gi->len);
-
     gi->chrm_index = ordered_set_init(init_size,
                                       str_uint_pair_sort_element_cmp,
                                       str_uint_pair_search_element_cmp,
@@ -289,22 +325,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 
     gi->offset_index = unordered_list_init(1000);
 
-    cache.cache = cache.init(CACHE_SIZE, NULL);
-
     return gi;
-}
-//}}}
-
-//{{{void giggle_index_destroy(struct giggle_index **gi)
-void giggle_index_destroy(struct giggle_index **gi)
-{
-    free((*gi)->root_ids);
-    unordered_list_destroy(&((*gi)->file_index), free_wrapper);
-    unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
-    ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
-    cache.destroy(&(cache.cache));
-    free(*gi);
-    *gi = NULL;
 }
 //}}}
 
@@ -339,6 +360,18 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 }
 //}}}
 
+//{{{void giggle_index_destroy(struct giggle_index **gi)
+void giggle_index_destroy(struct giggle_index **gi)
+{
+    free((*gi)->root_ids);
+    unordered_list_destroy(&((*gi)->file_index), free_wrapper);
+    unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
+    ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
+    free(*gi);
+    *gi = NULL;
+}
+//}}}
+
 //{{{uint32_t giggle_index_file(struct giggle_index *gi,
 uint32_t giggle_index_file(struct giggle_index *gi,
                            char *file_name)
@@ -369,7 +402,8 @@ uint32_t giggle_index_file(struct giggle_index *gi,
         p->file_id = file_id;
         intrv_id = unordered_list_add(gi->offset_index, p);
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
-        uint32_t r = giggle_insert(&(gi->root_ids[chrm_id]),
+        uint32_t r = giggle_insert(chrm_id,
+                                   &(gi->root_ids[chrm_id]),
                                    start,
                                    end,
                                    intrv_id);
@@ -389,7 +423,7 @@ void *giggle_query_region(struct giggle_index *gi,
                           uint32_t end)
 {
     uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
-    return giggle_search(gi->root_ids[chr_id], start, end);
+    return giggle_search(chr_id, gi->root_ids[chr_id], start, end);
 }
 //}}}
 
@@ -422,4 +456,3 @@ uint32_t giggle_index_directory(struct giggle_index *gi,
     return total;
 }
 //}}}
-#endif

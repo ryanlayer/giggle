@@ -17,56 +17,48 @@ void tearDown(void) { }
 //{{{void test_uint32_t_ll_giggle_insert(void)
 void test_uint32_t_ll_giggle_insert(void)
 {
-    repair = uint32_t_ll_leading_repair;
-    new_non_leading = uint32_t_ll_new_non_leading;
-    new_leading = uint32_t_ll_new_leading;
-    non_leading_SA_add_scalar = uint32_t_ll_non_leading_SA_add_scalar;
-    non_leading_SE_add_scalar = uint32_t_ll_non_leading_SE_add_scalar;
-    leading_B_add_scalar = uint32_t_ll_leading_B_add_scalar;
-    leading_union_with_B = uint32_t_ll_leading_union_with_B;
-    non_leading_union_with_SA = uint32_t_ll_non_leading_union_with_SA;
-    non_leading_union_with_SA_subtract_SE = 
-            uint32_t_ll_non_leading_union_with_SA_subtract_SE;
-    non_leading_free = uint32_t_ll_non_leading_free;
-    leading_free = uint32_t_ll_leading_free;
-
-    cache.cache = cache.init(10, NULL);
+    struct simple_cache *sc = simple_cache_init(5, 1, NULL);
+    uint32_t domain = 0;
+    uint32_t_ll_giggle_set_data_handler();
 
     uint32_t root_id = 0;
-    uint32_t r = giggle_insert(&root_id, 1, 3, 0);
-
+    uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
 
     // 1(SA:0),4(SE:0)
-    struct bpt_node *root = cache.get(cache.cache, root_id);
+    struct bpt_node *root = cache.get(domain,
+                                      root_id - 1,
+                                      &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(root));
     TEST_ASSERT_EQUAL(1, BPT_KEYS(root)[0]);
     TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[1]);
 
-    r = giggle_insert(&root_id, 2, 4, 1);
+    r = giggle_insert(domain, &root_id, 2, 4, 1);
 
     // 1(SA:0),2(SA:1),4(SE:0),5(SE:1)
-    root = cache.get(cache.cache, root_id);
+    root = cache.get(domain, root_id - 1, &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(4, BPT_NUM_KEYS(root));
     TEST_ASSERT_EQUAL(1, BPT_KEYS(root)[0]);
     TEST_ASSERT_EQUAL(2, BPT_KEYS(root)[1]);
     TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[2]);
     TEST_ASSERT_EQUAL(5, BPT_KEYS(root)[3]);
 
-    r = giggle_insert(&root_id, 4, 6, 2);
+    r = giggle_insert(domain, &root_id, 4, 6, 2);
     // 4
     // 1(SA:0),2(SA:1) (0 1)4(SA:2 SE:0),5(SE:1),7(SE:2)
-    root = cache.get(cache.cache, root_id);
+    root = cache.get(domain, root_id - 1, &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
     TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
 
-    struct bpt_node *first_leaf = cache.get(cache.cache,
-                                            BPT_POINTERS(root)[0]);
+    struct bpt_node *first_leaf = cache.get(domain,
+                                            BPT_POINTERS(root)[0] - 1,
+                                            &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(first_leaf));
     TEST_ASSERT_EQUAL(1, BPT_KEYS(first_leaf)[0]);
     TEST_ASSERT_EQUAL(2, BPT_KEYS(first_leaf)[1]);
 
-    struct bpt_node *second_leaf = cache.get(cache.cache,
-                                             BPT_POINTERS(root)[1]);
+    struct bpt_node *second_leaf = cache.get(domain,
+                                             BPT_POINTERS(root)[1] - 1,
+                                             &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(BPT_ID(second_leaf), BPT_NEXT(first_leaf));
 
     TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(second_leaf));
@@ -78,31 +70,42 @@ void test_uint32_t_ll_giggle_insert(void)
 
     struct uint32_t_ll_bpt_leading_data *ld =
             (struct uint32_t_ll_bpt_leading_data *)
-            cache.get(cache.cache, BPT_LEADING(second_leaf));
-
+            cache.get(domain,
+                      BPT_LEADING(second_leaf) - 1,
+                      &giggle_data_handler.leading_cache_handler);
     TEST_ASSERT_EQUAL(2, ld->B->len);
     TEST_ASSERT_EQUAL(0, ld->B->head->val);
     TEST_ASSERT_EQUAL(1, ld->B->head->next->val);
 
-    r = giggle_insert(&root_id, 4, 5, 3);
-
+    r = giggle_insert(domain, &root_id, 4, 5, 3);
     // 4
     // 1(SA:0),2(SA:1) (0 1)4(SA:2,3 SE:0),5(SE:1),6(SE:3),7(SE:2)
-    first_leaf = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    first_leaf = cache.get(domain,
+                           BPT_POINTERS(root)[0] - 1,
+                           &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
     TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(first_leaf));
     struct uint32_t_ll_bpt_non_leading_data *nld = 
-        cache.get(cache.cache, BPT_POINTERS(first_leaf)[0]);
+        cache.get(domain,
+                  BPT_POINTERS(first_leaf)[0] - 1,
+                  &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
     TEST_ASSERT_EQUAL(1, nld->SA->len);
     TEST_ASSERT_EQUAL(0, nld->SA->head->val);
-    nld = cache.get(cache.cache, BPT_POINTERS(first_leaf)[1]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
     TEST_ASSERT_EQUAL(1, nld->SA->len);
     TEST_ASSERT_EQUAL(1, nld->SA->head->val);
 
-    struct bpt_node *next_leaf = cache.get(cache.cache, BPT_NEXT(first_leaf));
-    ld = cache.get(cache.cache, BPT_LEADING(next_leaf));
+    struct bpt_node *next_leaf = 
+            cache.get(domain,
+                      BPT_NEXT(first_leaf) - 1,
+                      &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
 
     TEST_ASSERT_EQUAL(2, ld->B->len);
     TEST_ASSERT_EQUAL(0, ld->B->head->val);
@@ -112,49 +115,69 @@ void test_uint32_t_ll_giggle_insert(void)
     TEST_ASSERT_EQUAL(5, BPT_KEYS(next_leaf)[1]);
     TEST_ASSERT_EQUAL(6, BPT_KEYS(next_leaf)[2]);
     TEST_ASSERT_EQUAL(7, BPT_KEYS(next_leaf)[3]);
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[0]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(2, nld->SA->len);
     TEST_ASSERT_EQUAL(2, nld->SA->head->val);
     TEST_ASSERT_EQUAL(3, nld->SA->head->next->val);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(0, nld->SE->head->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[1]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(1, nld->SE->head->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[2]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[2] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(3, nld->SE->head->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[3]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[3] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(2, nld->SE->head->val);
 
-    r = giggle_insert(&root_id, 1, 6, 4);
+    r = giggle_insert(domain, &root_id, 1, 6, 4);
     // 4
     // 1(SA:0,4),2(SA:1) (0 1 4)4(SA:2,3 SE:0),5(SE:1),6(SE:3),7(SE:2,4)
-    root = cache.get(cache.cache, root_id);
-    first_leaf = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    root = cache.get(domain,
+                     root_id - 1,
+                     &bpt_node_cache_handler);
+    first_leaf = cache.get(domain,
+                           BPT_POINTERS(root)[0] - 1,
+                           &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
     TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(first_leaf));
 
-    nld = cache.get(cache.cache, BPT_POINTERS(first_leaf)[0]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
     TEST_ASSERT_EQUAL(2, nld->SA->len);
     TEST_ASSERT_EQUAL(0, nld->SA->head->val);
     TEST_ASSERT_EQUAL(4, nld->SA->head->next->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(first_leaf)[1]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
     TEST_ASSERT_EQUAL(1, nld->SA->len);
     TEST_ASSERT_EQUAL(1, nld->SA->head->val);
 
-    next_leaf = cache.get(cache.cache, BPT_NEXT(first_leaf));
-    ld = cache.get(cache.cache, BPT_LEADING(next_leaf));
+    next_leaf = cache.get(domain,
+                          BPT_NEXT(first_leaf) - 1,
+                          &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
     TEST_ASSERT_EQUAL(3, ld->B->len);
     TEST_ASSERT_EQUAL(0, ld->B->head->val);
     TEST_ASSERT_EQUAL(1, ld->B->head->next->val);
@@ -166,82 +189,88 @@ void test_uint32_t_ll_giggle_insert(void)
     TEST_ASSERT_EQUAL(6, BPT_KEYS(next_leaf)[2]);
     TEST_ASSERT_EQUAL(7, BPT_KEYS(next_leaf)[3]);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[0]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(2, nld->SA->len);
     TEST_ASSERT_EQUAL(2, nld->SA->head->val);
     TEST_ASSERT_EQUAL(3, nld->SA->head->next->val);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(0, nld->SE->head->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[1]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(1, nld->SE->head->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[2]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[2] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
     TEST_ASSERT_EQUAL(1, nld->SE->len);
     TEST_ASSERT_EQUAL(3, nld->SE->head->val);
 
-    nld = cache.get(cache.cache, BPT_POINTERS(next_leaf)[3]);
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[3] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
     TEST_ASSERT_EQUAL(2, nld->SE->len);
     TEST_ASSERT_EQUAL(2, nld->SE->head->val);
     TEST_ASSERT_EQUAL(4, nld->SE->head->next->val);
 
-    r = giggle_insert(&root_id, 1, 7, 5);
+    r = giggle_insert(domain, &root_id, 1, 7, 5);
     // 4,6
     //   (NULL)    1(SA:0,4,5),2(SA:1)
     //   (0 1 4 5) 4(SA:2,3 SE:0),5(SE:1)
     //   (2 3 4 5) 6(SE:3),7(SE:2,4),8(SE:5)
-    root = cache.get(cache.cache, root_id);
+    root = cache.get(domain,
+                     root_id - 1,
+                     &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(root));
     TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
     TEST_ASSERT_EQUAL(6, BPT_KEYS(root)[1]);
-    first_leaf = cache.get(cache.cache, BPT_POINTERS(root)[0]);
+    first_leaf = cache.get(domain,
+                           BPT_POINTERS(root)[0] - 1,
+                           &bpt_node_cache_handler);
     TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
 
-    next_leaf = cache.get(cache.cache, BPT_NEXT(first_leaf));
-    ld = cache.get(cache.cache, BPT_LEADING(next_leaf));
+    next_leaf = cache.get(domain,
+                          BPT_NEXT(first_leaf) - 1,
+                          &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
     TEST_ASSERT_EQUAL(4, ld->B->len);
     TEST_ASSERT_EQUAL(0, ld->B->head->val);
     TEST_ASSERT_EQUAL(1, ld->B->head->next->val);
     TEST_ASSERT_EQUAL(4, ld->B->head->next->next->val);
     TEST_ASSERT_EQUAL(5, ld->B->head->next->next->next->val);
 
-    next_leaf = cache.get(cache.cache, BPT_NEXT(next_leaf));
-    ld = cache.get(cache.cache, BPT_LEADING(next_leaf));
+    next_leaf = cache.get(domain,
+                          BPT_NEXT(next_leaf) - 1,
+                          &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
     TEST_ASSERT_EQUAL(4, ld->B->len);
     TEST_ASSERT_EQUAL(4, ld->B->head->val);
     TEST_ASSERT_EQUAL(2, ld->B->head->next->val);
     TEST_ASSERT_EQUAL(3, ld->B->head->next->next->val);
     TEST_ASSERT_EQUAL(5, ld->B->head->next->next->next->val);
 
-    cache.destroy(&(cache.cache));
+    cache.destroy();
 }
 //}}}
 
-#if 0
 //{{{ void test_uint32_t_ll_giggle_search(void)
 void test_uint32_t_ll_giggle_search(void)
 {
-    repair = uint32_t_ll_leading_repair;
-
-    new_non_leading = uint32_t_ll_new_non_leading;
-    new_leading = uint32_t_ll_new_leading;
-    non_leading_SA_add_scalar = uint32_t_ll_non_leading_SA_add_scalar;
-    non_leading_SE_add_scalar = uint32_t_ll_non_leading_SE_add_scalar;
-    leading_B_add_scalar = uint32_t_ll_leading_B_add_scalar;
-    leading_union_with_B = uint32_t_ll_leading_union_with_B;
-    non_leading_union_with_SA = uint32_t_ll_non_leading_union_with_SA;
-    non_leading_union_with_SA_subtract_SE = 
-            uint32_t_ll_non_leading_union_with_SA_subtract_SE;
-    non_leading_free = uint32_t_ll_non_leading_free;
-    leading_free = uint32_t_ll_leading_free;
-
     ORDER = 7;
-
-    cache.cache = cache.init(10, NULL);
+    struct simple_cache *sc = simple_cache_init(5, 1, NULL);
+    uint32_t domain = 0;
+    uint32_t_ll_giggle_set_data_handler();
 
     /*
      *  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
@@ -254,17 +283,17 @@ void test_uint32_t_ll_giggle_search(void)
      */
     uint32_t root_id = 0;
 
-    uint32_t r = giggle_insert(&root_id, 1, 10, 0);
-    r = giggle_insert(&root_id, 11, 13, 1);
-    r = giggle_insert(&root_id, 2, 4, 2);
-    r = giggle_insert(&root_id, 5, 8, 3);
-    r = giggle_insert(&root_id, 3, 6, 4);
-    r = giggle_insert(&root_id, 7, 9, 5);
-    r = giggle_insert(&root_id, 7, 12, 6);
+    uint32_t r = giggle_insert(domain, &root_id, 1, 10, 0);
+    r = giggle_insert(domain, &root_id, 11, 13, 1);
+    r = giggle_insert(domain, &root_id, 2, 4, 2);
+    r = giggle_insert(domain, &root_id, 5, 8, 3);
+    r = giggle_insert(domain, &root_id, 3, 6, 4);
+    r = giggle_insert(domain, &root_id, 7, 9, 5);
+    r = giggle_insert(domain, &root_id, 7, 12, 6);
 
-    r = giggle_insert(&root_id, 11, 18, 7);
-    r = giggle_insert(&root_id, 1, 17, 8);
-    r = giggle_insert(&root_id, 15, 18, 9);
+    r = giggle_insert(domain, &root_id, 11, 18, 7);
+    r = giggle_insert(domain, &root_id, 1, 17, 8);
+    r = giggle_insert(domain, &root_id, 15, 18, 9);
 
     /*
     7 13
@@ -333,7 +362,7 @@ void test_uint32_t_ll_giggle_search(void)
 
     ///struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_search(root, 2, 5);
     //uint32_t R_id = 
-    struct uint32_t_ll *R = giggle_search(root_id, 2, 5);
+    struct uint32_t_ll *R = giggle_search(domain, root_id, 2, 5);
     TEST_ASSERT_EQUAL(5, R->len);
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 0));
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 2));
@@ -344,7 +373,7 @@ void test_uint32_t_ll_giggle_search(void)
     uint32_t_ll_free((void **)&R);
     R = NULL;
 
-    R = giggle_search(root_id, 5, 15);
+    R = giggle_search(domain, root_id, 5, 15);
     TEST_ASSERT_EQUAL(9, R->len);
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 0));
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 1));
@@ -359,13 +388,13 @@ void test_uint32_t_ll_giggle_search(void)
     uint32_t_ll_free((void **)&R);
     R = NULL;
 
-    R = giggle_search(root_id, 19, 20);
+    R = giggle_search(domain, root_id, 19, 20);
     TEST_ASSERT_EQUAL(NULL, R);
 
     uint32_t_ll_free((void **)&R);
     R = NULL;
 
-    R = giggle_search(root_id, 18, 20);
+    R = giggle_search(domain, root_id, 18, 20);
     TEST_ASSERT_EQUAL(2, R->len);
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 9));
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 7));
@@ -373,7 +402,7 @@ void test_uint32_t_ll_giggle_search(void)
     uint32_t_ll_free((void **)&R);
     R = NULL;
 
-    cache.destroy(&(cache.cache));
+    cache.destroy();
 }
 //}}}
 
@@ -397,24 +426,11 @@ void test_giggle_get_chrm_id(void)
 //{{{void test_giggle_index_file(void)
 void test_giggle_index_file(void)
 {
-    repair = uint32_t_ll_leading_repair;
-    new_non_leading = uint32_t_ll_new_non_leading;
-    new_leading = uint32_t_ll_new_leading;
-    non_leading_SA_add_scalar = uint32_t_ll_non_leading_SA_add_scalar;
-    non_leading_SE_add_scalar = uint32_t_ll_non_leading_SE_add_scalar;
-    leading_B_add_scalar = uint32_t_ll_leading_B_add_scalar;
-    leading_union_with_B = uint32_t_ll_leading_union_with_B;
-    non_leading_union_with_SA = uint32_t_ll_non_leading_union_with_SA;
-    non_leading_union_with_SA_subtract_SE = 
-            uint32_t_ll_non_leading_union_with_SA_subtract_SE;
-
-    struct bpt_node *root = NULL;
-
-    char *file_name = "../data/1k.unsort.bed.gz";
-
     ORDER = 10;
-
-    struct giggle_index *gi = giggle_init_index(23);
+    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+    uint32_t_ll_giggle_set_data_handler();
+    struct giggle_index *gi = giggle_init_index(30);
+    char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t r = giggle_index_file(gi, file_name);
 
     TEST_ASSERT_EQUAL(1000, r);
@@ -506,7 +522,7 @@ void test_giggle_index_file(void)
     for (j = 0; j < 23; ++j) {
         uint32_t i = giggle_get_chrm_id(gi, chrms[j]);
         struct uint32_t_ll *R = (struct uint32_t_ll *)
-            giggle_search(gi->root_ids[i], 0, 3000000000);
+            giggle_search(i, gi->root_ids[i], 0, 3000000000);
         TEST_ASSERT_EQUAL(sizes[j], R->len); 
         for (k = 0; k < R->len; ++k) {
             TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, ids[j][k]-1));
@@ -515,33 +531,20 @@ void test_giggle_index_file(void)
     }
 
     giggle_index_destroy(&gi);
+    cache.destroy();
 }
 //}}}
+
 
 //{{{void test_giggle_query_region(void)
 void test_giggle_query_region(void)
 {
-    repair = uint32_t_ll_leading_repair;
-    new_non_leading = uint32_t_ll_new_non_leading;
-    new_leading = uint32_t_ll_new_leading;
-    non_leading_SA_add_scalar = uint32_t_ll_non_leading_SA_add_scalar;
-    non_leading_SE_add_scalar = uint32_t_ll_non_leading_SE_add_scalar;
-    leading_B_add_scalar = uint32_t_ll_leading_B_add_scalar;
-    leading_union_with_B = uint32_t_ll_leading_union_with_B;
-    non_leading_union_with_SA = uint32_t_ll_non_leading_union_with_SA;
-    non_leading_union_with_SA_subtract_SE = 
-            uint32_t_ll_non_leading_union_with_SA_subtract_SE;
-
-    char *file_name = "../data/1k.sort.bed.gz";
-
     ORDER = 10;
-
-    struct giggle_index *gi = giggle_init_index(23);
-    uint32_t num = giggle_index_file(gi, file_name);
-    TEST_ASSERT_EQUAL(1000, num);
-    TEST_ASSERT_EQUAL(1, gi->file_index->num);
-    TEST_ASSERT_EQUAL(1000, gi->offset_index->num);
-
+    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+    uint32_t_ll_giggle_set_data_handler();
+    struct giggle_index *gi = giggle_init_index(30);
+    char *file_name = "../data/1k.unsort.bed.gz";
+    uint32_t ret = giggle_index_file(gi, file_name);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
                                                                       "chr11",
@@ -599,29 +602,18 @@ void test_giggle_query_region(void)
     free(chrm);
     input_file_destroy(&i);
     giggle_index_destroy(&gi);
+    cache.destroy();
 }
 //}}}
 
 //{{{void test_giggle_index_directory(void)
 void test_giggle_index_directory(void)
 {
-    repair = uint32_t_ll_leading_repair;
-    new_non_leading = uint32_t_ll_new_non_leading;
-    new_leading = uint32_t_ll_new_leading;
-    non_leading_SA_add_scalar = uint32_t_ll_non_leading_SA_add_scalar;
-    non_leading_SE_add_scalar = uint32_t_ll_non_leading_SE_add_scalar;
-    leading_B_add_scalar = uint32_t_ll_leading_B_add_scalar;
-    leading_union_with_B = uint32_t_ll_leading_union_with_B;
-    non_leading_union_with_SA = uint32_t_ll_non_leading_union_with_SA;
-    non_leading_union_with_SA_subtract_SE = 
-            uint32_t_ll_non_leading_union_with_SA_subtract_SE;
-
-    char *path_name = "../data/many/*bed.gz";
-
     ORDER = 10;
-
-    struct giggle_index *gi = giggle_init_index(23);
-    
+    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+    uint32_t_ll_giggle_set_data_handler();
+    struct giggle_index *gi = giggle_init_index(30);
+    char *path_name = "../data/many/*bed.gz";
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
     TEST_ASSERT_EQUAL(10000, r);
@@ -643,6 +635,6 @@ void test_giggle_index_directory(void)
     uint32_t_ll_free((void **)&R);
 
     giggle_index_destroy(&gi);
+    cache.destroy();
 }
 //}}}
-#endif

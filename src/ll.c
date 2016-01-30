@@ -1,7 +1,417 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <err.h>
 #include "ll.h"
 #include "giggle.h"
+
+//{{{ uint32_t_ll_non_leading_cache_handler
+struct cache_handler uint32_t_ll_non_leading_cache_handler = {
+        uint32_t_ll_non_leading_serialize,
+        uint32_t_ll_non_leading_deserialize,
+        uint32_t_ll_non_leading_free
+};
+
+//{{{uint64_t uint32_t_ll_non_leading_serialize(void *deserialized,
+uint64_t uint32_t_ll_non_leading_serialize(void *deserialized,
+                                           void **serialized)
+{
+    if (deserialized == NULL) {
+        *serialized = NULL;
+        return 0;
+    }
+
+    struct uint32_t_ll_bpt_non_leading_data *d =  
+            (struct uint32_t_ll_bpt_non_leading_data *)deserialized;
+
+    uint32_t SA_len, SE_len, serialized_len;
+
+    if (d->SA != NULL)
+        SA_len = d->SA->len;
+
+    if (d->SE != NULL)
+        SE_len = d->SE->len;
+
+    serialized_len = (2 + SA_len + SE_len) * sizeof(uint32_t);
+
+    uint32_t *data = (uint32_t *)calloc(2 + SA_len + SE_len, sizeof(uint32_t));
+
+    uint32_t data_i = 0;
+    data[data_i++] = SA_len;
+    data[data_i++] = SE_len;
+
+    uint32_t i;
+    struct uint32_t_ll_node *curr;
+
+    if (d->SA != NULL) {
+        curr = d->SA->head;
+        i = 0;
+        while (curr != NULL) {
+            data[data_i++] = curr->val;
+            i += 1;
+            curr = curr->next;
+        }
+
+        if (i != d->SA->len)
+            errx(1, "Incorrect length in SA:non_leading_data.");
+    }
+
+    if (d->SE != NULL) {
+        curr = d->SE->head;
+        i = 0;
+        while (curr != NULL) {
+            data[data_i++] = curr->val;
+            i += 1;
+            curr = curr->next;
+        }
+
+        if (i != d->SE->len)
+            errx(1, "Incorrect length in SE:non_leading_data.");
+    }
+
+    *serialized = data;
+
+    return serialized_len; 
+}
+//}}}
+
+//{{{uint64_t uint32_t_ll_non_leading_deserialize(void *serialized,
+uint64_t uint32_t_ll_non_leading_deserialize(void *serialized,
+                                             uint64_t serialized_size,
+                                             void **deserialized)
+{
+    if ((serialized_size == 0) || (serialized == NULL)) {
+        *deserialized = NULL;
+        return 0;
+    }
+
+    if (serialized_size < 2)
+        errx(1,
+             "Malformed uint32_t_ll_non_leading serialized value. "
+             "Too short");
+
+    uint32_t *data = (uint32_t *)serialized;
+
+    if ((2 + data[0] + data[1]) * sizeof(uint32_t) != serialized_size)
+        errx(1,
+             "Malformed uint32_t_ll_non_leading serialized value. "
+             "Incorrect serialized_size.");
+
+    struct uint32_t_ll_bpt_non_leading_data *d = 
+            (struct uint32_t_ll_bpt_non_leading_data *)
+                    calloc(1,
+                           sizeof(struct uint32_t_ll_bpt_non_leading_data));
+    d->SA = NULL;
+    d->SE = NULL;
+
+    uint32_t i;
+    for (i = 0; i < data[0]; ++i)
+        uint32_t_ll_append(&(d->SA), data[2 + i]);
+
+    for (i = 0; i < data[1]; ++i)
+        uint32_t_ll_append(&(d->SE), data[2 + data[0]+ i]);
+
+    *deserialized = d;
+
+    return sizeof(struct uint32_t_ll_bpt_non_leading_data);
+}
+//}}}
+
+//{{{void uint32_t_ll_non_leading_free(void **deserialized)
+void uint32_t_ll_non_leading_free(void **deserialized)
+{
+    struct uint32_t_ll_bpt_non_leading_data **d = 
+            (struct uint32_t_ll_bpt_non_leading_data **)deserialized;
+    uint32_t_ll_free((void **)&((*d)->SA));
+    uint32_t_ll_free((void **)&((*d)->SE));
+    free(*d);
+    *d = NULL;
+}
+//}}}
+//}}}
+
+//{{{ uint32_t_ll_leading_cache_handler 
+struct cache_handler uint32_t_ll_leading_cache_handler = {
+        uint32_t_ll_leading_serialize,
+        uint32_t_ll_leading_deserialize,
+        uint32_t_ll_leading_free
+};
+
+//{{{uint64_t uint32_t_ll_leading_serialize(void *deserialized,
+uint64_t uint32_t_ll_leading_serialize(void *deserialized,
+                                       void **serialized)
+{
+    if (deserialized == NULL) {
+        *serialized = NULL;
+        return 0;
+    }
+
+    struct uint32_t_ll_bpt_leading_data *d =  
+            (struct uint32_t_ll_bpt_leading_data *)deserialized;
+
+    uint32_t B_len, serialized_len;
+
+    if (d->B != NULL)
+        B_len = d->B->len;
+
+    serialized_len = (1 + B_len) * sizeof(uint32_t);
+
+    uint32_t *data = (uint32_t *)calloc(1 + B_len , sizeof(uint32_t));
+
+    uint32_t data_i = 0;
+    data[data_i++] = B_len;
+
+    uint32_t i;
+    struct uint32_t_ll_node *curr;
+
+    if (d->B != NULL) {
+        curr = d->B->head;
+        i = 0;
+        while (curr != NULL) {
+            data[data_i++] = curr->val;
+            i += 1;
+            curr = curr->next;
+        }
+
+        if (i != d->B->len)
+            errx(1, "Incorrect length in B:leading_data.");
+    }
+
+    *serialized = data;
+
+    return serialized_len; 
+}
+//}}}
+
+//{{{uint64_t uint32_t_ll_leading_deserialize(void *serialized,
+uint64_t uint32_t_ll_leading_deserialize(void *serialized,
+                                         uint64_t serialized_size,
+                                         void **deserialized)
+{
+    if ((serialized_size == 0) || (serialized == NULL)) {
+        *deserialized = NULL;
+        return 0;
+    }
+
+    uint32_t *data = (uint32_t *)serialized;
+
+    if ((1 + data[0]) * sizeof(uint32_t) != serialized_size)
+        errx(1,
+             "Malformed uint32_t_ll_leading serialized value. "
+             "Incorrect serialized_size.");
+
+    struct uint32_t_ll_bpt_leading_data *d = 
+            (struct uint32_t_ll_bpt_leading_data *)
+                    calloc(1,
+                           sizeof(struct uint32_t_ll_bpt_leading_data));
+    d->B = NULL;
+
+    uint32_t i;
+    for (i = 0; i < data[0]; ++i)
+        uint32_t_ll_append(&(d->B), data[1 + i]);
+
+    *deserialized = d;
+    return sizeof(struct uint32_t_ll_bpt_leading_data);
+}
+//}}}
+
+//{{{void uint32_t_ll_leading_free(void **deserialized)
+void uint32_t_ll_leading_free(void **deserialized)
+{
+    struct uint32_t_ll_bpt_leading_data **d = 
+            (struct uint32_t_ll_bpt_leading_data **)deserialized;
+    uint32_t_ll_free((void **)&((*d)->B));
+    free(*d);
+    *d = NULL;
+}
+//}}}
+//}}}
+
+//{{{ giggle_data_handler :: int32_t_ll_giggle_data_handler
+
+void uint32_t_ll_giggle_set_data_handler()
+{
+    bpt_node_repair = uint32_t_ll_leading_repair;
+
+    uint32_t_ll_giggle_data_handler.non_leading_cache_handler =
+        uint32_t_ll_non_leading_cache_handler;
+    uint32_t_ll_giggle_data_handler.leading_cache_handler = 
+        uint32_t_ll_leading_cache_handler;
+    uint32_t_ll_giggle_data_handler.new_non_leading = 
+        uint32_t_ll_new_non_leading;
+    uint32_t_ll_giggle_data_handler.new_leading = 
+        uint32_t_ll_new_leading;
+    uint32_t_ll_giggle_data_handler.non_leading_SA_add_scalar = 
+        uint32_t_ll_non_leading_SA_add_scalar;
+    uint32_t_ll_giggle_data_handler.non_leading_SE_add_scalar = 
+        uint32_t_ll_non_leading_SE_add_scalar;
+    uint32_t_ll_giggle_data_handler.leading_B_add_scalar = 
+        uint32_t_ll_leading_B_add_scalar;
+    uint32_t_ll_giggle_data_handler.leading_union_with_B = 
+        uint32_t_ll_leading_union_with_B;
+    uint32_t_ll_giggle_data_handler.non_leading_union_with_SA = 
+        uint32_t_ll_non_leading_union_with_SA;
+    uint32_t_ll_giggle_data_handler.non_leading_union_with_SA_subtract_SE = 
+        uint32_t_ll_non_leading_union_with_SA_subtract_SE;
+
+    giggle_data_handler = uint32_t_ll_giggle_data_handler;
+}
+
+
+//{{{void *uint32_t_ll_new_non_leading()
+void *uint32_t_ll_new_non_leading(uint32_t domain)
+{
+    struct uint32_t_ll_bpt_non_leading_data *d = 
+            (struct uint32_t_ll_bpt_non_leading_data *)
+            malloc(sizeof( struct uint32_t_ll_bpt_non_leading_data));
+    d->SA = NULL;
+    d->SE = NULL;
+
+    return (void *)d;
+}
+//}}}
+
+//{{{void *uint32_t_ll_new_leading()
+void *uint32_t_ll_new_leading(uint32_t domain)
+{
+    struct uint32_t_ll_bpt_leading_data *d = 
+            (struct uint32_t_ll_bpt_leading_data *)
+            malloc(sizeof( struct uint32_t_ll_bpt_leading_data));
+    d->B = NULL;
+
+    return (void *)d;
+}
+//}}}
+
+//{{{void uint32_t_ll_non_leading_SA_add_scalar(void *d, void *v)
+void uint32_t_ll_non_leading_SA_add_scalar(uint32_t domain,
+                                           void *_nld,
+                                           void *_id)
+{
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_non_leading_SA_add_scalar\n");
+#endif
+    struct uint32_t_ll_bpt_non_leading_data *nld =
+            (struct uint32_t_ll_bpt_non_leading_data *)_nld;
+    uint32_t *id = (uint32_t *)_id;
+
+#if DEBUG
+    fprintf(stderr, "id:%u\n", *id);
+#endif
+
+    uint32_t_ll_uniq_append(&(nld->SA), *id);
+}
+//}}}
+
+//{{{void uint32_t_ll_non_leading_SE_add_scalar(void *d, void *v)
+void uint32_t_ll_non_leading_SE_add_scalar(uint32_t domain,
+                                           void *_nld,
+                                           void *_id)
+{
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_non_leading_SE_add_scalar\n");
+#endif
+    struct uint32_t_ll_bpt_non_leading_data *nld =
+            (struct uint32_t_ll_bpt_non_leading_data *)_nld;
+    uint32_t *id = (uint32_t *)_id;
+
+#if DEBUG
+    fprintf(stderr, "id:%u\n", *id);
+#endif
+
+    uint32_t_ll_uniq_append(&(nld->SE), *id);
+}
+//}}}
+
+//{{{void uint32_t_ll_leading_B_add_scalar(void *d, void *v)
+void uint32_t_ll_leading_B_add_scalar(uint32_t domain,
+                                      void *_ld,
+                                      void *_id)
+{
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_leading_B_add_scalar\n");
+#endif
+    struct uint32_t_ll_bpt_leading_data *ld =
+            (struct uint32_t_ll_bpt_leading_data *)_ld;
+    uint32_t *id = (uint32_t *)_id;
+
+#if DEBUG
+    fprintf(stderr, "id:%u\n", *id);
+#endif
+
+    uint32_t_ll_uniq_append(&(ld->B), *id);
+}
+//}}}
+
+//{{{void uint32_t_ll_leading_union_with_B(void **R, void *leading)
+void uint32_t_ll_leading_union_with_B(uint32_t domain,
+                                      void **R,
+                                      void *leading)
+{
+    struct uint32_t_ll_node *curr = 
+        ((struct uint32_t_ll_bpt_leading_data *)(leading))->B->head;
+    while (curr != NULL) {
+#if DEBUG
+        fprintf(stderr, "+%u\n", curr->val);
+#endif
+        uint32_t_ll_uniq_append((struct uint32_t_ll **)R, curr->val);
+        curr = curr->next;
+    }
+}
+//}}}
+
+//{{{void uint32_t_ll_non_leading_union_with_SA(void **R, void *d)
+void uint32_t_ll_non_leading_union_with_SA(uint32_t domain, void **R, void *d)
+{
+    struct uint32_t_ll_bpt_non_leading_data *nld = 
+            (struct uint32_t_ll_bpt_non_leading_data *) d;
+    if (nld != NULL) {
+        if ((nld->SA != NULL)) {
+            struct uint32_t_ll_node *curr = nld->SA->head;
+            while (curr != NULL) {
+#if DEBUG
+                fprintf(stderr, "+%u\n", curr->val);
+#endif
+                uint32_t_ll_uniq_append((struct uint32_t_ll **)R, curr->val);
+                curr = curr->next;
+            }
+        }
+    }
+}
+//}}}
+
+//{{{void uint32_t_ll_non_leading_union_with_SA_subtract_SE(void **R, void *d)
+void uint32_t_ll_non_leading_union_with_SA_subtract_SE(uint32_t domain,
+                                                       void **R,
+                                                       void *d)
+{
+    struct uint32_t_ll_bpt_non_leading_data *nld = 
+            (struct uint32_t_ll_bpt_non_leading_data *) d;
+    if (nld != NULL) {
+        if ((nld->SA != NULL)) {
+            struct uint32_t_ll_node *curr = nld->SA->head;
+            while (curr != NULL) {
+#if DEBUG
+                fprintf(stderr, "+%u\n", curr->val);
+#endif
+                uint32_t_ll_uniq_append((struct uint32_t_ll **)R, curr->val);
+                curr = curr->next;
+            }
+        }
+        if ((nld->SE != NULL)) {
+            struct uint32_t_ll_node *curr = nld->SE->head;
+            while (curr != NULL) {
+#if DEBUG
+                fprintf(stderr, "-%u\n", curr->val);
+#endif
+                uint32_t_ll_remove((struct uint32_t_ll **)R, curr->val);
+                curr = curr->next;
+            }
+        }
+    }
+
+}
+//}}}
+//}}}
 
 //{{{void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val)
 void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val)
@@ -139,31 +549,10 @@ void uint32_t_ll_free(void **_ll)
 }
 //}}}
 
-//{{{void uint32_t_ll_non_leading_free(void **_d)
-void uint32_t_ll_non_leading_free(void **_d)
-{
-    struct uint32_t_ll_bpt_non_leading_data **d = 
-            (struct uint32_t_ll_bpt_non_leading_data **)_d;
-    uint32_t_ll_free((void **)&((*d)->SA));
-    uint32_t_ll_free((void **)&((*d)->SE));
-    free(*d);
-    *d = NULL;
-}
-//}}}
-
-//{{{ void uint32_t_ll_leading_free(void **_d)
-void uint32_t_ll_leading_free(void **_d)
-{
-    struct uint32_t_ll_bpt_leading_data **d = 
-            (struct uint32_t_ll_bpt_leading_data **)_d;
-    uint32_t_ll_free((void **)&((*d)->B));
-    free(*d);
-    *d = NULL;
-}
-//}}}
-
 //{{{void leading_repair(struct bpt_node *a, struct bpt_node *b)
-void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
+void uint32_t_ll_leading_repair(uint32_t domain, 
+                                struct bpt_node *a,
+                                struct bpt_node *b)
 {
 #if DEBUG
     fprintf(stderr, "leading_repair\n");
@@ -178,7 +567,9 @@ void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
 
         if (BPT_LEADING(a) != 0) {
             struct uint32_t_ll_bpt_leading_data *l =  
-                    cache.get(cache.cache, BPT_LEADING(a));
+                    cache.get(domain,
+                              BPT_LEADING(a) - 1,
+                              &uint32_t_ll_leading_cache_handler);
 
             struct uint32_t_ll_node *curr = l->B->head;
 
@@ -194,7 +585,9 @@ void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
         uint32_t i;
         for (i = 0 ; i < BPT_NUM_KEYS(a); ++i) {
             struct uint32_t_ll_bpt_non_leading_data *nl = 
-                    cache.get(cache.cache, BPT_POINTERS(a)[i]);
+                    cache.get(domain,
+                              BPT_POINTERS(a)[i] - 1,
+                              &uint32_t_ll_non_leading_cache_handler);
 
             if (nl->SA != NULL) {
                 struct uint32_t_ll_node *curr = nl->SA->head;
@@ -220,157 +613,12 @@ void uint32_t_ll_leading_repair(struct bpt_node *a, struct bpt_node *b)
         }
 
         if (d->B != NULL) {
-            uint32_t v_id = cache.seen(cache.cache) + 1;
-            cache.add(cache.cache, v_id, d, uint32_t_ll_leading_free);
+            uint32_t v_id = cache.seen(domain) + 1;
+            cache.add(domain, v_id - 1, d, &uint32_t_ll_leading_cache_handler);
 
             BPT_LEADING(b) = v_id;
         } else {
             free(d);
-        }
-    }
-}
-//}}}
-
-//{{{void *uint32_t_ll_new_non_leading()
-void *uint32_t_ll_new_non_leading()
-{
-    struct uint32_t_ll_bpt_non_leading_data *d = 
-            (struct uint32_t_ll_bpt_non_leading_data *)
-            malloc(sizeof( struct uint32_t_ll_bpt_non_leading_data));
-    d->SA = NULL;
-    d->SE = NULL;
-
-    return (void *)d;
-}
-//}}}
-
-//{{{void *uint32_t_ll_new_leading()
-void *uint32_t_ll_new_leading()
-{
-    struct uint32_t_ll_bpt_leading_data *d = 
-            (struct uint32_t_ll_bpt_leading_data *)
-            malloc(sizeof( struct uint32_t_ll_bpt_leading_data));
-    d->B = NULL;
-
-    return (void *)d;
-}
-//}}}
-
-//{{{void uint32_t_ll_non_leading_SA_add_scalar(void *d, void *v)
-void uint32_t_ll_non_leading_SA_add_scalar(void *d, void *v)
-{
-#if DEBUG
-    fprintf(stderr, "uint32_t_ll_non_leading_SA_add_scalar\n");
-#endif
-    struct uint32_t_ll_bpt_non_leading_data *nld =
-            (struct uint32_t_ll_bpt_non_leading_data *)d;
-    uint32_t *id = (uint32_t *)v;
-
-#if DEBUG
-    fprintf(stderr, "id:%u\n", *id);
-#endif
-
-    uint32_t_ll_uniq_append(&(nld->SA), *id);
-}
-//}}}
-
-//{{{void uint32_t_ll_non_leading_SE_add_scalar(void *d, void *v)
-void uint32_t_ll_non_leading_SE_add_scalar(void *d, void *v)
-{
-#if DEBUG
-    fprintf(stderr, "uint32_t_ll_non_leading_SE_add_scalar\n");
-#endif
-    struct uint32_t_ll_bpt_non_leading_data *nld =
-            (struct uint32_t_ll_bpt_non_leading_data *)d;
-    uint32_t *id = (uint32_t *)v;
-
-#if DEBUG
-    fprintf(stderr, "id:%u\n", *id);
-#endif
-
-    uint32_t_ll_uniq_append(&(nld->SE), *id);
-}
-//}}}
-
-//{{{void uint32_t_ll_leading_B_add_scalar(void *d, void *v)
-void uint32_t_ll_leading_B_add_scalar(void *d, void *v)
-{
-#if DEBUG
-    fprintf(stderr, "uint32_t_ll_leading_B_add_scalar\n");
-#endif
-    struct uint32_t_ll_bpt_leading_data *ld =
-            (struct uint32_t_ll_bpt_leading_data *)d;
-    uint32_t *id = (uint32_t *)v;
-
-#if DEBUG
-    fprintf(stderr, "id:%u\n", *id);
-#endif
-
-    uint32_t_ll_uniq_append(&(ld->B), *id);
-}
-//}}}
-
-//{{{void uint32_t_ll_leading_union_with_B(void **R, void *leading)
-void uint32_t_ll_leading_union_with_B(void **R, void *leading)
-{
-    struct uint32_t_ll_node *curr = 
-        ((struct uint32_t_ll_bpt_leading_data *)(leading))->B->head;
-    while (curr != NULL) {
-#if DEBUG
-        fprintf(stderr, "+%u\n", curr->val);
-#endif
-        uint32_t_ll_uniq_append((struct uint32_t_ll **)R, curr->val);
-        curr = curr->next;
-    }
-}
-//}}}
-
-//{{{void uint32_t_ll_non_leading_union_with_SA_subtract_SE(void **R, void *d)
-void uint32_t_ll_non_leading_union_with_SA_subtract_SE(void **R, void *d)
-{
-    struct uint32_t_ll_bpt_non_leading_data *nld = 
-            (struct uint32_t_ll_bpt_non_leading_data *) d;
-    if (nld != NULL) {
-        if ((nld->SA != NULL)) {
-            struct uint32_t_ll_node *curr = nld->SA->head;
-            while (curr != NULL) {
-#if DEBUG
-                fprintf(stderr, "+%u\n", curr->val);
-#endif
-                uint32_t_ll_uniq_append((struct uint32_t_ll **)R, curr->val);
-                curr = curr->next;
-            }
-        }
-        if ((nld->SE != NULL)) {
-            struct uint32_t_ll_node *curr = nld->SE->head;
-            while (curr != NULL) {
-#if DEBUG
-                fprintf(stderr, "-%u\n", curr->val);
-#endif
-                uint32_t_ll_remove((struct uint32_t_ll **)R, curr->val);
-                curr = curr->next;
-            }
-        }
-    }
-
-}
-//}}}
-
-//{{{void uint32_t_ll_non_leading_union_with_SA(void **R, void *d)
-void uint32_t_ll_non_leading_union_with_SA(void **R, void *d)
-{
-    struct uint32_t_ll_bpt_non_leading_data *nld = 
-            (struct uint32_t_ll_bpt_non_leading_data *) d;
-    if (nld != NULL) {
-        if ((nld->SA != NULL)) {
-            struct uint32_t_ll_node *curr = nld->SA->head;
-            while (curr != NULL) {
-#if DEBUG
-                fprintf(stderr, "+%u\n", curr->val);
-#endif
-                uint32_t_ll_uniq_append((struct uint32_t_ll **)R, curr->val);
-                curr = curr->next;
-            }
         }
     }
 }

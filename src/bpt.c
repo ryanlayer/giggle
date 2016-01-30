@@ -20,7 +20,9 @@
 
 uint32_t ORDER = 4;
 
-void (*repair)(struct bpt_node *, struct bpt_node *) = NULL;
+void (*bpt_node_repair)(uint32_t domain,
+                        struct bpt_node *,
+                        struct bpt_node *) = NULL;
 
 struct cache_handler bpt_node_cache_handler = {bpt_node_serialize, 
                                                bpt_node_deserialize,
@@ -142,7 +144,9 @@ uint32_t bpt_split_node(uint32_t domain,
                         uint32_t *lo_result_id,
                         uint32_t *hi_result_id,
                         int *lo_hi_split_point,
-                        void (*repair)(struct bpt_node *, struct bpt_node *))
+                        void (*repair)(uint32_t domain,
+                                       struct bpt_node *,
+                                       struct bpt_node *))
 {
 #if DEBUG
     {
@@ -214,8 +218,8 @@ uint32_t bpt_split_node(uint32_t domain,
         BPT_NEXT(bpt_node) = BPT_ID(n);
     }
 
-    if (repair != NULL) {
-        repair(bpt_node, n);
+    if (bpt_node_repair != NULL) {
+        bpt_node_repair(domain, bpt_node, n);
     }
 
     if (BPT_ID(bpt_node) == root_id) {
@@ -350,7 +354,7 @@ uint32_t bpt_place_new_key_value(uint32_t domain,
                                               &lo_result_id,
                                               &hi_result_id,
                                               &lo_hi_split_point,
-                                              repair);
+                                              bpt_node_repair);
 
         // cache is zero-based, while bpt is one-based
         target_bpt_node = cache.get(domain,

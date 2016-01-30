@@ -5,6 +5,7 @@
 #include <htslib/khash.h>
 #include "bpt.h"
 #include "ll.h"
+#include "cache.h"
 
 struct file_id_offset_pair
 {
@@ -21,27 +22,41 @@ struct giggle_index
     struct unordered_list *offset_index;
 };
 
-uint32_t giggle_insert(uint32_t *root_id,
+uint32_t giggle_insert(uint32_t domain,
+                       uint32_t *root_id,
                        uint32_t start,
                        uint32_t end,
                        uint32_t id);
 
-void *giggle_search(uint32_t root_id,
+void *giggle_search(uint32_t domain,
+                    uint32_t root_id,
                     uint32_t start,
                     uint32_t end);
 
-struct giggle_def = {
-    void *(*new_non_leading)();
-    void *(*new_leading)();
-    void (*non_leading_SA_add_scalar)(void *non_leading, void *scalar);
-    void (*non_leading_SE_add_scalar)(void *non_leading, void *scalar);
-    void (*leading_B_add_scalar)(void *leading, void *scalar);
-    void (*leading_union_with_B)(void **result, void *leading);
-    void (*non_leading_union_with_SA)(void **result, void *non_leading);
-    void (*non_leading_union_with_SA_subtract_SE)(void **result,
+struct giggle_def 
+{
+    struct cache_handler non_leading_cache_handler;
+    struct cache_handler leading_cache_handler;
+    void *(*new_non_leading)(uint32_t domain);
+    void *(*new_leading)(uint32_t domain);
+    void (*non_leading_SA_add_scalar)(uint32_t domain,
+                                      void *non_leading,
+                                      void *scalar);
+    void (*non_leading_SE_add_scalar)(uint32_t domain, 
+                                      void *non_leading,
+                                      void *scalar);
+    void (*leading_B_add_scalar)(uint32_t domain,
+                                 void *leading,
+                                 void *scalar);
+    void (*leading_union_with_B)(uint32_t domain,
+                                 void **result,
+                                 void *leading);
+    void (*non_leading_union_with_SA)(uint32_t domain,
+                                      void **result,
+                                      void *non_leading);
+    void (*non_leading_union_with_SA_subtract_SE)(uint32_t domain,
+                                                  void **result,
                                                   void *non_leading);
-    void (*non_leading_free)(void **non_leading);
-    void (*leading_free)(void **leading);
 };
 
 struct giggle_def giggle_data_handler;
