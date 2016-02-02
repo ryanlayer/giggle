@@ -8,6 +8,7 @@
 #include "unity.h"
 #include "lists.h"
 #include "cache.h"
+#include "giggle.h"
 
 void setUp(void) { }
 void tearDown(void) { }
@@ -92,6 +93,58 @@ void test_unordered_list_get(void)
     unordered_list_destroy(&ul, NULL);
 }
 //}}}
+
+
+void test_unordered_list_store_load_file_id_offset_pair(void)
+{
+    struct unordered_list *ul = unordered_list_init(10);
+
+
+    uint32_t uints[20];
+    long longs[20];
+
+    uint32_t i;
+    for (i = 0; i < 20; ++i) {
+        uints[i] = rand();
+        longs[i] = rand();
+
+        struct file_id_offset_pair *p = 
+                (struct file_id_offset_pair *)
+                malloc(sizeof(struct file_id_offset_pair));
+        p->file_id = uints[i];
+        p->offset = longs[i];
+        unordered_list_add(ul, p);
+    }
+
+    for (i = 0; i < 20; ++i) {
+        struct file_id_offset_pair *p = unordered_list_get(ul, i);
+        TEST_ASSERT_EQUAL(uints[i], p->file_id);
+        TEST_ASSERT_EQUAL(longs[i], p->offset);
+    }
+
+    char *file_name = "test_unordered_list_store_load_file_id_offset_pair.dat";
+    FILE *f = fopen(file_name, "wb");
+
+    unordered_list_store(ul, f, file_name, file_id_offset_pair_store);
+
+    fclose(f);
+
+    f = fopen(file_name, "rb");
+
+    struct unordered_list *ul_2 = ordered_list_load(f,
+                                                    file_name,
+                                                    file_id_offset_pair_load);
+
+    for (i = 0; i < 20; ++i) {
+        struct file_id_offset_pair *p = unordered_list_get(ul, i);
+        struct file_id_offset_pair *p_2 = unordered_list_get(ul_2, i);
+        TEST_ASSERT_EQUAL(p->file_id, p_2->file_id);
+        TEST_ASSERT_EQUAL(p->offset, p_2->offset);
+    }
+
+    unordered_list_destroy(&ul, free_wrapper);
+    unordered_list_destroy(&ul_2, free_wrapper);
+}
 
 //{{{void test_ordered_set_add(void)
 void test_ordered_set_add(void)
@@ -190,6 +243,82 @@ void test_ordered_set_get(void)
     TEST_ASSERT_EQUAL(2, r->uint);
 
     ordered_set_destroy(&os, str_uint_pair_free);
+}
+//}}}
+
+//{{{void test_ordered_set_store_load(void)
+void test_ordered_set_store_load(void)
+{
+    struct ordered_set *os = ordered_set_init(3,
+                                              str_uint_pair_sort_element_cmp,
+                                              str_uint_pair_search_element_cmp,
+                                              str_uint_pair_search_key_cmp);
+    struct str_uint_pair *p = (struct str_uint_pair *)
+            malloc(sizeof(struct str_uint_pair));
+    p->uint = os->num;
+    p->str = strdup("one");
+    struct str_uint_pair *r = (struct str_uint_pair *)ordered_set_add(os, p);
+
+
+    p = (struct str_uint_pair *) malloc(sizeof(struct str_uint_pair));
+    p->uint = os->num;
+    p->str = strdup("three");
+    r = (struct str_uint_pair *)ordered_set_add(os, p);
+
+    p = (struct str_uint_pair *) malloc(sizeof(struct str_uint_pair));
+    p->uint = os->num;
+    p->str = strdup("four");
+    r = (struct str_uint_pair *)ordered_set_add(os, p);
+
+    p = (struct str_uint_pair *) malloc(sizeof(struct str_uint_pair));
+    p->uint = os->num;
+    p->str = strdup("two");
+    r = (struct str_uint_pair *)ordered_set_add(os, p);
+
+    char *file_name = "test_ordered_set_store_load.dat"; 
+    FILE *f = fopen(file_name, "wb");
+    ordered_set_store(os, f, file_name,  str_uint_pair_store);
+    fclose(f);
+
+    f = fopen(file_name, "rb");
+
+    struct ordered_set *os_2 = ordered_set_load(
+                f,
+                file_name,
+                str_uint_pair_load,
+                str_uint_pair_sort_element_cmp,
+                str_uint_pair_search_element_cmp,
+                str_uint_pair_search_key_cmp);
+
+    fclose(f);
+
+    TEST_ASSERT_EQUAL(os->num, os_2->num);
+    TEST_ASSERT_EQUAL(os->size, os_2->size);
+
+    struct str_uint_pair *r_2;
+
+    char *one = "one";
+    r = (struct str_uint_pair *) ordered_set_get(os, one);
+    r_2 = (struct str_uint_pair *) ordered_set_get(os_2, one);
+    TEST_ASSERT_EQUAL(r->uint, r_2->uint);
+
+    char *two = "two";
+    r = (struct str_uint_pair *) ordered_set_get(os, two);
+    r_2 = (struct str_uint_pair *) ordered_set_get(os_2, two);
+    TEST_ASSERT_EQUAL(r->uint, r_2->uint);
+
+    char *three = "three";
+    r = (struct str_uint_pair *) ordered_set_get(os, three);
+    r_2 = (struct str_uint_pair *) ordered_set_get(os_2, three);
+    TEST_ASSERT_EQUAL(r->uint, r_2->uint);
+
+    char *four = "four";
+    r = (struct str_uint_pair *) ordered_set_get(os, four);
+    r_2 = (struct str_uint_pair *) ordered_set_get(os_2, four);
+    TEST_ASSERT_EQUAL(r->uint, r_2->uint);
+
+    ordered_set_destroy(&os, str_uint_pair_free);
+    ordered_set_destroy(&os_2, str_uint_pair_free);
 }
 //}}}
 

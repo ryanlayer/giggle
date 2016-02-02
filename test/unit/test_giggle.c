@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <ftw.h>
 
 #include "unity.h"
 #include "bpt.h"
@@ -17,6 +18,22 @@
 
 void setUp(void) { }
 void tearDown(void) { }
+
+int unlink_cb(const char *fpath,
+              const struct stat *sb,
+              int typeflag,
+              struct FTW *ftwbuf)
+{
+    int rv = remove(fpath);
+    if (rv)
+        perror(fpath);
+    return rv;
+}
+
+int rmrf(char *path)
+{
+    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
+}
 
 //{{{void test_uint32_t_ll_giggle_insert(void)
 void test_uint32_t_ll_giggle_insert(void)
@@ -648,6 +665,9 @@ void test_giggle_index_store(void)
     struct stat st = {0};
     if (stat("tmp", &st) == -1) {
             mkdir("tmp", 0700);
+    } else {
+        rmrf("tmp/");
+        mkdir("tmp", 0700);
     }
 
     char *cache_names[30];
@@ -670,6 +690,6 @@ void test_giggle_index_store(void)
 
     giggle_index_destroy(&gi);
     cache.destroy();
+
 }
 //}}}
-

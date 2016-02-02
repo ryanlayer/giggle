@@ -1,8 +1,10 @@
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <dirent.h>
 #include <glob.h>
+#include <sysexits.h>
 
 #include "bpt.h"
 #include "cache.h"
@@ -10,6 +12,38 @@
 #include "ll.h"
 #include "lists.h"
 #include "file_read.h"
+#include "util.h"
+
+
+
+void *file_id_offset_pair_load(FILE *f, char *file_name)
+{
+    struct file_id_offset_pair *p = (struct file_id_offset_pair*)
+            malloc(sizeof( struct file_id_offset_pair));
+
+    size_t fr = fread(&(p->file_id), sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    fr = fread(&(p->offset), sizeof(long), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    return p;
+}
+
+void file_id_offset_pair_store(void *v, FILE *f, char *file_name)
+{
+    struct file_id_offset_pair *p = (struct file_id_offset_pair*)v;
+
+    if (fwrite(&(p->file_id), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing file_id_offset_pair file_id '%s'.", file_name);
+
+    if (fwrite(&(p->offset), sizeof(long), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing file_id_offset_pair offset '%s'.", file_name);
+}
+
+
 
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
 uint32_t giggle_insert(uint32_t domain,
@@ -442,4 +476,3 @@ uint32_t giggle_index_directory(struct giggle_index *gi,
     return total;
 }
 //}}}
-

@@ -54,6 +54,16 @@ void unordered_list_destroy(struct unordered_list **ul,
 uint32_t unordered_list_add(struct unordered_list *ul,
                             void *data);
 void *unordered_list_get(struct unordered_list *ul, uint32_t i);
+struct unordered_list *ordered_list_load(
+                FILE *f,
+                char *file_name,
+                void *(*ul_load)(FILE *f, char *file_name));
+void unordered_list_store(struct unordered_list *ul, 
+                          FILE *f,
+                          char *file_name,
+                          void (*ul_store)(void *v, FILE *f, char *file_name));
+
+
 
 // ORDERD SET
 struct ordered_set
@@ -71,15 +81,27 @@ struct ordered_set
                 int (*sort_element_cmp)(const void *a, const void *b),
                 int (*search_element_cmp)(const void *a, const void *b),
                 int (*search_key_cmp)(const void *a, const void *b));
+
+struct ordered_set 
+        *ordered_set_load(
+                FILE *f,
+                char *file_name,
+                void *(*os_load)(FILE *f, char *file_name),
+                int (*sort_element_cmp)(const void *a, const void *b),
+                int (*search_element_cmp)(const void *a, const void *b),
+                int (*search_key_cmp)(const void *a, const void *b));
+
 void ordered_set_destroy(struct ordered_set **os,
                          void (*free_data)(void **data));
 void *ordered_set_add(struct ordered_set *os,
                        void *data);
 void *ordered_set_get(struct ordered_set *os, void *key);
 
-void *ordered_set_store(struct ordered_set *os, 
-                        void (*os_store)(void *v, FILE *f, char *file_name),
-                        
+void ordered_set_store(struct ordered_set *os, 
+                       FILE *f,
+                       char *file_name,
+                       void (*os_store)(void *v, FILE *f, char *file_name));
+ 
 
 struct str_uint_pair
 {
@@ -91,7 +113,7 @@ int str_uint_pair_sort_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_key_cmp(const void *a, const void *b);
 void str_uint_pair_store(void *v, FILE *f, char *file_name);
-struct str_uint_pair *str_uint_pair_load(FILE *f, char *file_name);
+void *str_uint_pair_load(FILE *f, char *file_name);
 void str_uint_pair_free(void **v);
 
 struct pointer_uint_pair
@@ -148,105 +170,4 @@ struct byte_array *byte_array_init(uint32_t init_size);
 void byte_array_destory(struct byte_array **ba);
 void byte_array_append(struct byte_array *ba, void *data, uint32_t size);
 void byte_array_append_zeros(struct byte_array *ba, uint32_t size);
-
-
-// CACHES
-#if 0
-struct cache_handler
-{
-    uint64_t (*serialize)(void *deserialized, uint8_t **serialized);
-    uint64_t (*deserialize)(void *serialized,
-                            uint64_t serialized_size,
-                            uint8_t **deserialized);
-    void (*free_mem)(void **deserialized);
-};
-
-struct cache_def {
-    void *cache; //needs to hanlde multiple domains
-    void *(*init)(uint32_t size, uint32_t num_domains, FILE **fp);
-    uint32_t (*seen)(void *cache, uint32_t domain);
-    void (*add)(void *cache,
-                uint32_t domain,
-                uint32_t key,
-                void *data,
-                struct cache_handler *handler);
-                //void (*free_value)(void **data));
-    void *(*get)(void *cache,
-                 uint32_t domain,
-                 uint32_t key,
-                 struct cache_handler *handler);
-    void (*remove)(void *cache, uint32_t domain, uint32_t key);
-    void (*destroy)(void **cache);
-};
-
-struct cc_hash
-{
-    uint32_t num, sizes, *keys[2];
-    void **values[2];
-    uint32_t (*hashes[2])(uint32_t x, uint32_t limit);
-};
-
-uint32_t hash_A(uint32_t x, uint32_t limit);
-uint32_t hash_B(uint32_t x, uint32_t limit);
-
-struct cc_hash *cc_hash_init(uint32_t size);
-int cc_hash_add(struct cc_hash *hash, uint32_t key, void *value);
-void *cc_hash_get(struct cc_hash *hash, uint32_t key);
-void *cc_hash_remove(struct cc_hash *hash, uint32_t key);
-void cc_hash_destroy(struct cc_hash **hash);
-
-struct linked_list_node
-{
-    void *value; 
-    uint32_t key;
-    struct linked_list_node *prev, *next;
-    void (*free_value)(void **data);
-};
-
-struct lru_cache
-{
-    struct cc_hash *hash_table;
-    struct linked_list_node *head, *tail;
-    uint32_t size, num, seen;
-};
-
-void *lru_cache_init(uint32_t init_size, FILE *fp);
-uint32_t lru_cache_seen(void *lruc); 
-void *lru_cache_get(void *cache, uint32_t key);
-void lru_cache_remove(void *cache, uint32_t key);
-void lru_cache_add(void *cache,
-                   uint32_t key,
-                   void *value,
-                   void (*free_value)(void **data));
-void lru_cache_destroy(void **lruc);
-
-struct cache_def lru_cache_def;
-
-
-struct value_free_value_pair
-{
-    void *value;
-    void (*free_value)(void **value);
-};
-
-struct simple_cache
-{
-    struct indexed_list **ils;
-    uint32_t *sizes, *nums, *seens;
-    struct disk_store **dss;
-};
-
-void *simple_cache_init(uint32_t size, uint32_t num_domains, FILE **fps);
-uint32_t simple_cache_seen(void *cache); 
-void *simple_cache_get(void *cache, uint32_t key);
-void simple_cache_remove(void *cache, uint32_t key);
-void simple_cache_add(void *cache,
-                      uint32_t key,
-                      void *value,
-                      void (*free_value)(void **data));
-void simple_cache_destroy(void **cache);
-
-void free_wrapper(void **v);
 #endif
-#endif
-

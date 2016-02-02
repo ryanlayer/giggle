@@ -263,9 +263,11 @@ void simple_cache_store(uint32_t domain,
     if (sc->dss[domain] != NULL)
         errx(1, "Modifying and existing bpt is not currently supported.");
 
+    /*
     fprintf(stderr, "%s %s\n", 
                                       sc->index_file_names[domain],
                                       sc->data_file_names[domain]);
+    */
     sc->dss[domain] = disk_store_init(sc->seens[domain],
                                       NULL,
                                       sc->index_file_names[domain],
@@ -309,3 +311,293 @@ void free_wrapper(void **v)
     *v = NULL;
 }
 //}}}
+
+#if 0
+//{{{ cc_hash
+
+uint32_t hash_A(uint32_t x, uint32_t limit)
+{
+    x = x ^ (x>>4);
+    x = (x^0xdeadbeef) + (x<<5);
+    x = x ^ (x>>11);
+    return x % limit;
+}
+
+uint32_t hash_B( uint32_t x, uint32_t limit)
+{
+    x = (x+0x7ed55d16) + (x<<12);
+    x = (x^0xc761c23c) ^ (x>>19);
+    x = (x+0x165667b1) + (x<<5);
+    x = (x+0xd3a2646c) ^ (x<<9);
+    x = (x+0xfd7046c5) + (x<<3);
+    x = (x^0xb55a4f09) ^ (x>>16);
+    return x % limit;
+}
+
+struct cc_hash *cc_hash_init(uint32_t size)
+{
+    struct cc_hash *hash = (struct cc_hash *)malloc(sizeof(struct cc_hash));
+    hash->num = 0;
+    hash->sizes = size / 2;
+    hash->keys[0] = (uint32_t *) calloc(hash->sizes, sizeof(uint32_t));
+    hash->keys[1] = (uint32_t *) calloc(hash->sizes, sizeof(uint32_t));
+    hash->values[0] = (void **) calloc(hash->sizes, sizeof(void *));
+    hash->values[1] = (void **) calloc(hash->sizes, sizeof(void *));
+    
+    hash->hashes[0] = hash_A;
+    hash->hashes[1] = hash_B;
+
+    return hash;
+}
+
+int cc_hash_add(struct cc_hash *hash, uint32_t key, void *value)
+{
+    uint32_t pos_0 = hash->hashes[0](key, hash->sizes);
+    uint32_t pos_1 = hash->hashes[1](key, hash->sizes);
+
+    if ( (hash->keys[0][pos_0] == key) || (hash->keys[1][pos_1] == key))
+        return 1;
+
+    uint32_t h_i = 0;
+    uint32_t i, pos_i;
+
+    for (i = 0; i < hash->sizes; ++i) {
+        pos_i = hash->hashes[h_i](key, hash->sizes);
+        if ( hash->values[h_i][pos_i] == NULL ) {
+            hash->keys[h_i][pos_i] = key;
+            hash->values[h_i][pos_i] = value;
+            return 0;
+        } else {
+            uint32_t t_key = hash->keys[h_i][pos_i];
+            void *t_value = hash->values[h_i][pos_i];
+    
+            hash->keys[h_i][pos_i] = key;
+            hash->values[h_i][pos_i] = value;
+    
+            key = t_key;
+            value = t_value;
+            h_i = (h_i + 1) % 2;
+        }
+    }
+
+    errx(1, "Could not place item\n");
+}
+
+void *cc_hash_get(struct cc_hash *hash, uint32_t key)
+{
+    uint32_t i, pos_i;
+    for (i = 0; i < 2; ++i) {
+        pos_i = hash->hashes[i](key, hash->sizes);
+        if ((hash->keys[i][pos_i] == key) && (hash->values[i][pos_i] != NULL))
+            return hash->values[i][pos_i];
+    }
+
+    return NULL;
+}
+
+void *cc_hash_remove(struct cc_hash *hash, uint32_t key)
+{
+    uint32_t i, pos_i;
+    for (i = 0; i < 2; ++i) {
+        pos_i = hash->hashes[i](key, hash->sizes);
+        if ((hash->keys[i][pos_i] == key) && 
+            (hash->values[i][pos_i] != NULL)) {
+            void *r = hash->values[i][pos_i];
+            hash->values[i][pos_i] = NULL;
+            return r;
+        }
+    }
+
+    return NULL;
+}
+
+void cc_hash_destroy(struct cc_hash **hash)
+{
+    free((*hash)->keys[0]);
+    free((*hash)->keys[1]);
+    free((*hash)->values[0]);
+    free((*hash)->values[1]);
+    free(*hash);
+    *hash = NULL;
+}
+//}}}
+
+//{{{ lru_cache
+#if 0
+struct cache_def lru_cache_def = {
+    NULL,
+    lru_cache_init,
+    lru_cache_seen,
+    lru_cache_add,
+    lru_cache_get,
+    lru_cache_remove,
+    lru_cache_destroy
+};
+
+//{{{struct lru_cache *lru_cache_init(uint32_t init_size)
+void *lru_cache_init(uint32_t init_size, FILE *fp)
+{
+    struct lru_cache *lruc = (struct lru_cache *)
+            malloc(sizeof(struct lru_cache));
+    lruc->size = init_size;
+    lruc->num = 0;
+    lruc->seen = 0;
+    lruc->hash_table = cc_hash_init(init_size * 2.5);
+    lruc->head = NULL;
+    lruc->tail = NULL;
+    return lruc;
+}
+//}}}
+
+//{{{uint32_t lru_cache_seen(struct lru_cache *lruc)
+//uint32_t lru_cache_seen(struct lru_cache *lruc)
+uint32_t lru_cache_seen(void *_lruc)
+{
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
+    return lruc->seen;
+}
+//}}}
+
+//{{{void lru_cache_add(struct lru_cache *lruc, uint32_t key, void *value)
+void lru_cache_add(void *_lruc,
+                   uint32_t key,
+                   void *value,
+                   void (*free_value)(void **data))
+{
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
+    if (cc_hash_get(lruc->hash_table, key) != NULL)
+        return;
+
+    if (lruc->num == lruc->size) {
+        // the head node is the lru
+        struct linked_list_node *to_rem_l = lruc->head;
+        lruc->head = to_rem_l->next;
+        lruc->head->prev = NULL;
+
+        struct linked_list_node *to_rem_h = 
+                (struct linked_list_node *)
+                cc_hash_remove(lruc->hash_table, to_rem_l->key);
+
+        if (to_rem_h != to_rem_l)
+            errx(1, "Inconsistency in LRU cache");
+
+        if (to_rem_l->free_value != NULL)
+            to_rem_l->free_value(&(to_rem_l->value));
+
+        free(to_rem_l);
+        lruc->num -= 1;
+    }
+
+    struct linked_list_node *ll = (struct linked_list_node *)
+            malloc(sizeof(struct linked_list_node));
+    ll->key = key;
+    ll->free_value = free_value;
+    ll->prev = NULL;
+    ll->next = NULL;
+    ll->value = value;
+
+    if (lruc->head == NULL) {
+        lruc->head = ll;
+    } else {
+        ll->prev = lruc->tail;
+        lruc->tail->next = ll;
+    }
+
+    lruc->tail = ll;
+
+    int r = cc_hash_add(lruc->hash_table, key, ll);
+
+    lruc->num += 1;
+    lruc->seen += 1;
+}
+//}}}
+
+//{{{void *lru_cache_get(struct lru_cache *lruc, uint32_t key)
+void *lru_cache_get(void *_lruc, uint32_t key)
+{
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
+    struct linked_list_node *ll =
+        (struct linked_list_node *) cc_hash_get(lruc->hash_table, key);
+
+    if (ll == NULL)
+        return NULL;
+
+    // move this to the tail
+    if (lruc->tail != ll) {
+
+        // take ll out of the list
+        if (lruc->head == ll) 
+            lruc->head = ll->next;
+        else {
+            ll->next->prev = ll->prev;
+            ll->prev->next = ll->next;
+        }
+
+        ll->prev = lruc->tail;
+        lruc->tail->next = ll;
+        lruc->tail = ll;
+        lruc->tail->next = NULL;
+    }
+        
+    return ll->value;
+}
+//}}}
+
+//{{{void lru_cache_remove(struct lru_cache *lruc, uint32_t key)
+void lru_cache_remove(void *_lruc, uint32_t key)
+{
+    struct lru_cache *lruc = (struct lru_cache *)_lruc;
+    struct linked_list_node *to_rem = 
+                (struct linked_list_node *)
+                cc_hash_remove(lruc->hash_table, key);
+
+    if (to_rem == NULL)
+        return;
+
+    // Take it out of the list
+    if (to_rem == lruc->head) {
+        lruc->head = NULL;
+        lruc->tail = NULL;
+    } else if (to_rem == lruc->tail) {
+        lruc->tail->prev->next = NULL;
+        lruc->tail = lruc->tail->prev;
+    } else {
+        to_rem->prev->next = to_rem->next;
+    }
+
+
+    if (to_rem->free_value != NULL)
+        to_rem->free_value(&(to_rem->value));
+
+    free(to_rem);
+    lruc->num -= 1;
+}
+//}}}
+
+//{{{void lru_cache_destroy(struct lru_cache **lruc)
+void lru_cache_destroy(void **_lruc)
+{
+    struct lru_cache **lruc = (struct lru_cache **)_lruc;
+    cc_hash_destroy(&((*lruc)->hash_table));
+
+    struct linked_list_node *curr, *tmp;
+    curr = (*lruc)->head;
+
+    while (curr != NULL) {
+        tmp = curr->next;;
+        /*
+        if ( (*lruc)->free_value != NULL)
+            (*lruc)->free_value(&(curr->value));
+        */
+        if (curr->free_value != NULL)
+            curr->free_value(&(curr->value));
+        free(curr);
+        curr = tmp;
+    }
+    free(*lruc);
+    *lruc = NULL;
+}
+//}}}
+#endif
+//}}}
+#endif
