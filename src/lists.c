@@ -233,7 +233,7 @@ void unordered_list_destroy(struct unordered_list **ul,
 
 //{{{uint32_t unordered_list_add(struct unordered_list *ul,
 uint32_t unordered_list_add(struct unordered_list *ul,
-                      void *data)
+                            void *data)
 {
     uint32_t id = ul->num;
 
@@ -286,7 +286,7 @@ struct ordered_set
 }
 //}}}
 
-//{{{
+//{{{ void ordered_set_destroy(struct ordered_set **os,
 void ordered_set_destroy(struct ordered_set **os,
                          void (*free_data)(void **data))
 {
@@ -382,6 +382,50 @@ int str_uint_pair_search_key_cmp(const void *a, const void *b)
     char *key = (char *)a;
     struct str_uint_pair **arg = (struct str_uint_pair **)b;
     return strcmp(key, (*arg)->str);
+}
+//}}}
+
+//{{{void str_uint_pair_store(void *v, FILE *f, char *file_name)
+void str_uint_pair_store(void *v, FILE *f, char *file_name)
+{
+    struct str_uint_pair *p = (struct str_uint_pair *)v;
+
+    if (fwrite(&(p->uint), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing uint of str_uint_pair in '%s'.", file_name);
+
+    uint32_t str_len = strlen(p->str);
+
+    if (fwrite(&str_len, sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing str len of str_uint_pair in '%s'.", file_name);
+
+    if (fwrite(&(p->str), sizeof(char), strlen(p->str), f) != strlen(p->str))
+        err(EX_IOERR,
+            "Error writing str of str_uint_pair in '%s'.", file_name);
+}
+//}}}
+
+//{{{struct str_uint_pair *str_uint_pair_load(FILE *f, char *file_name)
+struct str_uint_pair *str_uint_pair_load(FILE *f, char *file_name)
+{
+    struct str_uint_pair *p = (struct str_uint_pair *)
+            calloc(1,sizeof(struct str_uint_pair));
+
+    size_t fr = fread(&(p->uint), sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    uint32_t str_len;
+
+    fr = fread(&str_len, sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    p->str = (char *)calloc(str_len, sizeof(char));
+
+    size_t fr = fread(&(p->str), sizeof(char), str_len, f);
+    check_file_read(file_name, f, str_len, fr);
+
+    return p;
 }
 //}}}
 

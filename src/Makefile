@@ -7,12 +7,16 @@ CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 CC=gcc
 
 LIB=bpt.o \
+    disk_store.o \
+    cache.o \
     data_reg.o \
     file_read.o \
     giggle.o \
     lists.o \
     ll.o \
+    util.o \
     wah.o
+
 
 .SUFFIXES:
 

@@ -263,6 +263,9 @@ void simple_cache_store(uint32_t domain,
     if (sc->dss[domain] != NULL)
         errx(1, "Modifying and existing bpt is not currently supported.");
 
+    fprintf(stderr, "%s %s\n", 
+                                      sc->index_file_names[domain],
+                                      sc->data_file_names[domain]);
     sc->dss[domain] = disk_store_init(sc->seens[domain],
                                       NULL,
                                       sc->index_file_names[domain],

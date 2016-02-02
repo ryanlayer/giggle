@@ -11,20 +11,6 @@
 #include "lists.h"
 #include "file_read.h"
 
-#if 0
-void *(*new_non_leading)() = NULL;
-void *(*new_leading)() = NULL;
-void (*non_leading_SA_add_scalar)(void *non_leading, void *scalar) = NULL;
-void (*non_leading_SE_add_scalar)(void *non_leading, void *scalar) = NULL;
-void (*leading_B_add_scalar)(void *leading, void *scalar) = NULL;
-void (*leading_union_with_B)(void **result, void *leading) = NULL;
-void (*non_leading_union_with_SA)(void **result, void *non_leading) = NULL;
-void (*non_leading_union_with_SA_subtract_SE)(void **result,
-                                              void *non_leading) = NULL;
-void (*non_leading_free)(void **non_leading) = NULL;
-void (*leading_free)(void **leading) = NULL;
-#endif
-
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
 uint32_t giggle_insert(uint32_t domain,
                        uint32_t *root_id,
@@ -456,3 +442,4 @@ uint32_t giggle_index_directory(struct giggle_index *gi,
     return total;
 }
 //}}}
+

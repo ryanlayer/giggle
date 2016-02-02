@@ -27,9 +27,14 @@ uint64_t uint32_t_ll_non_leading_serialize(void *deserialized,
 
     if (d->SA != NULL)
         SA_len = d->SA->len;
+    else
+        SA_len = 0;
 
     if (d->SE != NULL)
         SE_len = d->SE->len;
+    else
+        SE_len = 0;
+
 
     serialized_len = (2 + SA_len + SE_len) * sizeof(uint32_t);
 
@@ -152,6 +157,8 @@ uint64_t uint32_t_ll_leading_serialize(void *deserialized,
 
     if (d->B != NULL)
         B_len = d->B->len;
+    else
+        B_len = 0;
 
     serialized_len = (1 + B_len) * sizeof(uint32_t);
 

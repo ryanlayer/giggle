@@ -1,9 +1,13 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "unity.h"
 #include "bpt.h"
@@ -535,7 +539,6 @@ void test_giggle_index_file(void)
 }
 //}}}
 
-
 //{{{void test_giggle_query_region(void)
 void test_giggle_query_region(void)
 {
@@ -616,9 +619,9 @@ void test_giggle_index_directory(void)
     char *path_name = "../data/many/*bed.gz";
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
-    TEST_ASSERT_EQUAL(10000, r);
-    TEST_ASSERT_EQUAL(10, gi->file_index->num);
-    TEST_ASSERT_EQUAL(10000, gi->offset_index->num);
+    TEST_ASSERT_EQUAL(11000, r);
+    TEST_ASSERT_EQUAL(11, gi->file_index->num);
+    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
 
     giggle_query_region(gi, "chr11", 1000, 3000000);
 
@@ -628,9 +631,9 @@ void test_giggle_index_directory(void)
                                                                       3000000);
     /*
      * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 4456
+     * 39
      */
-    TEST_ASSERT_EQUAL(4456, R->len);
+    TEST_ASSERT_EQUAL(39, R->len);
 
     uint32_t_ll_free((void **)&R);
 
@@ -638,3 +641,35 @@ void test_giggle_index_directory(void)
     cache.destroy();
 }
 //}}}
+
+//{{{void test_giggle_index_store(void)
+void test_giggle_index_store(void)
+{
+    struct stat st = {0};
+    if (stat("tmp", &st) == -1) {
+            mkdir("tmp", 0700);
+    }
+
+    char *cache_names[30];
+    uint32_t i, ret;
+    for (i = 0; i < 30; ++i) {
+        ret = asprintf(&(cache_names[i]), "tmp/cache.%u", i);
+    }
+
+    ORDER = 10;
+    struct simple_cache *sc = simple_cache_init(1000, 30, cache_names);
+    uint32_t_ll_giggle_set_data_handler();
+    struct giggle_index *gi = giggle_init_index(30);
+    char *path_name = "../data/many/*bed.gz";
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+
+    for (i = 0; i < 30; ++i) {
+        bpt_write_tree(i, gi->root_ids[i]);
+    }
+
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
+//}}}
+

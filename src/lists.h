@@ -77,6 +77,10 @@ void *ordered_set_add(struct ordered_set *os,
                        void *data);
 void *ordered_set_get(struct ordered_set *os, void *key);
 
+void *ordered_set_store(struct ordered_set *os, 
+                        void (*os_store)(void *v, FILE *f, char *file_name),
+                        
+
 struct str_uint_pair
 {
     char *str;
@@ -86,6 +90,8 @@ struct str_uint_pair
 int str_uint_pair_sort_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_element_cmp(const void *a, const void *b);
 int str_uint_pair_search_key_cmp(const void *a, const void *b);
+void str_uint_pair_store(void *v, FILE *f, char *file_name);
+struct str_uint_pair *str_uint_pair_load(FILE *f, char *file_name);
 void str_uint_pair_free(void **v);
 
 struct pointer_uint_pair
