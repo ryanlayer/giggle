@@ -442,6 +442,7 @@ void giggle_index_destroy(struct giggle_index **gi)
 uint32_t giggle_index_file(struct giggle_index *gi,
                            char *file_name)
 {
+    fprintf(stderr, "%s\n", file_name);
     struct input_file *i = input_file_init(file_name);
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
@@ -461,7 +462,7 @@ uint32_t giggle_index_file(struct giggle_index *gi,
                                         &start,
                                         &end,
                                         &offset) >= 0) {
-        
+        //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
         p = (struct file_id_offset_pair *)
                 malloc(sizeof(struct file_id_offset_pair));
         p->offset = offset;
@@ -543,7 +544,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
             mkdir(data_dir, 0700);
         } else if (force == 1) {
             rmrf(data_dir);
-            mkdir("tmp", 0700);
+            mkdir(data_dir, 0700);
         } else {
             fprintf(stderr,
                     "The directory '%s' already exists. "

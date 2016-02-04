@@ -680,7 +680,7 @@ void test_giggle_init_null_dir(void)
 }
 //}}}
 
-//{{{ void test_giggle_init_null_dir(void)
+//{{{ void test_giggle_init_store_load(void)
 void test_giggle_init_store_load(void)
 {
     struct giggle_index *gi = giggle_init(

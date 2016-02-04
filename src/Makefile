@@ -3,6 +3,7 @@ OBJ=../obj
 #BPT_ROOT=$(HOME)/src/cs/b_plus_tree
 HTS_ROOT=../../htslib
 CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-Wall -O0 -g -fno-inline -fkeep-inline-functions -D_FILE_OFFSET_BITS=64 -fPIC -DDEBUG -D_DEBUG
 CC=gcc
 
@@ -25,7 +26,9 @@ OBJS=$(addprefix $(OBJ)/, $(LIB))
 .SECONDARY: $(OBJS)
 
 
-PROG=index_search
+PROG=index_search \
+     index \
+     search
 
 
 LIST=$(addprefix $(BIN)/, $(PROG))
