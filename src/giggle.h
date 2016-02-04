@@ -15,6 +15,9 @@ struct file_id_offset_pair
 void *file_id_offset_pair_load(FILE *f, char *file_name);
 void file_id_offset_pair_store(void *v, FILE *f, char *file_name);
 
+void c_str_store(void *v, FILE *f, char *file_name);
+void *c_str_load(FILE *f, char *file_name);
+
 struct giggle_index
 {
     uint32_t *root_ids;
@@ -22,6 +25,12 @@ struct giggle_index
     struct ordered_set *chrm_index;
     struct unordered_list *file_index;
     struct unordered_list *offset_index;
+
+    char *data_dir,
+         *chrm_index_file_name,
+         *file_index_file_name,
+         *offset_index_file_name,
+         *root_ids_file_name;
 };
 
 uint32_t giggle_insert(uint32_t domain,
@@ -77,4 +86,12 @@ void *giggle_query_region(struct giggle_index *gi,
                           char *chrm,
                           uint32_t start,
                           uint32_t end);
+struct giggle_index *giggle_init(uint32_t num_chrms,
+                                 char *output_dir,
+                                 uint32_t force,
+                                 void (*giggle_set_data_handler)());
+uint32_t giggle_store(struct giggle_index *gi);
+
+struct giggle_index *giggle_load(char *data_dir,
+                                 void (*giggle_set_data_handler)(void));
 #endif

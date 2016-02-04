@@ -5,11 +5,10 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <ftw.h>
+#include <err.h>
+#include <sysexits.h>
 
+#include "util.h"
 #include "unity.h"
 #include "bpt.h"
 #include "giggle.h"
@@ -19,21 +18,6 @@
 void setUp(void) { }
 void tearDown(void) { }
 
-int unlink_cb(const char *fpath,
-              const struct stat *sb,
-              int typeflag,
-              struct FTW *ftwbuf)
-{
-    int rv = remove(fpath);
-    if (rv)
-        perror(fpath);
-    return rv;
-}
-
-int rmrf(char *path)
-{
-    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
-}
 
 //{{{void test_uint32_t_ll_giggle_insert(void)
 void test_uint32_t_ll_giggle_insert(void)
@@ -659,6 +643,92 @@ void test_giggle_index_directory(void)
 }
 //}}}
 
+//{{{ void test_giggle_init_null_dir(void)
+void test_giggle_init_null_dir(void)
+{
+    struct giggle_index *gi = giggle_init(
+                23,
+                NULL,
+                0,
+                uint32_t_ll_giggle_set_data_handler);
+
+    char *path_name = "../data/many/*bed.gz";
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+    TEST_ASSERT_EQUAL(11000, r);
+    TEST_ASSERT_EQUAL(11, gi->file_index->num);
+    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
+
+    giggle_query_region(gi, "chr11", 1000, 3000000);
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                                      "chr1",
+                                                                      1000,
+                                                                      3000000);
+    /*
+     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
+     * 39
+     */
+    TEST_ASSERT_EQUAL(39, R->len);
+
+    uint32_t_ll_free((void **)&R);
+
+    TEST_ASSERT_EQUAL(1, giggle_store(gi));
+
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
+//}}}
+
+//{{{ void test_giggle_init_null_dir(void)
+void test_giggle_init_store_load(void)
+{
+    struct giggle_index *gi = giggle_init(
+                23,
+                "tmp",
+                1,
+                uint32_t_ll_giggle_set_data_handler);
+
+    char *path_name = "../data/many/*bed.gz";
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+    TEST_ASSERT_EQUAL(11000, r);
+    TEST_ASSERT_EQUAL(11, gi->file_index->num);
+    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
+
+    giggle_query_region(gi, "chr11", 1000, 3000000);
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                                      "chr1",
+                                                                      1000,
+                                                                      3000000);
+    /*
+     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
+     * 39
+     */
+    TEST_ASSERT_EQUAL(39, R->len);
+
+    uint32_t_ll_free((void **)&R);
+    TEST_ASSERT_EQUAL(0, giggle_store(gi));
+    giggle_index_destroy(&gi);
+    cache.destroy();
+
+    gi = giggle_load("tmp",
+                     uint32_t_ll_giggle_set_data_handler);
+
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                   "chr1",
+                                                   1000,
+                                                   1000000);
+    TEST_ASSERT_EQUAL(11, R->len);
+    uint32_t_ll_free((void **)&R);
+    giggle_index_destroy(&gi);
+    cache.destroy();
+
+
+}
+//}}}
+
 //{{{void test_giggle_index_store(void)
 void test_giggle_index_store(void)
 {
@@ -683,13 +753,52 @@ void test_giggle_index_store(void)
     char *path_name = "../data/many/*bed.gz";
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
-
     for (i = 0; i < 30; ++i) {
         bpt_write_tree(i, gi->root_ids[i]);
     }
 
+    char *chrm_index_file_name = "tmp/chrm_index.dat";
+    char *file_index_file_name = "tmp/file_index.dat";
+    char *offset_index_file_name = "tmp/offset_index.dat";
+    char *root_ids_file_name = "tmp/root_ids.dat";
+
+    FILE *f = fopen(root_ids_file_name, "wb");
+
+    if (fwrite(&(gi->len), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR, "Error writing len for root_ids'%s'.",
+            root_ids_file_name);
+
+    if (fwrite(gi->root_ids, sizeof(uint32_t), gi->len, f) != gi->len)
+        err(EX_IOERR, "Error writing root_ids '%s'.",
+            root_ids_file_name);
+    fclose(f);
+
+    f = fopen(chrm_index_file_name, "wb");
+    ordered_set_store(gi->chrm_index,
+                      f,
+                      chrm_index_file_name,
+                      str_uint_pair_store);
+    fclose(f);
+
+    f = fopen(file_index_file_name, "wb");
+    unordered_list_store(gi->file_index,
+                         f,
+                         file_index_file_name,
+                         c_str_store);
+    fclose(f);
+
+    f = fopen(offset_index_file_name, "wb");
+    unordered_list_store(gi->offset_index,
+                         f,
+                         offset_index_file_name,
+                         file_id_offset_pair_store);
+    fclose(f);
+
     giggle_index_destroy(&gi);
     cache.destroy();
-
 }
 //}}}
+
+void test_LAST(void)
+{
+}

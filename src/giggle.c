@@ -14,8 +14,7 @@
 #include "file_read.h"
 #include "util.h"
 
-
-
+//{{{ void *file_id_offset_pair_load(FILE *f, char *file_name)
 void *file_id_offset_pair_load(FILE *f, char *file_name)
 {
     struct file_id_offset_pair *p = (struct file_id_offset_pair*)
@@ -29,7 +28,9 @@ void *file_id_offset_pair_load(FILE *f, char *file_name)
 
     return p;
 }
+//}}}
 
+//{{{void file_id_offset_pair_store(void *v, FILE *f, char *file_name)
 void file_id_offset_pair_store(void *v, FILE *f, char *file_name)
 {
     struct file_id_offset_pair *p = (struct file_id_offset_pair*)v;
@@ -42,8 +43,39 @@ void file_id_offset_pair_store(void *v, FILE *f, char *file_name)
         err(EX_IOERR,
             "Error writing file_id_offset_pair offset '%s'.", file_name);
 }
+//}}}
 
+//{{{ void *c_str_load(FILE *f, char *file_name)
+void *c_str_load(FILE *f, char *file_name)
+{
+    uint32_t size;
+    size_t fr = fread(&size, sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
 
+    char *c_str = (char *)calloc(size, sizeof(char));
+
+    fr = fread(c_str, sizeof(char), size, f);
+    check_file_read(file_name, f, size, fr);
+
+    return c_str;
+}
+//}}}
+
+//{{{void c_str_store(void *v, FILE *f, char *file_name)
+void c_str_store(void *v, FILE *f, char *file_name)
+{
+    char *c_str = (char *)v;
+    uint32_t size = strlen(c_str);
+
+    if (fwrite(&size, sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing c_str size '%s'.", file_name);
+
+    if (fwrite(c_str, sizeof(char), size, f) != size)
+        err(EX_IOERR,
+            "Error writing file_id_offset_pair offset '%s'.", file_name);
+}
+//}}}
 
 //{{{ uint32_t giggle_insert(struct bpt_node **root,
 uint32_t giggle_insert(uint32_t domain,
@@ -345,6 +377,11 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 
     gi->offset_index = unordered_list_init(1000);
 
+    gi->chrm_index_file_name = NULL;
+    gi->file_index_file_name = NULL;
+    gi->offset_index_file_name = NULL;
+    gi->root_ids_file_name = NULL;
+
     return gi;
 }
 //}}}
@@ -383,6 +420,15 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 //{{{void giggle_index_destroy(struct giggle_index **gi)
 void giggle_index_destroy(struct giggle_index **gi)
 {
+    if ((*gi)->chrm_index_file_name != NULL)
+        free((*gi)->chrm_index_file_name);
+    if ((*gi)->file_index_file_name != NULL)
+        free((*gi)->file_index_file_name);
+    if ((*gi)->offset_index_file_name != NULL)
+        free((*gi)->offset_index_file_name);
+    if ((*gi)->root_ids_file_name != NULL)
+        free((*gi)->root_ids_file_name);
+
     free((*gi)->root_ids);
     unordered_list_destroy(&((*gi)->file_index), free_wrapper);
     unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
@@ -476,3 +522,223 @@ uint32_t giggle_index_directory(struct giggle_index *gi,
     return total;
 }
 //}}}
+
+//{{{struct giggle_index *giggle_init(uint32_t num_chrms)
+struct giggle_index *giggle_init(uint32_t num_chrms,
+                                 char *data_dir,
+                                 uint32_t force,
+                                 void (*giggle_set_data_handler)(void))
+{
+    ORDER = 50;
+
+    char **cache_names = NULL;
+
+    struct giggle_index *gi = giggle_init_index(num_chrms);
+
+    if (data_dir != NULL) {
+        gi->data_dir = strdup(data_dir);
+
+        struct stat st = {0};
+        if (stat(data_dir, &st) == -1) {
+            mkdir(data_dir, 0700);
+        } else if (force == 1) {
+            rmrf(data_dir);
+            mkdir("tmp", 0700);
+        } else {
+            fprintf(stderr,
+                    "The directory '%s' already exists. "
+                    "Use the force option to overwrite.\n",
+                    data_dir);
+            return NULL;
+        }
+
+        cache_names = (char **)calloc(num_chrms, sizeof(char *));
+        uint32_t i, ret;
+        for (i = 0; i < num_chrms; ++i) {
+            ret = asprintf(&(cache_names[i]),
+                           "%s/cache.%u",
+                           data_dir,
+                           i);
+        }
+    }
+
+    struct simple_cache *sc = simple_cache_init(1000,
+                                                num_chrms,
+                                                cache_names);
+
+    //uint32_t_ll_giggle_set_data_handler();
+    giggle_set_data_handler();
+
+
+    if (data_dir != NULL) {
+        int ret = asprintf(&(gi->chrm_index_file_name),
+                           "%s/chrm_index.dat",
+                           data_dir);
+
+        ret = asprintf(&(gi->file_index_file_name),
+                       "%s/file_index.dat",
+                       data_dir);
+
+        ret = asprintf(&(gi->offset_index_file_name),
+                       "%s/offset_index.dat",
+                       data_dir);
+
+        ret = asprintf(&(gi->root_ids_file_name),
+                       "%s/root_ids.dat",
+                       data_dir);
+    }
+
+    return gi;
+}
+//}}}
+
+//{{{ uint32_t giggle_store(struct giggle_index *gi)
+uint32_t giggle_store(struct giggle_index *gi)
+{
+    if (gi->chrm_index_file_name == NULL)
+        return 1;
+
+    uint32_t i;
+    for (i = 0; i < 30; ++i) {
+        bpt_write_tree(i, gi->root_ids[i]);
+    }
+
+    FILE *f = fopen(gi->root_ids_file_name, "wb");
+
+    if (fwrite(&(gi->len), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR, "Error writing len for root_ids'%s'.",
+            gi->root_ids_file_name);
+
+    if (fwrite(&(gi->num), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR, "Error writing num for root_ids'%s'.",
+            gi->root_ids_file_name);
+
+    if (fwrite(gi->root_ids, sizeof(uint32_t), gi->len, f) != gi->len)
+        err(EX_IOERR, "Error writing root_ids '%s'.",
+            gi->root_ids_file_name);
+    fclose(f);
+
+    f = fopen(gi->chrm_index_file_name, "wb");
+    ordered_set_store(gi->chrm_index,
+                      f,
+                      gi->chrm_index_file_name,
+                      str_uint_pair_store);
+    fclose(f);
+
+    f = fopen(gi->file_index_file_name, "wb");
+    unordered_list_store(gi->file_index,
+                         f,
+                         gi->file_index_file_name,
+                         c_str_store);
+    fclose(f);
+
+    f = fopen(gi->offset_index_file_name, "wb");
+    unordered_list_store(gi->offset_index,
+                         f,
+                         gi->offset_index_file_name,
+                         file_id_offset_pair_store);
+    fclose(f);
+
+    return 0;
+}
+//}}}
+
+struct giggle_index *giggle_load(char *data_dir,
+                                 void (*giggle_set_data_handler)(void))
+{
+    ORDER = 50;
+
+    if (data_dir == NULL)
+        return NULL;
+
+    struct stat st = {0};
+    if (stat(data_dir, &st) == -1)
+        return NULL;
+
+    struct giggle_index *gi = (struct giggle_index *)
+            malloc(sizeof(struct giggle_index));
+
+    gi->data_dir = strdup(data_dir);
+
+    // root_ids
+    int ret = asprintf(&(gi->root_ids_file_name),
+                       "%s/root_ids.dat",
+                       data_dir);
+
+    FILE *f = fopen(gi->root_ids_file_name, "rb");
+    if (f == NULL)
+        err(1, "Could not open file '%s'.\n", gi->root_ids_file_name);
+
+    size_t fr = fread(&(gi->len), sizeof(uint32_t), 1, f);
+    check_file_read(gi->root_ids_file_name, f, 1, fr);
+
+    fr = fread(&(gi->num), sizeof(uint32_t), 1, f);
+    check_file_read(gi->root_ids_file_name, f, 1, fr);
+
+    gi->root_ids = (uint32_t *)calloc(gi->len, sizeof(uint32_t));
+
+    fr = fread(gi->root_ids, sizeof(uint32_t), gi->len, f);
+    check_file_read(gi->root_ids_file_name, f, gi->len, fr);
+
+    fclose(f);
+
+    // chrm_index
+    ret = asprintf(&(gi->chrm_index_file_name),
+                   "%s/chrm_index.dat",
+                   data_dir);
+    f = fopen(gi->chrm_index_file_name, "rb");
+    gi->chrm_index = ordered_set_load(f,
+                                      gi->chrm_index_file_name,
+                                      str_uint_pair_load,
+                                      str_uint_pair_sort_element_cmp,
+                                      str_uint_pair_search_element_cmp,
+                                      str_uint_pair_search_key_cmp);
+    fclose(f);
+
+
+    ret = asprintf(&(gi->file_index_file_name),
+                   "%s/file_index.dat",
+                   data_dir);
+    f = fopen(gi->file_index_file_name, "rb");
+    gi->file_index = ordered_list_load(f,
+                                       gi->file_index_file_name,
+                                       c_str_load);
+    fclose(f);
+
+    ret = asprintf(&(gi->offset_index_file_name),
+                   "%s/offset_index.dat",
+                   data_dir);
+
+
+
+
+    f = fopen(gi->offset_index_file_name, "rb");
+    gi->offset_index = ordered_list_load(f,
+                                         gi->offset_index_file_name,
+                                         file_id_offset_pair_load);
+
+    fclose(f);
+
+
+    char **cache_names = (char **)calloc(gi->len, sizeof(char *));
+    uint32_t i;
+    for (i = 0; i < gi->len; ++i) {
+        ret = asprintf(&(cache_names[i]),
+                          "%s/cache.%u",
+                          data_dir,
+                          i);
+    }
+
+
+
+    struct simple_cache *sc = simple_cache_init(1000,
+                                                gi->len,
+                                                cache_names);
+
+    giggle_set_data_handler();
+
+
+
+    return gi;
+}
+

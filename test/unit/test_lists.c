@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include "util.h"
 #include "unity.h"
 #include "lists.h"
 #include "cache.h"
@@ -94,7 +95,7 @@ void test_unordered_list_get(void)
 }
 //}}}
 
-
+//{{{ void test_unordered_list_store_load_file_id_offset_pair(void)
 void test_unordered_list_store_load_file_id_offset_pair(void)
 {
     struct unordered_list *ul = unordered_list_init(10);
@@ -145,6 +146,57 @@ void test_unordered_list_store_load_file_id_offset_pair(void)
     unordered_list_destroy(&ul, free_wrapper);
     unordered_list_destroy(&ul_2, free_wrapper);
 }
+//}}}
+
+//{{{ void test_unordered_list_store_c_str(void)
+void test_unordered_list_store_load_c_str(void)
+{
+    struct unordered_list *ul = unordered_list_init(5);
+
+    char *A[10];
+    asprintf(&(A[0]), "zero");
+    asprintf(&(A[1]), "one");
+    asprintf(&(A[2]), "two");
+    asprintf(&(A[3]), "three");
+    asprintf(&(A[4]), "four");
+    asprintf(&(A[5]), "five");
+    asprintf(&(A[6]), "six");
+    asprintf(&(A[7]), "seven");
+    asprintf(&(A[8]), "eight");
+    asprintf(&(A[9]), "nine");
+
+    uint32_t i;
+    for (i = 0; i < 10; ++i)
+        unordered_list_add(ul, A[i]);
+
+    for (i = 0; i < 10; ++i) {
+        char *s = unordered_list_get(ul, i);
+        TEST_ASSERT_TRUE(strcmp(A[i], s) == 0)
+    }
+
+    char *file_name = "test_unordered_list_store_load_c_str.dat";
+    FILE *f = fopen(file_name, "wb");
+
+    unordered_list_store(ul, f, file_name, c_str_store);
+
+    fclose(f);
+
+    f = fopen(file_name, "rb");
+
+    struct unordered_list *ul_2 = ordered_list_load(f,
+                                                    file_name,
+                                                    c_str_load);
+
+    for (i = 0; i < 10; ++i) {
+        char *s = unordered_list_get(ul, i);
+        char *s_2 = unordered_list_get(ul_2, i);
+        TEST_ASSERT_TRUE(strcmp(s, s_2) == 0)
+    }
+
+    unordered_list_destroy(&ul, free_wrapper);
+    unordered_list_destroy(&ul_2, free_wrapper);
+}
+//}}}
 
 //{{{void test_ordered_set_add(void)
 void test_ordered_set_add(void)
