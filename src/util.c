@@ -2,6 +2,7 @@
 #include <sysexits.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,3 +38,15 @@ int rmrf(char *path)
     return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
+int uint32_t_cmp(const void *_a, const void *_b)
+{
+    uint32_t *a = (uint32_t *)_a;
+    uint32_t *b = (uint32_t *)_b;
+
+    if (*a < *b)
+        return -1;
+    else if (*a > *b)
+        return 1;
+    else
+        return 0;
+}

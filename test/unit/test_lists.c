@@ -14,20 +14,6 @@
 void setUp(void) { }
 void tearDown(void) { }
 
-//{{{ int uint32_t_cmp(const void *a, const void *b)
-static int uint32_t_cmp(const void *a, const void *b)
-{
-    uint32_t _a = *((uint32_t *)a), _b = *((uint32_t *)b);
-
-    if (_a < _b)
-        return -1;
-    else if (_a > _b)
-        return 1;
-    else
-
-    return 0;
-}
-//}}}
 
 //{{{void test_unordered_list_init(void)
 void test_unordered_list_init(void)

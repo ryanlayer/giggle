@@ -12,3 +12,9 @@ INDEX=../../bin/index
 run usage_test $INDEX 
 assert_in_stderr "index: usage"
 assert_no_stdout 
+
+run usage_test $INDEX 
+assert_in_stderr "index: usage"
+assert_no_stdout 
+
+
