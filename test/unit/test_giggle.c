@@ -14,6 +14,7 @@
 #include "giggle.h"
 #include "lists.h"
 #include "file_read.h"
+#include "wah.h"
 
 void setUp(void) { }
 void tearDown(void) { }
@@ -540,8 +541,8 @@ void test_giggle_index_file(void)
 }
 //}}}
 
-//{{{void test_giggle_query_region(void)
-void test_giggle_query_region(void)
+//{{{ void test_uint32_t_ll_giggle_query_region(void)
+void test_uint32_t_ll_giggle_query_region(void)
 {
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
@@ -603,6 +604,79 @@ void test_giggle_query_region(void)
 
     uint32_t_ll_free((void **)&R);
 
+    free(chrm);
+    input_file_destroy(&i);
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
+//}}}
+
+//{{{void test_giggle_query_region(void)
+void test_wah_8_giggle_query_region(void)
+{
+    ORDER = 10;
+    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+    wah_8_giggle_set_data_handler();
+    struct giggle_index *gi = giggle_init_index(30);
+    char *file_name = "../data/1k.unsort.bed.gz";
+    uint32_t ret = giggle_index_file(gi, file_name);
+
+    uint8_t *R_bm = (uint8_t*)giggle_query_region(gi,
+                                                  "chr11",
+                                                  1000,
+                                                  3000000);
+    /*
+     * tabix 1k.sort.bed.gz chr11:1000-3000000
+     * chr11    575808  576604  .   1000    .   ...
+     * chr11    2950239 2952321 .   1000    .   ...
+     */
+
+    uint32_t *R = NULL;
+    uint32_t R_len = wah_get_ints_8(R_bm, &R);
+    TEST_ASSERT_EQUAL(2, R_len);
+
+    struct file_id_offset_pair *r = 
+        (struct file_id_offset_pair *)
+        unordered_list_get(gi->offset_index, R[0]);
+
+    struct input_file *i = input_file_init(unordered_list_get(gi->file_index,
+                                           r->file_id));
+
+    input_file_seek(i, r->offset);
+
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    uint32_t start, end;
+    long offset;
+            
+    int x = input_file_get_next_interval(i,
+                                        &chrm,
+                                        &chrm_len,
+                                        &start,
+                                        &end,
+                                        &offset);
+
+    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(575808, start);
+    TEST_ASSERT_EQUAL(576604, end);
+
+    r = (struct file_id_offset_pair *)
+            unordered_list_get(gi->offset_index, R[1]);
+    input_file_seek(i, r->offset);
+    x = input_file_get_next_interval(i,
+                                     &chrm,
+                                     &chrm_len,
+                                     &start,
+                                     &end,
+                                     &offset);
+
+    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(2950239, start);
+    TEST_ASSERT_EQUAL(2952321, end);
+
+
+    free(R);
+    free(R_bm);
     free(chrm);
     input_file_destroy(&i);
     giggle_index_destroy(&gi);
