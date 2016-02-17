@@ -728,6 +728,39 @@ bool bpt_write_tree(uint32_t domain, uint32_t root_id)
 }
 //}}}
 
+void bpt_print_node(struct bpt_node *node)
+{
+//BPT_NODE_NUM_ELEMENTS (2*ORDER+9)
+//BPT_NODE_ELEMENT_SIZE sizeof(uint32_t)
+//BPT_NODE_SIZE (BPT_NODE_NUM_ELEMENTS*BPT_NODE_ELEMENT_SIZE)
+
+    printf("BPT_ID:%u\t"
+           "BPT_PARENT:%u\t"
+           "BPT_IS_LEAF:%u\t"
+           "BPT_LEADING:%u\t"
+           "BPT_NEXT:%u\t"
+           "BPT_NUM_KEYS:%u\t"
+           "\n",
+            BPT_ID(node),
+            BPT_PARENT(node),
+            BPT_IS_LEAF(node),
+            BPT_LEADING(node),
+            BPT_NEXT(node),
+            BPT_NUM_KEYS(node));
+
+    uint32_t i;
+    for (i = 0; i < BPT_NUM_KEYS(node); ++i) {
+        if (i !=0 )
+            printf("\t");
+        printf("%u:%u", BPT_KEYS(node)[i], BPT_POINTERS(node)[i]);
+    }
+    printf("\n");
+
+//BPT_KEYS(node)
+//BPT_POINTERS(node)
+
+}
+
 #if 0
 //{{{
 ////{{{void bpt_write_tree(struct bpt_node *root,

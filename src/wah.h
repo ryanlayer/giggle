@@ -5,10 +5,13 @@
 #include "bpt.h"
 #include "giggle.h"
 
+#define BYTE 8
 #define WAH_LEN(W) ( ((uint32_t *)W)[0] )
-#define WAH_I(W,S,I) ( (W + sizeof(uint32_t) + (S/8)*I)[0] )
-#define WAH_VAL(W,S) ( (W >> (S-1)) == 1 ?  0 : W)
-#define WAH_NUM_WORDS(W,S) ( (W >> (S-1)) == 1 ?  W & ~(1<< (S-1)) : 1)
+#define WAH_VAL(W,S) ( ((W >> (S-1))&1) == 1 ?  0 : W)
+#define WAH_NUM_WORDS(W,S) ( ((W >> (S-1))&1) == 1 ?  W & ~(1<< (S-1)) : 1)
+
+uint32_t WAH_SIZE;
+uint32_t WAH_MAX_FILL_WORDS;
 
 uint8_t *wah_init(uint32_t word_size,
                   uint32_t val);
@@ -83,5 +86,7 @@ struct cache_handler wah_8_leading_cache_handler;
 void wah_8_giggle_set_data_handler();
 
 
+void set_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i);
+void get_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i);
 
 #endif

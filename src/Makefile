@@ -28,7 +28,8 @@ OBJS=$(addprefix $(OBJ)/, $(LIB))
 
 PROG=index_search \
      index \
-     search
+     search \
+     test
 
 
 LIST=$(addprefix $(BIN)/, $(PROG))

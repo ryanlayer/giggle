@@ -13,47 +13,69 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
+uint32_t WAH_SIZE = 32;
+uint32_t WAH_MAX_FILL_WORDS = 2147483647; //(1<<(WAH_SIZE-1)) - 1
+
+//{{{void set_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i)
+void set_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i)
+{
+    memcpy(W + sizeof(uint32_t) + i*(word_size/BYTE), v, word_size/BYTE);
+}
+//}}}
+
+//{{{void get_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i)
+void get_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i)
+{
+    memcpy(v,
+           W + sizeof(uint32_t) + i*(word_size/BYTE),
+           (word_size/BYTE));
+}
+//}}}
+
 //{{{uint8_t *wah_init_8(uint32_t val)
 uint8_t *wah_init_8(uint32_t val)
 {
-    uint32_t bits_per_word = 7;
+    uint32_t bits_per_word = WAH_SIZE - 1;
     uint32_t num_words = (val + bits_per_word - 1) / bits_per_word;
     // the max number of words 8-bit fill word and represent is 
     // 2**7 - 1 = 127
-    uint32_t len = 1 + (num_words > 1 ? (num_words + 127 - 1)/127 : 0);
-    uint8_t *w = (uint8_t *)malloc(sizeof(uint32_t) + (len*sizeof(uint8_t)));
-
+    // LEN, and WAH_LEN is the number of words, it is independent of word size
+    uint32_t len = 1 + (num_words > 1 ? 
+            (num_words + WAH_MAX_FILL_WORDS - 1)/WAH_MAX_FILL_WORDS : 0);
+    uint8_t *w = (uint8_t *)malloc(sizeof(uint32_t) + 
+                    (len * (WAH_SIZE/BYTE)  * sizeof(uint8_t)));
     WAH_LEN(w) = len;
 
-    uint32_t i = 0;
+    uint32_t v, i = 0;
     uint32_t saved_words;
     while (val > bits_per_word) {
-        saved_words = MIN(num_words - 1, 127);
-        WAH_I(w,8,i) = (1 << bits_per_word) + (saved_words);
+        saved_words = MIN(num_words - 1, WAH_MAX_FILL_WORDS);
+        //WAH_I(w, WAH_SIZE, i) = (1 << (bits_per_word-10)) | (saved_words);
+        v = (1 << (bits_per_word)) + (saved_words);
+        //fprintf(stderr, "%u\n", v);
+        set_wah_i(w, &v, WAH_SIZE, i);
         val -= saved_words * bits_per_word;
         num_words -= saved_words;
         i+=1;
     }
 
-    if (val > 0)
-        WAH_I(w,8,i) =  1 << ( bits_per_word - val);
-    else
-        WAH_I(w,8,i) =  0;
+    if (val > 0) {
+        //WAH_I(w, WAH_SIZE, i) =  1 << ( bits_per_word - val);
+        v = 1 << ( bits_per_word - val);
+        //fprintf(stderr, "%u\n", v);
+        set_wah_i(w, &v, WAH_SIZE, i);
+    } else {
+        //WAH_I(w, WAH_SIZE,i) =  0;
+        v = 0;
+        //fprintf(stderr, "%u\n", v);
+        set_wah_i(w, &v, WAH_SIZE, i);
+    }
 
     return w;
 }
 //}}}
 
-//{{{uint8_t *wah_init(uint32_t word_size,
-uint8_t *wah_init(uint32_t word_size,
-                  uint32_t val)
-{
-    if (word_size == 8)
-        return wah_init_8(val);
-    return NULL;
-}
-//}}}
-
+//{{{uint8_t *wah_8_copy(uint8_t *w)
 uint8_t *wah_8_copy(uint8_t *w)
 {
     if (w == NULL)
@@ -62,67 +84,79 @@ uint8_t *wah_8_copy(uint8_t *w)
     if (WAH_LEN(w) == 0)
         return NULL;
 
-    uint32_t R_size = sizeof(uint32_t) + (WAH_LEN(w)*sizeof(uint8_t));
+    uint32_t R_size = sizeof(uint32_t) + 
+            (WAH_LEN(w) * (WAH_SIZE/BYTE) * sizeof(uint8_t));
     uint8_t *R = (uint8_t *)malloc(R_size);
     memcpy(R, w, R_size);
 
     return R;
 }
+//}}}
 
 //{{{ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 {
     uint32_t R_i = 0, X_i = 0, Y_i = 0;
-    uint8_t x, y;
+    uint32_t x, y;
+    //uint8_t x, y;
     uint32_t x_size, y_size, r_size, y_done = 0, x_done = 0;
     uint32_t X_len = WAH_LEN(X), Y_len = WAH_LEN(Y);
     uint32_t R_len = X_len + Y_len;
     uint32_t reset_R = 0;
 
     if (*R == NULL) {
-        *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+        //fprintf(stderr, "reset_R A\n");
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
         *R = (uint8_t *)malloc(*R_size);
         memset(*R, 0, *R_size);
         reset_R = 1;
-    } else if (*R_size < sizeof(uint32_t) + (R_len*sizeof(uint8_t))) {
+    } else if (*R_size < sizeof(uint32_t) + 
+            (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t))) {
+        /*
+        fprintf(stderr, "reset_R B\tR_size:%u\t%lu\n",
+                *R_size,
+                sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t)));
+        */
         free(*R);
-        *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
         *R = (uint8_t *)malloc(*R_size);
         memset(*R, 0, *R_size);
         reset_R = 1;
     }
 
-    x = WAH_I(X, 8, X_i);
-    y = WAH_I(Y, 8, Y_i);
+    get_wah_i(X, &x, WAH_SIZE, X_i);
+    get_wah_i(Y, &y, WAH_SIZE, Y_i);
 
-    x_size = WAH_NUM_WORDS(x, 8);
-    y_size = WAH_NUM_WORDS(y, 8);
+    x_size = WAH_NUM_WORDS(x, WAH_SIZE);
+    y_size = WAH_NUM_WORDS(y, WAH_SIZE);
 
-    uint8_t v;
+    uint32_t v;
     while (1) {
         r_size = MIN(x_size, y_size);
 
-        if (r_size > 1) 
-            v = (uint8_t) ((1<< 7) + r_size);
-        else
-            v = (uint8_t) (WAH_VAL(x,8) | WAH_VAL(y, 8));
+        if (r_size > 1)  {
+            v = ((1<< (WAH_SIZE - 1)) + r_size);
+        } else {
+            v = WAH_VAL(x, WAH_SIZE) | WAH_VAL(y, WAH_SIZE);
+        }
 
         // Grow R if we need to
-        if (sizeof(uint32_t) + R_i*sizeof(uint8_t) == *R_size) {
+        if (sizeof(uint32_t) + R_i*(WAH_SIZE/BYTE)*sizeof(uint8_t) == *R_size) {
             uint32_t old_len = R_len;
             reset_R = 1;
             R_len = R_len * 2;
-            *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+            *R_size = sizeof(uint32_t) + 
+                    (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
             *R = (uint8_t *) realloc(*R, *R_size);
-            memset(*R + sizeof(uint32_t) + (old_len * sizeof(uint8_t)),
+            memset(*R + sizeof(uint32_t) + 
+                    (old_len*(WAH_SIZE/BYTE)*sizeof(uint8_t)),
                    0,
-                   old_len * sizeof(uint8_t) );
+                   old_len*(WAH_SIZE/BYTE)*sizeof(uint8_t) );
         }
 
-        WAH_I(*R, 8, R_i) = (uint8_t) v;
+        //WAH_I(*R, WAH_SIZE, R_i) = (uint8_t) v;
+        set_wah_i(*R, &v, WAH_SIZE, R_i);
         R_i += 1;
-
-        //fprintf(stderr, "%" PRIu8 "\n", v);
 
         x_size -= r_size;
         y_size -= r_size;
@@ -133,8 +167,10 @@ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
                 x_done = 1;
                 x = 0;
             } else {
-                x = WAH_I(X, 8, X_i);
-                x_size = WAH_NUM_WORDS(x, 8);
+                //x = WAH_I(X, 8, X_i);
+                x = 0;
+                get_wah_i(X, &x, WAH_SIZE, X_i);
+                x_size = WAH_NUM_WORDS(x, WAH_SIZE);
             }
         }
 
@@ -144,8 +180,10 @@ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
                 y_done = 1;
                 y = 0;
             } else {
-                y = WAH_I(Y, 8, Y_i);
-                y_size = WAH_NUM_WORDS(y, 8);
+                //y = WAH_I(Y, WAH_SIZE, Y_i);
+                y = 0;
+                get_wah_i(Y, &y, WAH_SIZE, Y_i);
+                y_size = WAH_NUM_WORDS(y, WAH_SIZE);
             }
         }
 
@@ -160,7 +198,7 @@ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
     R_len = R_i;
     WAH_LEN(*R) = R_len;
     if (reset_R == 1) {
-        *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
         *R = (uint8_t *)realloc(*R, *R_size);
     }
 
@@ -168,60 +206,67 @@ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 }
 //}}}
 
-//{{{ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
+//{{{ uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 {
     uint32_t R_i = 0, X_i = 0, Y_i = 0;
-    uint8_t x, y;
+    uint32_t x, y;
     uint32_t x_size, y_size, r_size, y_done = 0, x_done = 0;
     uint32_t X_len = WAH_LEN(X), Y_len = WAH_LEN(Y);
     uint32_t R_len = X_len + Y_len;
     uint32_t reset_R = 0;
 
     if (*R == NULL) {
-        *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
         *R = (uint8_t *)malloc(*R_size);
         memset(*R, 0, *R_size);
         reset_R = 1;
-    } else if (*R_size < sizeof(uint32_t) + (R_len*sizeof(uint8_t))) {
+    } else if (*R_size < sizeof(uint32_t) + 
+            (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t))) {
         free(*R);
-        *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
         *R = (uint8_t *)malloc(*R_size);
         memset(*R, 0, *R_size);
         reset_R = 1;
     }
 
-    x = WAH_I(X, 8, X_i);
-    y = WAH_I(Y, 8, Y_i);
+    //x = WAH_I(X, WAH_SIZE, X_i);
+    get_wah_i(X, &x, WAH_SIZE, X_i);
+    //y = WAH_I(Y, WAH_SIZE, Y_i);
+    get_wah_i(Y, &y, WAH_SIZE, Y_i);
 
-    x_size = WAH_NUM_WORDS(x, 8);
-    y_size = WAH_NUM_WORDS(y, 8);
+    x_size = WAH_NUM_WORDS(x, WAH_SIZE);
+    y_size = WAH_NUM_WORDS(y, WAH_SIZE);
 
-    uint8_t v;
+    uint32_t v;
     while (1) {
         r_size = MIN(x_size, y_size);
 
-        if (r_size > 1) 
-            v = (uint8_t) ((1<< 7) + r_size);
-        else
-            v = (uint8_t) (WAH_VAL(x,8) & ~(WAH_VAL(y, 8)));
+        if (r_size > 1)  {
+            v = ((1<< (WAH_SIZE - 1)) + r_size);
+            //v = (uint8_t) ((1<< (WAH_SIZE - 1)) + r_size);
+        } else {
+            v = (WAH_VAL(x, WAH_SIZE) & ~(WAH_VAL(y, WAH_SIZE)));
+            //v = (uint8_t) (WAH_VAL(x, WAH_SIZE) | WAH_VAL(y, WAH_SIZE));
+        }
 
         // Grow R if we need to
-        if (sizeof(uint32_t) + R_i*sizeof(uint8_t) == *R_size) {
+        if (sizeof(uint32_t) + R_i*(WAH_SIZE/BYTE)*sizeof(uint8_t) == *R_size) {
             uint32_t old_len = R_len;
             reset_R = 1;
             R_len = R_len * 2;
-            *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+            *R_size = sizeof(uint32_t) + 
+                    (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
             *R = (uint8_t *) realloc(*R, *R_size);
-            memset(*R + sizeof(uint32_t) + (old_len * sizeof(uint8_t)),
+            memset(*R + sizeof(uint32_t) + 
+                    (old_len*(WAH_SIZE/BYTE)*sizeof(uint8_t)),
                    0,
-                   old_len * sizeof(uint8_t) );
+                   old_len*(WAH_SIZE/BYTE)*sizeof(uint8_t) );
         }
 
-        WAH_I(*R, 8, R_i) = (uint8_t) v;
+        //WAH_I(*R, WAH_SIZE, R_i) = (uint8_t) v;
+        set_wah_i(*R, &v, WAH_SIZE, R_i);
         R_i += 1;
-
-        //fprintf(stderr, "%" PRIu8 "\n", v);
 
         x_size -= r_size;
         y_size -= r_size;
@@ -232,8 +277,10 @@ uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
                 x_done = 1;
                 x = 0;
             } else {
-                x = WAH_I(X, 8, X_i);
-                x_size = WAH_NUM_WORDS(x, 8);
+                //x = WAH_I(X, 8, X_i);
+                x = 0;
+                get_wah_i(X, &x, WAH_SIZE, X_i);
+                x_size = WAH_NUM_WORDS(x, WAH_SIZE);
             }
         }
 
@@ -243,8 +290,10 @@ uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
                 y_done = 1;
                 y = 0;
             } else {
-                y = WAH_I(Y, 8, Y_i);
-                y_size = WAH_NUM_WORDS(y, 8);
+                //y = WAH_I(Y, WAH_SIZE, Y_i);
+                y = 0;
+                get_wah_i(Y, &y, WAH_SIZE, Y_i);
+                y_size = WAH_NUM_WORDS(y, WAH_SIZE);
             }
         }
 
@@ -259,7 +308,7 @@ uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
     R_len = R_i;
     WAH_LEN(*R) = R_len;
     if (reset_R == 1) {
-        *R_size = sizeof(uint32_t) + (R_len*sizeof(uint8_t));
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
         *R = (uint8_t *)realloc(*R, *R_size);
     }
 
@@ -270,40 +319,45 @@ uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 //{{{ uint32_t wah_get_ints_8(uint8_t *X, uint32_t **R)
 uint32_t wah_get_ints_8(uint8_t *X, uint32_t **R)
 {
-    uint8_t x;
+    //uint8_t x;
+    uint32_t x;
     uint32_t x_i_size, x_size = 0;
     uint32_t X_len = WAH_LEN(X);
     uint32_t R_len = 0;
 
     uint32_t i;
     for (i = 0; i < X_len; ++i) {
-        x = WAH_I(X, 8, i);
-        x_i_size = WAH_NUM_WORDS(x, 8);
-
+        //x = WAH_I(X, WAH_SIZE, i);
+        x = 0;
+        get_wah_i(X, &x, WAH_SIZE, i);
+        x_i_size = WAH_NUM_WORDS(x, WAH_SIZE);
         if (x_i_size == 1)
             R_len +=  __builtin_popcount(x);
 
-        x_size += x_i_size * 7;
+        x_size += x_i_size * (WAH_SIZE - 1);
     }
 
-    uint32_t diff = (sizeof(unsigned int)/sizeof(uint8_t) - 1)*8;
+    //__builtin_clz(x) takes in a unsigned int, so on smaller
+    //types it will count extra zeros, diff counts how many extra there are 
+    uint32_t diff = ((sizeof(unsigned int)*BYTE)/WAH_SIZE - 1)*WAH_SIZE;
     uint32_t offset = 0;
 
     *R = (uint32_t*)calloc(R_len, sizeof(uint32_t));
     uint32_t R_i = 0;
     x_size = 0;
     for (i = 0; i < X_len; ++i) {
-        x = WAH_I(X, 8, i);
-        x_i_size = WAH_NUM_WORDS(x, 8);
+        x = 0;
+        get_wah_i(X, &x, WAH_SIZE, i);
+        x_i_size = WAH_NUM_WORDS(x, WAH_SIZE);
         if ( x_i_size == 1 ) {
             while (x != 0) {
                 offset = __builtin_clz(x) - diff;
                 (*R)[R_i] = offset + x_size;
                 R_i += 1;
-                x &= ~(1 << (8-1-offset));
+                x &= ~(1 << (WAH_SIZE-1-offset));
             }
         }
-        x_size += x_i_size * 7;
+        x_size += x_i_size * (WAH_SIZE - 1);
     }
     return R_len;
 }
@@ -319,8 +373,12 @@ uint32_t wah_get_ints_count_8(uint8_t *X)
 
     uint32_t i;
     for (i = 0; i < X_len; ++i) {
-        x = WAH_I(X, 8, i);
-        x_i_size = WAH_NUM_WORDS(x, 8);
+
+        //x = WAH_I(X, WAH_SIZE, i);
+        x = 0;
+        get_wah_i(X, &x, WAH_SIZE, i);
+
+        x_i_size = WAH_NUM_WORDS(x, WAH_SIZE);
 
         if (x_i_size == 1)
             R_len +=  __builtin_popcount(x);
@@ -333,7 +391,7 @@ uint32_t wah_get_ints_count_8(uint8_t *X)
 //{{{void wah_8_uniq_append(uint8_t **w, uint32_t id)
 void wah_8_uniq_append(uint8_t **w, uint32_t id)
 {
-    uint8_t *w_id = wah_init(8, id);
+    uint8_t *w_id = wah_init_8(id);
 
     if (*w == NULL) {
         *w = w_id;
@@ -355,7 +413,7 @@ void wah_8_leading_repair(uint32_t domain,
                           struct bpt_node *b)
 {
 #if DEBUG
-    fprintf(stderr, "leading_repair\n");
+    fprintf(stderr, "START leading_repair\n");
 #endif
 
     if ( (BPT_IS_LEAF(a) == 1) && (BPT_IS_LEAF(b) == 1) ) {
@@ -373,7 +431,20 @@ void wah_8_leading_repair(uint32_t domain,
                     cache.get(domain,
                               BPT_LEADING(a) - 1,
                               &wah_8_leading_cache_handler);
-
+#if DEBUG
+            uint32_t *R = NULL, R_size;
+            uint32_t j;
+            fprintf(stderr, "LEADING\t");
+            if (l->B != NULL) {
+                R_size = wah_get_ints_8(l->B, &R);
+                fprintf(stderr, "R_size:%u\t", R_size);
+                for (j = 0; j < R_size; ++j)
+                    fprintf(stderr, "R[%u]:%u\t", j, R[j]);
+                free(R);
+                R = NULL;
+            }
+            fprintf(stderr, "\n");
+#endif
             d->B = wah_8_copy(l->B);
         }
 
@@ -383,6 +454,32 @@ void wah_8_leading_repair(uint32_t domain,
                     cache.get(domain,
                               BPT_POINTERS(a)[i] - 1,
                               &wah_8_non_leading_cache_handler);
+
+#if DEBUG
+            uint32_t *R = NULL, R_size;
+            uint32_t j;
+
+            fprintf(stderr, "%u\tSA\t",BPT_KEYS(a)[i]);
+            if (nl->SA != NULL) {
+                R_size = wah_get_ints_8(nl->SA, &R);
+                fprintf(stderr, "R_size:%u\t", R_size);
+                for (j = 0; j < R_size; ++j)
+                    fprintf(stderr, "R[%u]:%u\t", j, R[j]);
+                free(R);
+                R = NULL;
+            }
+            fprintf(stderr, "\n");
+            fprintf(stderr, "SE\t");
+            if (nl->SE != NULL) {
+                R_size = wah_get_ints_8(nl->SE, &R);
+                fprintf(stderr, "R_size:%u\t", R_size);
+                for (j = 0; j < R_size; ++j)
+                    fprintf(stderr, "R[%u]:%u\t", j, R[j]);
+                free(R);
+                R = NULL;
+            }
+            fprintf(stderr, "\n");
+#endif
 
             wah_8_non_leading_union_with_SA_subtract_SE(domain,
                                                         (void **)(&d->B),
@@ -399,6 +496,10 @@ void wah_8_leading_repair(uint32_t domain,
             free(d);
         }
     }
+
+#if DEBUG
+    fprintf(stderr, "END leading_repair\n");
+#endif
 }
 //}}}
 
@@ -472,7 +573,8 @@ void wah_8_non_leading_SA_add_scalar(uint32_t domain,
     fprintf(stderr, "id:%u\n", *id);
 #endif
 
-    wah_8_uniq_append(&(nld->SA), *id);
+    // We need to add 1 here b/c we cannot store zero
+    wah_8_uniq_append(&(nld->SA), *id + 1);
 }
 //}}}
 
@@ -492,7 +594,8 @@ void wah_8_non_leading_SE_add_scalar(uint32_t domain,
     fprintf(stderr, "id:%u\n", *id);
 #endif
 
-    wah_8_uniq_append(&(nld->SE), *id);
+    // We need to add 1 here b/c we cannot store zero
+    wah_8_uniq_append(&(nld->SE), *id + 1);
 }
 //}}}
 
@@ -512,7 +615,8 @@ void wah_8_leading_B_add_scalar(uint32_t domain,
     fprintf(stderr, "id:%u\n", *id);
 #endif
 
-    wah_8_uniq_append(&(ld->B), *id);
+    // We need to add 1 here b/c we cannot store zero
+    wah_8_uniq_append(&(ld->B), *id + 1);
 }
 //}}}
 
@@ -625,10 +729,12 @@ uint64_t wah_8_non_leading_serialize(void *deserialized,
     uint32_t SA_len = 0, SE_len = 0, serialized_len;
 
     if (d->SA != NULL)
-        SA_len = sizeof(uint32_t) + WAH_LEN(d->SA)*sizeof(uint8_t);
+        SA_len = sizeof(uint32_t) + 
+            WAH_LEN(d->SA)*(WAH_SIZE/BYTE)*sizeof(uint8_t);
 
     if (d->SE != NULL)
-        SE_len = sizeof(uint32_t) + WAH_LEN(d->SE)*sizeof(uint8_t);
+        SE_len = sizeof(uint32_t) + 
+            WAH_LEN(d->SE)*(WAH_SIZE/BYTE)*sizeof(uint8_t);
 
     serialized_len = 2*sizeof(uint32_t) + SA_len + SE_len;
 
@@ -683,7 +789,8 @@ uint64_t wah_8_non_leading_deserialize(void *serialized,
     uint32_t *data_u32 = (uint32_t *)serialized;
 
     if ( 2*sizeof(uint32_t) + 
-         (data_u32[0]+data_u32[1])*sizeof(uint8_t) != serialized_size)
+         (data_u32[0]+data_u32[1])*sizeof(uint8_t) != 
+         serialized_size)
         errx(1,
              "Malformed wah_8_non_leading serialized value. "
              "Incorrect serialized_size.");
@@ -749,7 +856,8 @@ uint64_t wah_8_leading_serialize(void *deserialized,
     uint32_t B_len = 0, serialized_len;
 
     if (d->B != NULL)
-        B_len = sizeof(uint32_t) + WAH_LEN(d->B)*sizeof(uint8_t);
+        B_len = sizeof(uint32_t) + 
+                WAH_LEN(d->B)*(WAH_SIZE/BYTE)*sizeof(uint8_t);
 
     serialized_len = sizeof(uint32_t) + B_len;
 
@@ -777,7 +885,6 @@ uint64_t wah_8_leading_serialize(void *deserialized,
     return serialized_len; 
 }
 //}}}
-
 
 //{{{uint64_t wah_8_leading_deserialize(void *serialized,
 uint64_t wah_8_leading_deserialize(void *serialized,
@@ -831,4 +938,111 @@ void wah_8_leading_free(void **deserialized)
 //}}}
 //}}}
 
+#if 0
+//{{{ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
+uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
+{
+    uint32_t R_i = 0, X_i = 0, Y_i = 0;
+    uint32_t x, y;
+    uint32_t x_size, y_size, r_size, y_done = 0, x_done = 0;
+    uint32_t X_len = WAH_LEN(X), Y_len = WAH_LEN(Y);
+    uint32_t R_len = X_len + Y_len;
+    uint32_t reset_R = 0;
 
+    if (*R == NULL) {
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
+        *R = (uint8_t *)malloc(*R_size);
+        memset(*R, 0, *R_size);
+        reset_R = 1;
+    } else if (*R_size < sizeof(uint32_t) + 
+            (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t))) {
+        free(*R);
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
+        *R = (uint8_t *)malloc(*R_size);
+        memset(*R, 0, *R_size);
+        reset_R = 1;
+    }
+
+    //x = WAH_I(X, WAH_SIZE, X_i);
+    get_wah_i(X, &x, WAH_SIZE, X_i);
+    //y = WAH_I(Y, WAH_SIZE, Y_i);
+    get_wah_i(Y, &y, WAH_SIZE, Y_i);
+
+    x_size = WAH_NUM_WORDS(x, WAH_SIZE);
+    y_size = WAH_NUM_WORDS(y, WAH_SIZE);
+    
+    uint32_t v;
+    while (1) {
+        r_size = MIN(x_size, y_size);
+
+        if (r_size > 1) 
+            v = ((1<< (WAH_SIZE-1)) + r_size);
+        else
+            v = (WAH_VAL(x, WAH_SIZE) & ~(WAH_VAL(y, WAH_SIZE)));
+
+        // Grow R if we need to
+        if (sizeof(uint32_t) + R_i*(WAH_SIZE/BYTE)*sizeof(uint8_t) == *R_size) {
+            uint32_t old_len = R_len;
+            reset_R = 1;
+            R_len = R_len * 2;
+            *R_size = sizeof(uint32_t) + 
+                    (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
+            *R = (uint8_t *) realloc(*R, *R_size);
+            memset(*R + sizeof(uint32_t) + 
+                        (old_len*(WAH_SIZE/BYTE)*sizeof(uint8_t)),
+                   0,
+                   old_len*(WAH_SIZE/BYTE)*sizeof(uint8_t) );
+        }
+
+        //WAH_I(*R, WAH_SIZE, R_i) = (uint8_t) v;
+        set_wah_i(*R, &v, WAH_SIZE, R_i);
+        R_i += 1;
+
+        x_size -= r_size;
+        y_size -= r_size;
+
+        if ((x_size == 0) && (x_done == 0)) {
+            X_i += 1;
+            if (X_i == X_len) {
+                x_done = 1;
+                x = 0;
+            } else {
+                //x = WAH_I(X, WAH_SIZE, X_i);
+                x = 0;
+                set_wah_i(X, &x, WAH_SIZE, X_i);
+                x_size = WAH_NUM_WORDS(x, WAH_SIZE);
+            }
+        }
+
+        if ((y_size == 0) && (y_done == 0)) {
+            Y_i += 1;
+            if (Y_i == Y_len) {
+                y_done = 1;
+                y = 0;
+            } else {
+                //y = WAH_I(Y, WAH_SIZE, Y_i);
+                y = 0;
+                set_wah_i(Y, &y, WAH_SIZE, Y_i);
+                y_size = WAH_NUM_WORDS(y, WAH_SIZE);
+            }
+        }
+
+        if ((x_done == 1) && (y_done == 1))
+            break;
+        else if (x_done == 1)
+            x_size = y_size;
+        else if (y_done == 1)
+            y_size = x_size;
+    }
+
+    R_len = R_i;
+    WAH_LEN(*R) = R_len;
+    if (reset_R == 1) {
+        *R_size = sizeof(uint32_t) + (R_len*(WAH_SIZE/BYTE)*sizeof(uint8_t));
+        *R = (uint8_t *)realloc(*R, *R_size);
+    }
+
+    return reset_R;
+}
+//}}}
+#endif

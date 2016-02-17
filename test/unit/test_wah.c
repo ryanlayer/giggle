@@ -5,145 +5,67 @@
 #include <inttypes.h>
 #include <string.h>
 #include <inttypes.h>
+#include <err.h>
 
 
 #include "wah.h"
 #include "unity.h"
+#include "util.h"
 
 void setUp(void) { }
 void tearDown(void) { }
 
-//{{{ uint32_t bin_char_to_int(char *bin)
-uint32_t bin_char_to_int(char *bin)
+//{{{ void test_wah_or_8(void)
+void run_test_wah_or_8(uint32_t word_size)
 {
-    uint32_t i = 0;
-    int j = 0;
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
 
-    while (bin[j] != '\0') {
-        i = i << 1;
-        if (bin[j] == '1')
-            i += 1;
-        j+=1;
+    uint32_t size = 10;
+
+    uint8_t **W = (uint8_t **)calloc(size, sizeof(uint8_t *));
+    uint32_t *V = (uint32_t *)calloc(size, sizeof(uint32_t));
+
+    uint32_t R_size, *R = NULL;
+
+    uint32_t i;
+    for (i = 0; i < size; ++i) {
+        V[i] = rand();
+        W[i] = wah_init_8(V[i]);
+
+        TEST_ASSERT_EQUAL(1, wah_get_ints_8(W[i], &R));
+        TEST_ASSERT_EQUAL(V[i], R[0]);
+
+        free(R);
+        R=NULL;
     }
 
-    return i;
+    uint8_t *w = W[0];
+    uint8_t *r[2] = {NULL, NULL};
+    uint32_t r_size;
+
+    for (i = 1; i < size; ++i) {
+        uint32_t resize = wah_or_8(w, W[i], &(r[i%2]), &r_size);
+        w = r[i%2];
+
+        TEST_ASSERT_EQUAL(i + 1, wah_get_ints_8(w, &R));
+        free(R);
+        R=NULL;
+    }
+
+    TEST_ASSERT_EQUAL(10, wah_get_ints_8(w, &R));
 }
+
+//void test_wah_or_8(void) { run_test_wah_or_8(8); }
+//void test_wah_or_16(void) { run_test_wah_or_8(16); }
+void test_wah_or_32(void) { run_test_wah_or_8(32); }
 //}}}
 
-//{{{ void test_wah_init(void)
-void test_wah_init(void)
+//{{{ void test_wah_nand_8(uint32_t word_size)
+void run_test_wah_nand_8(uint32_t word_size)
 {
-    uint8_t *w = wah_init(8, 0);
-    TEST_ASSERT_EQUAL(1,WAH_LEN(w));
-    uint8_t v = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(bin_char_to_int("00000000"),v);
-    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(v,8));
-    free(w);
-
-    w = wah_init(8, 1);
-    TEST_ASSERT_EQUAL(1,WAH_LEN(w));
-    v = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(bin_char_to_int("01000000"),v);
-    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(v,8));
-    free(w);
-
-    w = wah_init(8, 8);
-    TEST_ASSERT_EQUAL(2,WAH_LEN(w));
-    v = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(bin_char_to_int("10000001"),v);
-    TEST_ASSERT_EQUAL(0, WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(v,8));
-    v = WAH_I(w,8,1);
-    TEST_ASSERT_EQUAL(bin_char_to_int("01000000"),v);
-    TEST_ASSERT_EQUAL(bin_char_to_int("01000000"), WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(v,8));
-    free(w);
-
-    w = wah_init(8, 15);
-    TEST_ASSERT_EQUAL(2,WAH_LEN(w));
-    v = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(bin_char_to_int("10000010"),v);
-    TEST_ASSERT_EQUAL(0, WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(2, WAH_NUM_WORDS(v,8));
-    v = WAH_I(w,8,1);
-    TEST_ASSERT_EQUAL(bin_char_to_int("01000000"),v);
-    TEST_ASSERT_EQUAL(bin_char_to_int("01000000"), WAH_VAL(v,8));
-    free(w);
-
-    w = wah_init(8, 17);
-    TEST_ASSERT_EQUAL(2,WAH_LEN(w));
-    v = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(bin_char_to_int("10000010"),v);
-    TEST_ASSERT_EQUAL(0, WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(2, WAH_NUM_WORDS(v,8));
-    v = WAH_I(w,8,1);
-    TEST_ASSERT_EQUAL(bin_char_to_int("00010000"),v);
-    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(v,8));
-    free(w);
-
-    w = wah_init(8, 1000);
-    TEST_ASSERT_EQUAL(3,WAH_LEN(w));
-    v = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(bin_char_to_int("11111111"),v);
-    TEST_ASSERT_EQUAL(0, WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(127, WAH_NUM_WORDS(v,8));
-    v = WAH_I(w,8,1);
-    TEST_ASSERT_EQUAL(bin_char_to_int("10001111"),v);
-    TEST_ASSERT_EQUAL(0, WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(15, WAH_NUM_WORDS(v,8));
-    v = WAH_I(w,8,2);
-    TEST_ASSERT_EQUAL(bin_char_to_int("00000010"),v);
-    TEST_ASSERT_EQUAL(2, WAH_VAL(v,8));
-    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(v,8));
-
-    v = 14;
-    WAH_I(w,8,0) = (uint8_t)v;
-    v++;
-    WAH_I(w,8,1) = (uint8_t)v;
-    v++;
-    WAH_I(w,8,2) = (uint8_t)v;
-    uint8_t u = WAH_I(w,8,0);
-    TEST_ASSERT_EQUAL(14, u);
-    u = WAH_I(w,8,1);
-    TEST_ASSERT_EQUAL(15, u);
-    u = WAH_I(w,8,2);
-    TEST_ASSERT_EQUAL(16, u);
-
-    free(w);
-}
-//}}}
-
-//{{{void test_wah_8_copy(void)
-void test_wah_8_copy(void)
-{
-    uint8_t *o = NULL;
-    wah_8_uniq_append(&o, rand());
-    wah_8_uniq_append(&o, rand());
-    wah_8_uniq_append(&o, rand());
-    wah_8_uniq_append(&o, rand());
-
-    uint8_t *c = wah_8_copy(o);
-    TEST_ASSERT_EQUAL(WAH_LEN(o), WAH_LEN(c));
-
-    uint32_t *R_o = NULL, *R_c = NULL;
-    TEST_ASSERT_EQUAL(4, wah_get_ints_8(o, &R_o));
-    TEST_ASSERT_EQUAL(4, wah_get_ints_8(c, &R_c));
-
-    TEST_ASSERT_EQUAL(R_o[0], R_c[0]);
-    TEST_ASSERT_EQUAL(R_o[1], R_c[1]);
-    TEST_ASSERT_EQUAL(R_o[2], R_c[2]);
-    TEST_ASSERT_EQUAL(R_o[3], R_c[3]);
-
-    free(R_o);
-    free(R_c);
-    free(o);
-    free(c);
-}
-//}}}
-
-//{{{ void test_wah_or_8(void)
-void test_wah_or_8(void)
-{
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
     /*
      * 150: 2 10010101 00010000
      *        149      16
@@ -157,104 +79,29 @@ void test_wah_or_8(void)
      *
      */
 
-    uint8_t *w = wah_init(8, 150);
-    uint8_t *u = wah_init(8, 100);
-    uint8_t *x = wah_init(8, 1);
+    uint8_t *w = wah_init_8( 150);
+    uint8_t *u = wah_init_8( 100);
+    uint8_t *x = wah_init_8( 1);
+    uint8_t *y = wah_init_8( 3);
+    uint8_t *z = wah_init_8( 6);
 
     uint8_t *r = NULL;
-    uint32_t r_size = 0;
-    uint32_t resize = wah_or_8(w, u, &r, &r_size);
-    TEST_ASSERT_EQUAL(1,resize);
-    TEST_ASSERT_EQUAL(4,WAH_LEN(r));
-
-    uint8_t v = WAH_I(r,8,0);
-    TEST_ASSERT_EQUAL(142, v);
-    v = WAH_I(r,8,1);
-    TEST_ASSERT_EQUAL(32, v);
-    v = WAH_I(r,8,2);
-    TEST_ASSERT_EQUAL(134, v);
-    v = WAH_I(r,8,3);
-    TEST_ASSERT_EQUAL(16, v);
-
-    uint8_t *r_2 = NULL;
-    resize = wah_or_8(r, x, &r_2, &r_size);
-    /*
-     * 10001110 00100000 10000110 00010000
-     * 142      32       134      16
-     * 01000000
-     * 64
-     *
-     * 01000000 10001101 00100000 10000110 00010000
-     * 64       141      32       134      16
-     */
-    TEST_ASSERT_EQUAL(5,WAH_LEN(r_2));
-    v = WAH_I(r_2,8,0);
-    TEST_ASSERT_EQUAL(64, v);
-    v = WAH_I(r_2,8,1);
-    TEST_ASSERT_EQUAL(141, v);
-    v = WAH_I(r_2,8,2);
-    TEST_ASSERT_EQUAL(32, v);
-    v = WAH_I(r_2,8,3);
-    TEST_ASSERT_EQUAL(134, v);
-    v = WAH_I(r_2,8,4);
-    TEST_ASSERT_EQUAL(16, v);
-
     uint8_t *r_3 = NULL;
-    resize = wah_or_8(r_2, r_2, &r_3, &r_size);
-    TEST_ASSERT_EQUAL(5,WAH_LEN(r_3));
-    v = WAH_I(r_3,8,0);
-    TEST_ASSERT_EQUAL(64, v);
-    v = WAH_I(r_3,8,1);
-    TEST_ASSERT_EQUAL(141, v);
-    v = WAH_I(r_3,8,2);
-    TEST_ASSERT_EQUAL(32, v);
-    v = WAH_I(r_3,8,3);
-    TEST_ASSERT_EQUAL(134, v);
-    v = WAH_I(r_3,8,4);
-    TEST_ASSERT_EQUAL(16, v);
-
-    free(w);
-    free(u);
-    free(x);
-    free(r);
-    free(r_2);
-    free(r_3);
-}
-//}}}
-
-//{{{ void test_wah_or_8(void)
-void test_wah_nand_8(void)
-{
-    /*
-     * 150: 2 10010101 00010000
-     *        149      16
-     * 100: 2 10001110 00100000
-     *        142      32
-     *
-     * 150 | 100
-     *
-     * 10001110 00100000 10000110 00010000
-     * 142      32       134      16
-     *
-     */
-
-    uint8_t *w = wah_init(8, 150);
-    uint8_t *u = wah_init(8, 100);
-    uint8_t *x = wah_init(8, 1);
-    uint8_t *y = wah_init(8, 3);
-    uint8_t *z = wah_init(8, 6);
-
-    uint8_t *r = NULL;
-    uint32_t r_size = 0;
-    uint32_t resize = wah_or_8(w, u, &r, &r_size);
     uint8_t *r_2 = NULL;
+    uint32_t r_size = 0;
+    uint32_t *R = NULL;
+
+    uint32_t resize = wah_or_8(w, u, &r, &r_size);
+    TEST_ASSERT_EQUAL(2, wah_get_ints_8(r, &R));
+    free(R);
+    R=NULL;
+    
+
     resize = wah_or_8(r, x, &r_2, &r_size);
-    uint8_t *r_3 = NULL;
     resize = wah_or_8(r_2, r_2, &r_3, &r_size);
     resize = wah_or_8(r_3, y, &r_2, &r_size);
     resize = wah_or_8(r_2, z, &r_3, &r_size);
 
-    uint32_t *R = NULL;
     TEST_ASSERT_EQUAL(5, wah_get_ints_8(r_3, &R));
     TEST_ASSERT_EQUAL(1, R[0]);
     TEST_ASSERT_EQUAL(3, R[1]);
@@ -295,162 +142,287 @@ void test_wah_nand_8(void)
     free(R);
     free(r_4);
 }
+
+//void test_wah_nand_8(void) { run_test_wah_nand_8(8); }
+//void test_wah_nand_16(void) { run_test_wah_nand_8(16); }
+void test_wah_nand_32(void) { run_test_wah_nand_8(32); }
 //}}}
 
-//{{{void test_wah_get_ints_8(void)
-void test_wah_get_ints_8(void)
+//{{{void test_macros(void)
+void test_wah_get_set(void)
 {
-    //150: 2 10010101 00010000
-    //       149      16
-    uint8_t *w_150 = wah_init(8, 150);
-    // 100: 2 10001110 00100000
-    //        142      32
-    uint8_t *w_100 = wah_init(8, 100);
-    //   1: 1 01000000
-    //        64
-    uint8_t *w_1 = wah_init(8, 1);
-    //   1: 1 00010000
-    //        16
-    uint8_t *w_3 = wah_init(8, 3);
+    WAH_SIZE = 8;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
 
-    uint8_t *w_8 = wah_init(8, 8);
-    uint8_t *w_10 = wah_init(8, 10);
+    uint8_t *d = (uint8_t *)calloc(100, sizeof(uint8_t));
+    uint32_t *i = (uint32_t *)d;
 
+    i[0] = 10;
 
-    uint32_t *R = NULL; 
-    uint32_t r_size = 0;
-    TEST_ASSERT_EQUAL(1, wah_get_ints_8(w_150, &R));
-    TEST_ASSERT_EQUAL(150, R[0]);
-    free(R);
-    R = NULL;
+    uint32_t v;
 
-    TEST_ASSERT_EQUAL(1, wah_get_ints_8(w_100, &R));
-    TEST_ASSERT_EQUAL(100, R[0]);
-    free(R);
-    R = NULL;
+    uint32_t o_8_0 = 0, o_8_1 = 0, o_8_2 = 0,
+             o_16_0 = 0, o_16_1 = 0, o_16_2 = 0,
+             o_32_0 = 0, o_32_1 = 0, o_32_2 = 0;
 
-    TEST_ASSERT_EQUAL(1, wah_get_ints_8(w_1, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    free(R);
-    R = NULL;
+    // 8
+    v = (1<<7) + 5;
+    set_wah_i(d, &v, 8, 0);
+    v += 1;
+    set_wah_i(d, &v, 8, 1);
+    v += 1;
+    set_wah_i(d, &v, 8, 2);
 
-    TEST_ASSERT_EQUAL(1, wah_get_ints_8(w_3, &R));
-    TEST_ASSERT_EQUAL(3, R[0]);
-    free(R);
-    R = NULL;
+    get_wah_i(d, &o_8_0, 8, 0);
+    get_wah_i(d, &o_8_1, 8, 1);
+    get_wah_i(d, &o_8_2, 8, 2);
 
-    uint8_t *r_100_150 = NULL;
-    uint32_t resize = wah_or_8(w_150, w_100, &r_100_150, &r_size);
-    TEST_ASSERT_EQUAL(2, wah_get_ints_8(r_100_150, &R));
-    TEST_ASSERT_EQUAL(100, R[0]);
-    TEST_ASSERT_EQUAL(150, R[1]);
-    free(R);
-    R = NULL;
+    // 16 
+    v = (1<<7) + 5;
+    set_wah_i(d, &v, 16, 0);
+    v += 1;
+    set_wah_i(d, &v, 16, 1);
+    v += 1;
+    set_wah_i(d, &v, 16, 2);
 
-    uint8_t *r_1_100_150 = NULL;
-    resize = wah_or_8(r_100_150, w_1, &r_1_100_150, &r_size);
-    TEST_ASSERT_EQUAL(3, wah_get_ints_8(r_1_100_150, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(100, R[1]);
-    TEST_ASSERT_EQUAL(150, R[2]);
-    free(R);
-    R = NULL;
+    get_wah_i(d, &o_16_0, 16, 0);
+    get_wah_i(d, &o_16_1, 16, 1);
+    get_wah_i(d, &o_16_2, 16, 2);
 
-    uint8_t *r_1_100_150_B = NULL;
-    resize = wah_or_8(r_1_100_150, r_1_100_150, &r_1_100_150_B, &r_size);
-    TEST_ASSERT_EQUAL(3, wah_get_ints_8(r_1_100_150_B, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(100, R[1]);
-    TEST_ASSERT_EQUAL(150, R[2]);
-    free(R);
-    R = NULL;
+    // 32 
+    v = (1<<7) + 5;
+    set_wah_i(d, &v, 32, 0);
+    v += 1;
+    set_wah_i(d, &v, 32, 1);
+    v += 1;
+    set_wah_i(d, &v, 32, 2);
 
-    uint8_t *r_1_3_100_150 = NULL;
-    resize = wah_or_8(r_1_100_150, w_3, &r_1_3_100_150, &r_size);
-    TEST_ASSERT_EQUAL(4, wah_get_ints_8(r_1_3_100_150, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(3, R[1]);
-    TEST_ASSERT_EQUAL(100, R[2]);
-    TEST_ASSERT_EQUAL(150, R[3]);
-    free(R);
-    R = NULL;
+    get_wah_i(d, &o_32_0, 32, 0);
+    get_wah_i(d, &o_32_1, 32, 1);
+    get_wah_i(d, &o_32_2, 32, 2);
 
-    uint8_t *r_1_3_8_100_150 = NULL;
-    resize = wah_or_8(r_1_3_100_150, w_8, &r_1_3_8_100_150, &r_size);
-    uint8_t *r_1_3_8_10_100_150 = NULL;
-    resize = wah_or_8(r_1_3_8_100_150, w_10, &r_1_3_8_10_100_150, &r_size);
+    TEST_ASSERT_TRUE(o_8_0 == o_16_0);
+    TEST_ASSERT_TRUE(o_8_1 == o_16_1);
+    TEST_ASSERT_TRUE(o_8_2 == o_16_2);
 
-    TEST_ASSERT_EQUAL(6, wah_get_ints_8(r_1_3_8_10_100_150, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(3, R[1]);
-    TEST_ASSERT_EQUAL(8, R[2]);
-    TEST_ASSERT_EQUAL(10, R[3]);
-    TEST_ASSERT_EQUAL(100, R[4]);
-    TEST_ASSERT_EQUAL(150, R[5]);
-    free(R);
-    R = NULL;
+    TEST_ASSERT_TRUE(o_16_0 == o_32_0);
+    TEST_ASSERT_TRUE(o_16_1 == o_32_1);
+    TEST_ASSERT_TRUE(o_16_2 == o_32_2);
 
-    free(w_8);
-    free(w_10);
-    free(w_3);
-    free(w_1);
-    free(w_100);
-    free(w_150);
-    free(r_100_150);
-    free(r_1_100_150);
-    free(r_1_100_150_B);
-    free(r_1_3_100_150);
-    free(r_1_3_8_100_150);
-    free(r_1_3_8_10_100_150);
+    TEST_ASSERT_TRUE(o_8_0 == o_32_0);
+    TEST_ASSERT_TRUE(o_8_1 == o_32_1);
+    TEST_ASSERT_TRUE(o_8_2 == o_32_2);
+
+    v = (1<<7) + 5;
+    set_wah_i(d, &v, 8, 1);
+    uint32_t r = 0;
+    get_wah_i(d, &r, 8, 1);
+    TEST_ASSERT_EQUAL(0, WAH_VAL(r, 8));
+    TEST_ASSERT_EQUAL(5, WAH_NUM_WORDS(r, 8));
+    v = 5;
+    set_wah_i(d, &v, 8, 1);
+    get_wah_i(d, &r, 8, 1);
+    TEST_ASSERT_EQUAL(5, WAH_VAL(r, 8));
+    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(r, 8));
+
+    v = (1<<15) + 5;
+    set_wah_i(d, &v, 16, 1);
+    r = 0;
+    get_wah_i(d, &r, 16, 1);
+    TEST_ASSERT_EQUAL(0, WAH_VAL(r, 16));
+    TEST_ASSERT_EQUAL(5, WAH_NUM_WORDS(r, 16));
+    v = 5;
+    set_wah_i(d, &v, 16, 1);
+    get_wah_i(d, &r, 16, 1);
+    TEST_ASSERT_EQUAL(5, WAH_VAL(r, 16));
+    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(r, 16));
+
+    v = (1<<31) + 5;
+    set_wah_i(d, &v, 32, 1);
+    r = 0;
+    get_wah_i(d, &r, 32, 1);
+    TEST_ASSERT_EQUAL(0, WAH_VAL(r, 32));
+    TEST_ASSERT_EQUAL(5, WAH_NUM_WORDS(r, 32));
+    v = 5;
+    set_wah_i(d, &v, 32, 1);
+    get_wah_i(d, &r, 32, 1);
+    TEST_ASSERT_EQUAL(5, WAH_VAL(r, 32));
+    TEST_ASSERT_EQUAL(1, WAH_NUM_WORDS(r, 32));
+     
+    free(d);
 }
 //}}}
 
-//{{{void test_wah_or_8_resize(void)
-void test_wah_or_8_resize(void)
+//{{{void test_wah_init(void)
+void run_test_wah_init(uint32_t word_size)
 {
-    //150: 2 10010101 00010000
-    //       149      16
-    uint8_t *w_150 = wah_init(8, 150);
-    // 100: 2 10001110 00100000
-    //        142      32
-    uint8_t *w_100 = wah_init(8, 100);
-    //   1: 1 01000000
-    //        64
-    uint8_t *w_1 = wah_init(8, 1);
-    //   1: 1 00010000
-    //        16
-    uint8_t *w_3 = wah_init(8, 3);
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
 
-    uint8_t *w_8 = wah_init(8, 8);
-    uint8_t *w_10 = wah_init(8, 10);
+    uint32_t size = 10;
+
+    uint8_t **W = (uint8_t **)calloc(size, sizeof(uint8_t *));
+    uint32_t *V = (uint32_t *)calloc(size, sizeof(uint32_t));
+
+    uint32_t R_size, *R = NULL;
+
+    uint32_t i;
+    for (i = 0; i < size; ++i) {
+        V[i] = rand();
+        W[i] = wah_init_8(V[i]);
+
+        TEST_ASSERT_EQUAL(1, wah_get_ints_8(W[i], &R));
+        TEST_ASSERT_EQUAL(V[i], R[0]);
+
+        free(R);
+        R=NULL;
+    }
+}
+
+//void test_wah_init_8(void) { run_test_wah_init(8); }
+//void test_wah_init_16(void){ run_test_wah_init(16); }
+void test_wah_init_32(void){ run_test_wah_init(32); }
+//}}}
+
+//{{{ void test_wah_get_ints(void)
+void run_test_wah_get_ints(uint32_t word_size)
+{
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
+    uint8_t *w = NULL;
+    uint32_t *R = NULL;
+    uint32_t R_size;
+
+    uint32_t i;
+    for (i = 0; i < 100; ++i) {
+        uint32_t set_v = rand(); 
+        w = wah_init_8(set_v);
+        R_size = wah_get_ints_8(w, &R);
+        TEST_ASSERT_EQUAL(1, R_size);
+        TEST_ASSERT_EQUAL(set_v, R[0]);
+
+        free(R);
+        free(w);
+        R = NULL;
+        w = NULL;
+    }
+}
+
+//void test_wah_get_ints_8(void) { run_test_wah_get_ints(8); }
+//void test_wah_get_ints_16(void) { run_test_wah_get_ints(16); }
+void test_wah_get_ints_32(void) { run_test_wah_get_ints(32); }
+
+//}}}
+
+//{{{ void test_wah_8_uniq_append(void)
+void run_test_wah_8_uniq_append(uint32_t word_size)
+{
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
+    uint32_t size = 10;
+
+    uint8_t *w = NULL;
+    uint32_t *V = (uint32_t *)calloc(size, sizeof(uint32_t));
+
+    uint32_t R_size, *R = NULL;
+
+    uint32_t i;
+    for (i = 0; i < size; ++i) {
+        V[i] = rand();
+        wah_8_uniq_append(&w, V[i]);
+        TEST_ASSERT_EQUAL(i + 1, wah_get_ints_8(w, &R));
+        free(R);
+        R = NULL;
+    }
+
+    qsort(V, size, sizeof(uint32_t), uint32_t_cmp);
+
+    TEST_ASSERT_EQUAL(size, wah_get_ints_8(w, &R));
+
+    for (i = 0; i < size; ++i) {
+        TEST_ASSERT_EQUAL(V[i] , R[i]);
+    }
+}
+
+//void wah_8_uniq_append_8(void) { test_wah_8_uniq_append(8); }
+//void wah_8_uniq_append_16(void) { test_wah_8_uniq_append(16); }
+void test_wah_8_uniq_append_32(void) { run_test_wah_8_uniq_append(32); }
+//}}}
+
+//{{{void test_wah_8_copy(void)
+void run_test_wah_8_copy(uint32_t word_size)
+{
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
+    uint32_t *R = NULL;
+    uint8_t *o = NULL;
+    wah_8_uniq_append(&o, rand());
+    TEST_ASSERT_EQUAL(1, wah_get_ints_8(o, &R));
+    free(R);
+    R = NULL;
+
+    wah_8_uniq_append(&o, rand());
+    TEST_ASSERT_EQUAL(2, wah_get_ints_8(o, &R));
+    free(R);
+    R = NULL;
+
+    wah_8_uniq_append(&o, rand());
+    TEST_ASSERT_EQUAL(3, wah_get_ints_8(o, &R));
+    free(R);
+    R = NULL;
+
+    wah_8_uniq_append(&o, rand());
+    TEST_ASSERT_EQUAL(4, wah_get_ints_8(o, &R));
+    free(R);
+    R = NULL;
+
+    uint8_t *c = wah_8_copy(o);
+    TEST_ASSERT_EQUAL(WAH_LEN(o), WAH_LEN(c));
+
+    uint32_t *R_o = NULL, *R_c = NULL;
+    TEST_ASSERT_EQUAL(4, wah_get_ints_8(o, &R_o));
+    TEST_ASSERT_EQUAL(4, wah_get_ints_8(c, &R_c));
+
+    TEST_ASSERT_EQUAL(R_o[0], R_c[0]);
+    TEST_ASSERT_EQUAL(R_o[1], R_c[1]);
+    TEST_ASSERT_EQUAL(R_o[2], R_c[2]);
+    TEST_ASSERT_EQUAL(R_o[3], R_c[3]);
+
+    free(R_o);
+    free(R_c);
+    free(o);
+    free(c);
+}
+
+//void test_wah_8_copy_8(void) { run_test_wah_8_copy(8); }
+//void test_wah_8_copy_8(void) { run_test_wah_8_copy(8); }
+void test_wah_8_copy_32(void) { run_test_wah_8_copy(32); }
+
+//}}}
+
+//{{{void test_wah_or_8_resize(void)
+void run_test_wah_or_8_resize(uint32_t word_size)
+{
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
 
 
-    /*
-     * 150: 2 10010101 00010000
-     *        149      16
-     * 100: 2 10001110 00100000
-     *        142      32
-     *
-     * 150 | 100
-     *
-     * 10001110 00100000 10000110 00010000
-     * 142      32       134      16
-     *
-     */
+    uint8_t *w_150 = wah_init_8( 150);
+    uint8_t *w_100 = wah_init_8( 100);
+    uint8_t *w_1 = wah_init_8( 1);
+    uint8_t *w_3 = wah_init_8( 3);
+    uint8_t *w_8 = wah_init_8( 8);
+    uint8_t *w_10 = wah_init_8( 10);
+
 
     // This one is too small
     uint32_t r_size = sizeof(uint32_t) + sizeof(uint8_t);
     uint8_t *r = (uint8_t *)malloc(r_size);
-
     uint32_t resize = wah_or_8(w_150, w_100, &r, &r_size);
-
     TEST_ASSERT_EQUAL(1, resize);
-    TEST_ASSERT_EQUAL(4, WAH_LEN(r));
-    TEST_ASSERT_EQUAL(sizeof(uint32_t) + 4*sizeof(uint8_t), r_size);
-    TEST_ASSERT_EQUAL(142, WAH_I(r, 8, 0));
-    TEST_ASSERT_EQUAL( 32, WAH_I(r, 8, 1));
-    TEST_ASSERT_EQUAL(134, WAH_I(r, 8, 2));
-    TEST_ASSERT_EQUAL( 16, WAH_I(r, 8, 3));
 
     uint32_t *R = NULL; 
     TEST_ASSERT_EQUAL(2, wah_get_ints_8(r, &R));
@@ -462,28 +434,22 @@ void test_wah_or_8_resize(void)
     free(r);
 
     // Larger than needed
-    r_size = sizeof(uint32_t) + 10*sizeof(uint8_t);
+    r_size = sizeof(uint32_t) + 10*sizeof(uint32_t);
     r = (uint8_t *)malloc(r_size);
 
     resize = wah_or_8(w_150, w_100, &r, &r_size);
     TEST_ASSERT_EQUAL(0, resize);
-    TEST_ASSERT_EQUAL(4, WAH_LEN(r));
-    TEST_ASSERT_EQUAL(sizeof(uint32_t) + 10*sizeof(uint8_t), r_size);
-    TEST_ASSERT_EQUAL(142, WAH_I(r, 8, 0));
-    TEST_ASSERT_EQUAL( 32, WAH_I(r, 8, 1));
-    TEST_ASSERT_EQUAL(134, WAH_I(r, 8, 2));
-    TEST_ASSERT_EQUAL( 16, WAH_I(r, 8, 3));
 
     free(R);
     R = NULL; 
     free(r);
 
     // Reuse 
-    uint32_t r_0_size = sizeof(uint32_t) + 10*sizeof(uint8_t);
+    uint32_t r_0_size = sizeof(uint32_t) + 10*sizeof(uint32_t);
     uint8_t *r_0 = (uint8_t *)malloc(r_0_size);
     memset(r_0, 0, r_0_size);
 
-    uint32_t r_1_size = sizeof(uint32_t) + 10*sizeof(uint8_t);
+    uint32_t r_1_size = sizeof(uint32_t) + 10*sizeof(uint32_t);
     uint8_t *r_1 = (uint8_t *)malloc(r_1_size);
     memset(r_1, 0, r_1_size);
 
@@ -517,43 +483,18 @@ void test_wah_or_8_resize(void)
     free(w_100);
     free(w_150);
 }
-//}}}
 
-//{{{ void test_wah_8_uniq_append(void)
-void test_wah_8_uniq_append(void)
-{
-    uint8_t *w = NULL;
-    wah_8_uniq_append(&w, 5);
-
-    uint32_t *R;
-    TEST_ASSERT_EQUAL(1, wah_get_ints_8(w, &R));
-    TEST_ASSERT_EQUAL(5, R[0]);
-
-    wah_8_uniq_append(&w, 1);
-    wah_8_uniq_append(&w, 100);
-    wah_8_uniq_append(&w, 10);
-    wah_8_uniq_append(&w, 50);
-    wah_8_uniq_append(&w, 75);
-
-    free(R);
-    R = NULL;
-
-    TEST_ASSERT_EQUAL(6, wah_get_ints_8(w, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(5, R[1]);
-    TEST_ASSERT_EQUAL(10, R[2]);
-    TEST_ASSERT_EQUAL(50, R[3]);
-    TEST_ASSERT_EQUAL(75, R[4]);
-    TEST_ASSERT_EQUAL(100, R[5]);
-
-    free(R);
-    free(w);
-}
+//void test_wah_or_8_resize_8(void) { run_test_wah_or_8_resize(8); }
+//void test_wah_or_8_resize_16(void) { run_test_wah_or_8_resize(16); }
+void test_wah_or_8_resize_32(void) { run_test_wah_or_8_resize(32); }
 //}}}
 
 //{{{void test_wah_8_non_leading_SA_SE_add_scalar(void)
-void test_wah_8_non_leading_SA_SE_add_scalar(void)
+void run_test_wah_8_non_leading_SA_SE_add_scalar(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
     struct wah_8_bpt_non_leading_data 
             *nld = wah_8_new_non_leading(0);
 
@@ -572,12 +513,13 @@ void test_wah_8_non_leading_SA_SE_add_scalar(void)
 
     uint32_t *R = NULL;
     TEST_ASSERT_EQUAL(6, wah_get_ints_8(nld->SA, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(5, R[1]);
-    TEST_ASSERT_EQUAL(10, R[2]);
-    TEST_ASSERT_EQUAL(50, R[3]);
-    TEST_ASSERT_EQUAL(75, R[4]);
-    TEST_ASSERT_EQUAL(100, R[5]);
+    // Values in wah are 1-based
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    TEST_ASSERT_EQUAL(5, R[1] - 1);
+    TEST_ASSERT_EQUAL(10, R[2] - 1);
+    TEST_ASSERT_EQUAL(50, R[3] - 1);
+    TEST_ASSERT_EQUAL(75, R[4] - 1);
+    TEST_ASSERT_EQUAL(100, R[5] - 1);
 
     v = 1000;
     wah_8_non_leading_SE_add_scalar(0, nld, &v);
@@ -595,21 +537,31 @@ void test_wah_8_non_leading_SA_SE_add_scalar(void)
     free(R);
     R = NULL;
     TEST_ASSERT_EQUAL(6, wah_get_ints_8(nld->SE, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(6, R[1]);
-    TEST_ASSERT_EQUAL(8, R[2]);
-    TEST_ASSERT_EQUAL(99, R[3]);
-    TEST_ASSERT_EQUAL(700, R[4]);
-    TEST_ASSERT_EQUAL(1000, R[5]);
+    // Values in wah are 1-based
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    TEST_ASSERT_EQUAL(6, R[1] - 1);
+    TEST_ASSERT_EQUAL(8, R[2] - 1);
+    TEST_ASSERT_EQUAL(99, R[3] - 1);
+    TEST_ASSERT_EQUAL(700, R[4] - 1);
+    TEST_ASSERT_EQUAL(1000, R[5] - 1);
 
     wah_8_non_leading_free((void **)&nld);
     free(R);
 }
+
+void test_wah_8_non_leading_SA_SE_add_scalar_32(void)
+{
+    run_test_wah_8_non_leading_SA_SE_add_scalar(32);
+}
+
 //}}}
 
 //{{{void test_wah_8_leading_B_add_scalar(void)
-void test_wah_8_leading_B_add_scalar(void)
+void run_test_wah_8_leading_B_add_scalar(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
     struct wah_8_bpt_leading_data 
             *ld = wah_8_new_leading(0);
 
@@ -628,21 +580,29 @@ void test_wah_8_leading_B_add_scalar(void)
 
     uint32_t *R = NULL;
     TEST_ASSERT_EQUAL(6, wah_get_ints_8(ld->B, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(5, R[1]);
-    TEST_ASSERT_EQUAL(10, R[2]);
-    TEST_ASSERT_EQUAL(50, R[3]);
-    TEST_ASSERT_EQUAL(75, R[4]);
-    TEST_ASSERT_EQUAL(100, R[5]);
+    // Values in wah are 1-based
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    TEST_ASSERT_EQUAL(5, R[1] - 1);
+    TEST_ASSERT_EQUAL(10, R[2] - 1);
+    TEST_ASSERT_EQUAL(50, R[3] - 1);
+    TEST_ASSERT_EQUAL(75, R[4] - 1);
+    TEST_ASSERT_EQUAL(100, R[5] - 1);
 
     free(R);
     wah_8_leading_free((void **)&ld);
 }
+
+void test_wah_8_leading_B_add_scalar_32(void) {
+    run_test_wah_8_leading_B_add_scalar(32);
+}
 //}}}
 
 //{{{ void test_wah_8_leading_union_with_B(void)
-void test_wah_8_leading_union_with_B(void)
+void run_test_wah_8_leading_union_with_B(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
     struct wah_8_bpt_leading_data 
             *ld = wah_8_new_leading(0);
 
@@ -664,12 +624,13 @@ void test_wah_8_leading_union_with_B(void)
 
     uint32_t *R = NULL;
     TEST_ASSERT_EQUAL(6, wah_get_ints_8(r, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(5, R[1]);
-    TEST_ASSERT_EQUAL(10, R[2]);
-    TEST_ASSERT_EQUAL(50, R[3]);
-    TEST_ASSERT_EQUAL(75, R[4]);
-    TEST_ASSERT_EQUAL(100, R[5]);
+    // Values in wah are 1-based
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    TEST_ASSERT_EQUAL(5, R[1] - 1);
+    TEST_ASSERT_EQUAL(10, R[2] - 1);
+    TEST_ASSERT_EQUAL(50, R[3] - 1);
+    TEST_ASSERT_EQUAL(75, R[4] - 1);
+    TEST_ASSERT_EQUAL(100, R[5] - 1);
 
     free(R);
 
@@ -685,14 +646,15 @@ void test_wah_8_leading_union_with_B(void)
 
     R = NULL;
     TEST_ASSERT_EQUAL(8, wah_get_ints_8(r, &R));
-    TEST_ASSERT_EQUAL(1, R[0]);
-    TEST_ASSERT_EQUAL(5, R[1]);
-    TEST_ASSERT_EQUAL(10, R[2]);
-    TEST_ASSERT_EQUAL(11, R[3]);
-    TEST_ASSERT_EQUAL(17, R[4]);
-    TEST_ASSERT_EQUAL(50, R[5]);
-    TEST_ASSERT_EQUAL(75, R[6]);
-    TEST_ASSERT_EQUAL(100, R[7]);
+    // Values in wah are 1-based
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    TEST_ASSERT_EQUAL(5, R[1] - 1);
+    TEST_ASSERT_EQUAL(10, R[2] - 1);
+    TEST_ASSERT_EQUAL(11, R[3] - 1);
+    TEST_ASSERT_EQUAL(17, R[4] - 1);
+    TEST_ASSERT_EQUAL(50, R[5] - 1);
+    TEST_ASSERT_EQUAL(75, R[6] - 1);
+    TEST_ASSERT_EQUAL(100, R[7] - 1);
 
     free(R);
 
@@ -700,11 +662,20 @@ void test_wah_8_leading_union_with_B(void)
     wah_8_leading_free((void **)&ld);
     wah_8_leading_free((void **)&ld_2);
 }
+
+void test_wah_8_leading_union_with_B_32(void)
+{
+    run_test_wah_8_leading_union_with_B(32);
+}
 //}}}
 
 //{{{void test_wah_8_non_leading_union_with_SA_subtract_SE(void)
-void test_wah_8_non_leading_union_with_SA_subtract_SE(void)
+void run_test_wah_8_non_leading_union_with_SA_subtract_SE(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
+
     uint8_t *r = NULL;
     wah_8_uniq_append(&r, 5);
     wah_8_uniq_append(&r, 10);
@@ -752,12 +723,20 @@ void test_wah_8_non_leading_union_with_SA_subtract_SE(void)
     wah_8_non_leading_free((void **)&nld_a);
     wah_8_non_leading_free((void **)&nld_b);
 }
+
+void test_wah_8_non_leading_union_with_SA_subtract_SE_32(void)
+{
+    run_test_wah_8_non_leading_union_with_SA_subtract_SE(32);
+}
+
+
 //}}}
 
 //{{{void test_wah_8_non_leading_serialize(void)
-void test_wah_8_non_leading_serialize(void)
+void run_test_wah_8_non_leading_serialize(uint32_t word_size)
 {
-
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
 
     // BOTH NULL
     struct wah_8_bpt_non_leading_data *nld_a = NULL;
@@ -780,12 +759,12 @@ void test_wah_8_non_leading_serialize(void)
     size = wah_8_non_leading_serialize(nld_a, (void **)&s);
 
     TEST_ASSERT_EQUAL(2*sizeof(uint32_t)+
-                        sizeof(uint32_t)+WAH_LEN(nld_a->SA)*sizeof(uint8_t),
+                        sizeof(uint32_t)+WAH_LEN(nld_a->SA)*(WAH_SIZE/BYTE),
                       size);
 
     uint32_t *i = (uint32_t *)s;
     TEST_ASSERT_EQUAL(sizeof(uint32_t) +
-                            WAH_LEN(nld_a->SA)*sizeof(uint8_t),
+                        WAH_LEN(nld_a->SA)*(WAH_SIZE/BYTE),
                       i[0]);
     TEST_ASSERT_EQUAL(0, i[1]);
     uint8_t *w = (uint8_t *)(i+2);
@@ -810,16 +789,16 @@ void test_wah_8_non_leading_serialize(void)
 
     size = wah_8_non_leading_serialize(nld_a, (void **)&s);
     TEST_ASSERT_EQUAL(2*sizeof(uint32_t)+
-                        sizeof(uint32_t)+WAH_LEN(nld_a->SA)*sizeof(uint8_t) +
-                        sizeof(uint32_t)+WAH_LEN(nld_a->SE)*sizeof(uint8_t),
+                        sizeof(uint32_t)+WAH_LEN(nld_a->SA)*(WAH_SIZE/BYTE) +
+                        sizeof(uint32_t)+WAH_LEN(nld_a->SE)*(WAH_SIZE/BYTE),
                       size);
 
     i = (uint32_t *)s;
     TEST_ASSERT_EQUAL(sizeof(uint32_t) +
-                            WAH_LEN(nld_a->SA)*sizeof(uint8_t),
+                            WAH_LEN(nld_a->SA)*(WAH_SIZE/BYTE),
                       i[0]);
     TEST_ASSERT_EQUAL(sizeof(uint32_t) +
-                            WAH_LEN(nld_a->SE)*sizeof(uint8_t),
+                            WAH_LEN(nld_a->SE)*(WAH_SIZE/BYTE),
                       i[1]);
 
     w = (uint8_t *)(i+2);
@@ -852,13 +831,13 @@ void test_wah_8_non_leading_serialize(void)
 
     size = wah_8_non_leading_serialize(nld_a, (void **)&s);
     TEST_ASSERT_EQUAL(2*sizeof(uint32_t)+
-                        sizeof(uint32_t)+WAH_LEN(nld_a->SE)*sizeof(uint8_t),
+                        sizeof(uint32_t)+WAH_LEN(nld_a->SE)*(WAH_SIZE/BYTE),
                       size);
 
     i = (uint32_t *)s;
     TEST_ASSERT_EQUAL(0, i[0]);
     TEST_ASSERT_EQUAL(sizeof(uint32_t) +
-                            WAH_LEN(nld_a->SE)*sizeof(uint8_t),
+                            WAH_LEN(nld_a->SE)*(WAH_SIZE/BYTE),
                       i[1]);
 
     w = (uint8_t *)(i+2);
@@ -873,11 +852,18 @@ void test_wah_8_non_leading_serialize(void)
     free(R);
     wah_8_non_leading_free((void **)&nld_a);
 }
+
+void test_wah_8_non_leading_serialize_32(void)
+{
+    run_test_wah_8_non_leading_serialize(32);
+}
 //}}}
 
 //{{{void test_wah_8_non_leading_deserialize(void)
-void test_wah_8_non_leading_deserialize(void)
+void run_test_wah_8_non_leading_deserialize(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
 
 
     // BOTH NULL
@@ -1009,11 +995,19 @@ void test_wah_8_non_leading_deserialize(void)
 
     wah_8_non_leading_free((void **)&nld_o);
 }
+
+void test_wah_8_non_leading_deserialize_32(void)
+{
+    run_test_wah_8_non_leading_deserialize(32);
+}
 //}}}
 
 //{{{void test_wah_8_leading_serialize(void)
-void test_wah_8_leading_serialize(void)
+void run_test_wah_8_leading_serialize(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
     // NULL
     struct wah_8_bpt_leading_data *ld_a = NULL;
 
@@ -1048,11 +1042,11 @@ void test_wah_8_leading_serialize(void)
     size = wah_8_leading_serialize(ld_a, (void **)&s);
 
     TEST_ASSERT_EQUAL(sizeof(uint32_t)+
-                      sizeof(uint32_t)+WAH_LEN(ld_a->B)*sizeof(uint8_t),
+                      sizeof(uint32_t)+WAH_LEN(ld_a->B)*(WAH_SIZE/BYTE),
                       size);
 
     i = (uint32_t *)s;
-    TEST_ASSERT_EQUAL(sizeof(uint32_t) + WAH_LEN(ld_a->B)*sizeof(uint8_t),
+    TEST_ASSERT_EQUAL(sizeof(uint32_t) + WAH_LEN(ld_a->B)*(WAH_SIZE/BYTE),
                       i[0]);
     uint8_t *w = (uint8_t *)(i+1);
     TEST_ASSERT_EQUAL(WAH_LEN(ld_a->B),WAH_LEN(w));
@@ -1067,11 +1061,19 @@ void test_wah_8_leading_serialize(void)
     free(s);
     wah_8_leading_free((void **)&ld_a);
 }
+
+void test_wah_8_leading_serialize_32(void)
+{
+    run_test_wah_8_leading_serialize(32);
+}
 //}}}
 
 //{{{void test_wah_8_leading_deserialize(void)
-void test_wah_8_leading_deserialize(void)
+void run_test_wah_8_leading_deserialize(uint32_t word_size)
 {
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
     // NULL
     struct wah_8_bpt_leading_data *ld_d = NULL;
 
@@ -1132,5 +1134,120 @@ void test_wah_8_leading_deserialize(void)
     free(R_o);
     free(R_d);
     free(s);
+}
+
+void test_wah_8_leading_deserialize_32(void)
+{
+    run_test_wah_8_leading_deserialize(32);
+}
+//}}}
+
+//{{{ void  test_wah_8_leading_repair(void)
+void  test_wah_8_leading_repair(void)
+{
+    uint32_t word_size = 32,
+             domain = 0;
+    WAH_SIZE = word_size;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
+    ORDER=5;
+    struct simple_cache *sc = simple_cache_init(5, 1, NULL);
+
+    /*  (1,2) 1:(3) 2:(4) 3:(5 3) */
+    struct bpt_node *n1 = bpt_new_node(domain);
+    BPT_NUM_KEYS(n1) = 3;
+    BPT_IS_LEAF(n1) = 1;
+    struct wah_8_bpt_leading_data *ld = wah_8_new_leading(domain);
+    uint32_t v = 1;
+    wah_8_leading_B_add_scalar(0, ld, &v);
+    v = 2;
+    wah_8_leading_B_add_scalar(0, ld, &v);
+
+    BPT_LEADING(n1) = cache.seen(domain) + 1;
+    cache.add(domain,
+              cache.seen(domain),
+              ld,
+              &wah_8_leading_cache_handler );
+
+    struct wah_8_bpt_non_leading_data *nld = wah_8_new_non_leading(domain);
+    v = 3;
+    wah_8_non_leading_SA_add_scalar(0, nld, &v);
+    BPT_KEYS(n1)[0] = 1;
+    BPT_POINTERS(n1)[0] = cache.seen(domain) + 1;
+    cache.add(domain,
+              cache.seen(domain),
+              nld,
+              &wah_8_non_leading_cache_handler );
+
+    nld = wah_8_new_non_leading(domain);
+    v = 4;
+    wah_8_non_leading_SA_add_scalar(0, nld, &v);
+    BPT_KEYS(n1)[1] = 2;
+    BPT_POINTERS(n1)[1] = cache.seen(domain) + 1;
+    cache.add(domain,
+              cache.seen(domain),
+              nld,
+              &wah_8_non_leading_cache_handler );
+
+    nld = wah_8_new_non_leading(domain);
+    v = 5;
+    wah_8_non_leading_SA_add_scalar(0, nld, &v);
+    v = 3;
+    wah_8_non_leading_SE_add_scalar(0, nld, &v);
+    v = 1;
+    wah_8_non_leading_SE_add_scalar(0, nld, &v);
+    BPT_KEYS(n1)[2] = 3;
+    BPT_POINTERS(n1)[2] = cache.seen(domain) + 1;
+    cache.add(domain,
+              cache.seen(domain),
+              nld,
+              &wah_8_non_leading_cache_handler );
+
+
+    /*  () 4:(6) 5:(7) */
+    struct bpt_node *n2 = bpt_new_node(domain);
+    BPT_NUM_KEYS(n2) = 2;
+    BPT_NEXT(n1) = BPT_ID(n2);
+    BPT_IS_LEAF(n2) = 1;
+    BPT_LEADING(n2) = 0;
+
+    nld = wah_8_new_non_leading(domain);
+    v = 6;
+    wah_8_non_leading_SA_add_scalar(0, nld, &v);
+    BPT_KEYS(n2)[0] = 4;
+    BPT_POINTERS(n2)[0] = cache.seen(domain) + 1;
+    cache.add(domain,
+              cache.seen(domain),
+              nld,
+              &wah_8_non_leading_cache_handler );
+
+    nld = wah_8_new_non_leading(domain);
+    v = 7;
+    wah_8_non_leading_SA_add_scalar(0, nld, &v);
+    BPT_KEYS(n2)[1] = 5;
+    BPT_POINTERS(n2)[1] = cache.seen(domain) + 1;
+    cache.add(domain,
+              cache.seen(domain),
+              nld,
+              &wah_8_non_leading_cache_handler );
+
+    wah_8_leading_repair(domain, n1, n2);
+
+    struct wah_8_bpt_leading_data *new_ld = 
+            cache.get(domain,
+                      BPT_LEADING(n2) - 1,
+                      &wah_8_leading_cache_handler );
+
+    uint32_t R_size, *R = NULL;
+    R_size = wah_get_ints_8(new_ld->B, &R);
+    TEST_ASSERT_EQUAL(3,  R_size);
+    // Wah is 1-based 
+    TEST_ASSERT_EQUAL(2,  R[0] - 1);
+    TEST_ASSERT_EQUAL(4,  R[1] - 1);
+    TEST_ASSERT_EQUAL(5,  R[2] - 1);
+
+    free(R);
+
+    cache.destroy();
 }
 //}}}

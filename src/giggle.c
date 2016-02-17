@@ -302,17 +302,16 @@ void *giggle_search(uint32_t domain,
 
     // get everything in the leading value
     if (BPT_LEADING(leaf_start) != 0) {
-        //struct uint32_t_ll_bpt_leading_data *ld = 
         void *ld = cache.get(domain,
                              BPT_LEADING(leaf_start) - 1,
                              &giggle_data_handler.leading_cache_handler);
+
         giggle_data_handler.leading_union_with_B(domain, &r, ld);
     }
 
     // add any SA and remove any that are an SE up to and including this point
     int i;
     for (i = 0; (i < BPT_NUM_KEYS(leaf_start)) && (i <= pos_start_id); ++i) {
-        //struct uint32_t_ll_bpt_non_leading_data *nld = 
         void *nld = cache.get(domain,
                               BPT_POINTERS(leaf_start)[i] - 1,
                               &giggle_data_handler.non_leading_cache_handler);
@@ -328,7 +327,6 @@ void *giggle_search(uint32_t domain,
     while (BPT_ID(leaf_curr) != leaf_end_id) {
         // do from pos_curr to the last key
         for (i = pos_curr_id; i < BPT_NUM_KEYS(leaf_curr); ++i) {
-            //struct uint32_t_ll_bpt_non_leading_data *nld = 
             void *nld = cache.get(
                     domain,
                     BPT_POINTERS(leaf_curr)[i] - 1,
@@ -347,7 +345,6 @@ void *giggle_search(uint32_t domain,
         for ( i = pos_curr_id;
              (i < BPT_NUM_KEYS(leaf_curr)) && (i <= pos_end_id); 
               ++i) {
-            //struct uint32_t_ll_bpt_non_leading_data *nld = 
             void *nld = cache.get(
                     domain,
                     BPT_POINTERS(leaf_curr)[i] - 1,
@@ -644,6 +641,7 @@ uint32_t giggle_store(struct giggle_index *gi)
 }
 //}}}
 
+//{{{struct giggle_index *giggle_load(char *data_dir,
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void))
 {
@@ -742,4 +740,5 @@ struct giggle_index *giggle_load(char *data_dir,
 
     return gi;
 }
+//}}}
 

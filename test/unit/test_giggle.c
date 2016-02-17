@@ -26,6 +26,7 @@ void test_uint32_t_ll_giggle_insert(void)
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
     uint32_t_ll_giggle_set_data_handler();
+    //wah_8_giggle_set_data_handler();
 
     uint32_t root_id = 0;
     uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
@@ -270,6 +271,354 @@ void test_uint32_t_ll_giggle_insert(void)
 }
 //}}}
 
+//{{{void test_uint32_t_ll_giggle_insert(void)
+void test_wah_8_giggle_insert(void)
+{
+    uint32_t *R = NULL, R_size;
+    struct simple_cache *sc = simple_cache_init(5, 1, NULL);
+    uint32_t domain = 0;
+    wah_8_giggle_set_data_handler();
+
+    uint32_t root_id = 0;
+    uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
+
+    // 1(SA:0),4(SE:0)
+    struct bpt_node *root = cache.get(domain,
+                                      root_id - 1,
+                                      &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(1, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[1]);
+
+    r = giggle_insert(domain, &root_id, 2, 4, 1);
+
+    // 1(SA:0),2(SA:1),4(SE:0),5(SE:1)
+    root = cache.get(domain, root_id - 1, &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(4, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(1, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(root)[1]);
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[2]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(root)[3]);
+
+    struct wah_8_bpt_non_leading_data *nld = 
+        cache.get(domain,
+                  BPT_POINTERS(root)[0] - 1,
+                  &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SE);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(root)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SE);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(root)[2] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(root)[3] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    r = giggle_insert(domain, &root_id, 4, 6, 2);
+    // 4
+    // 1(SA:0),2(SA:1) (0 1)4(SA:2 SE:0),5(SE:1),7(SE:2)
+    root = cache.get(domain, root_id - 1, &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(1, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
+
+    struct bpt_node *first_leaf = cache.get(domain,
+                                            BPT_POINTERS(root)[0] - 1,
+                                            &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(first_leaf));
+    TEST_ASSERT_EQUAL(1, BPT_KEYS(first_leaf)[0]);
+    TEST_ASSERT_EQUAL(2, BPT_KEYS(first_leaf)[1]);
+
+    struct bpt_node *second_leaf = cache.get(domain,
+                                             BPT_POINTERS(root)[1] - 1,
+                                             &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(BPT_ID(second_leaf), BPT_NEXT(first_leaf));
+
+    TEST_ASSERT_EQUAL(3, BPT_NUM_KEYS(second_leaf));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(second_leaf)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(second_leaf)[1]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(second_leaf)[2]);
+    TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
+    TEST_ASSERT_TRUE(BPT_LEADING(second_leaf) != 0);
+
+    struct wah_8_bpt_leading_data *ld =
+            (struct wah_8_bpt_leading_data *)
+            cache.get(domain,
+                      BPT_LEADING(second_leaf) - 1,
+                      &giggle_data_handler.leading_cache_handler);
+    R_size = wah_get_ints_8(ld->B, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(1, R[1] - 1);
+    free(R);
+    R = NULL;
+
+    r = giggle_insert(domain, &root_id, 4, 5, 3);
+    // 4
+    // 1(SA:0),2(SA:1) (0 1)4(SA:2,3 SE:0),5(SE:1),6(SE:3),7(SE:2)
+    first_leaf = cache.get(domain,
+                           BPT_POINTERS(root)[0] - 1,
+                           &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(first_leaf));
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SE);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SE);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+
+    struct bpt_node *next_leaf = 
+            cache.get(domain,
+                      BPT_NEXT(first_leaf) - 1,
+                      &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
+    R_size = wah_get_ints_8(ld->B, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(1, R[1] - 1);
+    free(R);
+    R=NULL;
+    TEST_ASSERT_EQUAL(4, BPT_NUM_KEYS(next_leaf));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(next_leaf)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(next_leaf)[1]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(next_leaf)[2]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(next_leaf)[3]);
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(2, R[0] - 1);
+    TEST_ASSERT_EQUAL(3, R[1] - 1);
+    free(R);
+    R = NULL;
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[2] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(3, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[3] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(2, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    r = giggle_insert(domain, &root_id, 1, 6, 4);
+    // 4
+    // 1(SA:0,4),2(SA:1) (0 1 4)4(SA:2,3 SE:0),5(SE:1),6(SE:3),7(SE:2,4)
+    root = cache.get(domain,
+                     root_id - 1,
+                     &bpt_node_cache_handler);
+    first_leaf = cache.get(domain,
+                           BPT_POINTERS(root)[0] - 1,
+                           &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(first_leaf));
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SE);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(4, R[1] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(first_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SE);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    next_leaf = cache.get(domain,
+                          BPT_NEXT(first_leaf) - 1,
+                          &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
+    R_size = wah_get_ints_8(ld->B, &R);
+    TEST_ASSERT_EQUAL(3, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(1, R[1] - 1);
+    TEST_ASSERT_EQUAL(4, R[2] - 1);
+    free(R);
+    R = NULL;
+
+    TEST_ASSERT_EQUAL(4, BPT_NUM_KEYS(next_leaf));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(next_leaf)[0]);
+    TEST_ASSERT_EQUAL(5, BPT_KEYS(next_leaf)[1]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(next_leaf)[2]);
+    TEST_ASSERT_EQUAL(7, BPT_KEYS(next_leaf)[3]);
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[0] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    R_size = wah_get_ints_8(nld->SA, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(2, R[0] - 1);
+    TEST_ASSERT_EQUAL(3, R[1] - 1);
+    free(R);
+    R = NULL;
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[1] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(1, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[2] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(1, R_size);
+    TEST_ASSERT_EQUAL(3, R[0] - 1);
+    free(R);
+    R = NULL;
+
+    nld = cache.get(domain,
+                    BPT_POINTERS(next_leaf)[3] - 1,
+                    &giggle_data_handler.non_leading_cache_handler);
+    TEST_ASSERT_EQUAL(NULL, nld->SA);
+    R_size = wah_get_ints_8(nld->SE, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(2, R[0] - 1);
+    TEST_ASSERT_EQUAL(4, R[1] - 1);
+    free(R);
+    R = NULL;
+
+    r = giggle_insert(domain, &root_id, 1, 7, 5);
+    // 4,6
+    //   (NULL)    1(SA:0,4,5),2(SA:1)
+    //   (0 1 4 5) 4(SA:2,3 SE:0),5(SE:1)
+    //   (2 3 4 5) 6(SE:3),7(SE:2,4),8(SE:5)
+    root = cache.get(domain,
+                     root_id - 1,
+                     &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(2, BPT_NUM_KEYS(root));
+    TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[0]);
+    TEST_ASSERT_EQUAL(6, BPT_KEYS(root)[1]);
+    first_leaf = cache.get(domain,
+                           BPT_POINTERS(root)[0] - 1,
+                           &bpt_node_cache_handler);
+    TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
+
+    next_leaf = cache.get(domain,
+                          BPT_NEXT(first_leaf) - 1,
+                          &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
+    R_size = wah_get_ints_8(ld->B, &R);
+    TEST_ASSERT_EQUAL(4, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(1, R[1] - 1);
+    TEST_ASSERT_EQUAL(4, R[2] - 1);
+    TEST_ASSERT_EQUAL(5, R[3] - 1);
+    free(R);
+    R = NULL;
+
+    next_leaf = cache.get(domain,
+                          BPT_NEXT(next_leaf) - 1,
+                          &bpt_node_cache_handler);
+    ld = cache.get(domain,
+                   BPT_LEADING(next_leaf) - 1,
+                   &giggle_data_handler.leading_cache_handler);
+    R_size = wah_get_ints_8(ld->B, &R);
+    TEST_ASSERT_EQUAL(4, R_size);
+    TEST_ASSERT_EQUAL(2, R[0] - 1);
+    TEST_ASSERT_EQUAL(3, R[1] - 1);
+    TEST_ASSERT_EQUAL(4, R[2] - 1);
+    TEST_ASSERT_EQUAL(5, R[3] - 1);
+    free(R);
+    R = NULL;
+
+    cache.destroy();
+}
+//}}}
+
 //{{{ void test_uint32_t_ll_giggle_search(void)
 void test_uint32_t_ll_giggle_search(void)
 {
@@ -406,6 +755,116 @@ void test_uint32_t_ll_giggle_search(void)
     TEST_ASSERT_EQUAL(1, uint32_t_ll_contains(R, 7));
 
     uint32_t_ll_free((void **)&R);
+    R = NULL;
+
+    cache.destroy();
+}
+//}}}
+
+//{{{ void test_wah_8_giggle_search(void)
+void test_wah_8_giggle_search(void)
+{
+    ORDER = 7;
+    struct simple_cache *sc = simple_cache_init(5, 1, NULL);
+    uint32_t domain = 0;
+    wah_8_giggle_set_data_handler();
+
+    /*
+     *  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+     *  |0-------------------------|  |1----|     |9------| 
+     *     |2----|  |3-------|
+     *        |4-------|  |5----|     |7-------------------|
+     *                    |6------------|
+     *  |8----------------------------------------------|
+     *
+     */
+    uint32_t root_id = 0;
+
+    uint32_t r = giggle_insert(domain, &root_id, 1, 10, 0);
+    r = giggle_insert(domain, &root_id, 11, 13, 1);
+    r = giggle_insert(domain, &root_id, 2, 4, 2);
+    r = giggle_insert(domain, &root_id, 5, 8, 3);
+    r = giggle_insert(domain, &root_id, 3, 6, 4);
+    r = giggle_insert(domain, &root_id, 7, 9, 5);
+    r = giggle_insert(domain, &root_id, 7, 12, 6);
+
+    r = giggle_insert(domain, &root_id, 11, 18, 7);
+    r = giggle_insert(domain, &root_id, 1, 17, 8);
+    r = giggle_insert(domain, &root_id, 15, 18, 9);
+
+    /*
+    7 13
+      (NULL)    1(SA:0,8) 2(SA:2) 3(SA:4) 5(SA:3 SE:2) 
+      (0 3 4 8) 7(SA:5,6 SE:4) 9(SE: 3) 10(SE:5) 11(SA:1,7 SE:0) 
+      (8 6 1 7) 13(SE:6) 14(SE:1) 15(SA:9) 18(SE:8) 19(SE:7,9)
+    */
+
+    /*
+     *  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+     *  |0-------------------------|  |1----|     |9------| 
+     *     |2----|  |3-------|
+     *        |4-------|  |5----|     |7-------------------|
+     *                    |6------------|
+     *  |8----------------------------------------------|
+     *
+     */
+
+    ///struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_search(root, 2, 5);
+    //uint32_t R_id = 
+    uint8_t *w = giggle_search(domain, root_id, 2, 5);
+    uint32_t *R = NULL, R_size;
+    R_size = wah_get_ints_8(w, &R);
+    TEST_ASSERT_EQUAL(5, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(2, R[1] - 1);
+    TEST_ASSERT_EQUAL(3, R[2] - 1);
+    TEST_ASSERT_EQUAL(4, R[3] - 1);
+    TEST_ASSERT_EQUAL(8, R[4] - 1);
+
+    free(w);
+    w = NULL;
+    free(R);
+    R = NULL;
+
+    w = giggle_search(domain, root_id, 5, 15);
+    R_size = wah_get_ints_8(w, &R);
+    TEST_ASSERT_EQUAL(9, R_size);
+    TEST_ASSERT_EQUAL(0, R[0] - 1);
+    TEST_ASSERT_EQUAL(1, R[1] - 1);
+    TEST_ASSERT_EQUAL(3, R[2] - 1);
+    TEST_ASSERT_EQUAL(4, R[3] - 1);
+    TEST_ASSERT_EQUAL(5, R[4] - 1);
+    TEST_ASSERT_EQUAL(6, R[5] - 1);
+    TEST_ASSERT_EQUAL(7, R[6] - 1);
+    TEST_ASSERT_EQUAL(8, R[7] - 1);
+    TEST_ASSERT_EQUAL(9, R[8] - 1);
+
+    free(w);
+    w = NULL;
+    free(R);
+    R = NULL;
+
+    w = giggle_search(domain, root_id, 19, 20);
+    if (w != NULL) {
+        R_size = wah_get_ints_8(w, &R);
+        TEST_ASSERT_EQUAL(0, R_size);
+        free(R);
+        R = NULL;
+        free(w);
+        w = NULL;
+    } else {
+        TEST_ASSERT_EQUAL(NULL, w);
+    }
+
+    w = giggle_search(domain, root_id, 18, 20);
+    R_size = wah_get_ints_8(w, &R);
+    TEST_ASSERT_EQUAL(2, R_size);
+    TEST_ASSERT_EQUAL(7, R[0] - 1);
+    TEST_ASSERT_EQUAL(9, R[1] - 1);
+
+    free(w);
+    w = NULL;
+    free(R);
     R = NULL;
 
     cache.destroy();
@@ -637,7 +1096,7 @@ void test_wah_8_giggle_query_region(void)
 
     struct file_id_offset_pair *r = 
         (struct file_id_offset_pair *)
-        unordered_list_get(gi->offset_index, R[0]);
+        unordered_list_get(gi->offset_index, R[0] - 1);
 
     struct input_file *i = input_file_init(unordered_list_get(gi->file_index,
                                            r->file_id));
@@ -661,7 +1120,7 @@ void test_wah_8_giggle_query_region(void)
     TEST_ASSERT_EQUAL(576604, end);
 
     r = (struct file_id_offset_pair *)
-            unordered_list_get(gi->offset_index, R[1]);
+            unordered_list_get(gi->offset_index, R[1] - 1);
     input_file_seek(i, r->offset);
     x = input_file_get_next_interval(i,
                                      &chrm,

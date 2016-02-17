@@ -50,3 +50,19 @@ int uint32_t_cmp(const void *_a, const void *_b)
     else
         return 0;
 }
+
+uint32_t bin_char_to_int(char *bin)
+{
+    uint32_t i = 0;
+    int j = 0;
+
+    while (bin[j] != '\0') {
+        i = i << 1;
+        if (bin[j] == '1')
+            i += 1;
+        j+=1;
+    }
+
+    return i;
+}
+

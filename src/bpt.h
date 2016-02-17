@@ -114,4 +114,5 @@ uint32_t bpt_find(uint32_t domain,
 void bpt_destroy_tree(struct bpt_node **root);
 
 bool bpt_write_tree(uint32_t domain, uint32_t root_id);
+void bpt_print_node(struct bpt_node *node);
 #endif
