@@ -938,6 +938,100 @@ void wah_8_leading_free(void **deserialized)
 //}}}
 //}}}
 
+//{{{uint8_t *uints_to_wah(uint32_t *D, uint32_t D_num)
+uint8_t *uints_to_wah(uint32_t *D, uint32_t D_num)
+{
+    uint32_t bits_per_word = WAH_SIZE - 1;
+    uint32_t curr_word = 0, // num of words previously considered
+             curr_val = 0, // value at the current index
+             word_i = 0, // index into the array of words
+             dist, fill_size, first_val, last = 0;
+    uint32_t val, i;
+
+
+    uint32_t w_num = D_num*2;
+    uint8_t *w = (uint8_t *)malloc(sizeof(uint32_t) + 
+                                   (w_num * (WAH_SIZE/BYTE) * sizeof(uint8_t)));
+
+    // loop over the sorted input
+    for (i = 0 ; i < D_num; ++i) {
+        // get the distance from the current value and the first value in the
+        // current word
+        val = D[i] - (curr_word * bits_per_word);
+
+        // will the val fit in the current word?
+        if (val <= bits_per_word) {
+            curr_val |= 1 << ( bits_per_word - val);
+        } else  {
+            if (curr_val > 0) {
+                set_wah_i(w, &curr_val, WAH_SIZE, word_i);
+                //fprintf(stderr,"curr_val:%u\tword_i:%u\n", curr_val, word_i);
+
+                curr_word += 1; // move to the next word
+                word_i += 1;
+                curr_val = 0;
+
+                if (word_i > w_num) {
+                    w_num *= 2;
+                    w = (uint8_t *)realloc(w,
+                                           sizeof(uint32_t) + 
+                                           (w_num * 
+                                           (WAH_SIZE/BYTE) * 
+                                           sizeof(uint8_t)));
+                }
+
+                val = D[i] - (curr_word * bits_per_word);
+            }
+
+            uint32_t saved_words;
+            while (val > bits_per_word) {
+                fill_size = ((val + bits_per_word - 1) / bits_per_word) - 1;
+                saved_words = MIN(fill_size, WAH_MAX_FILL_WORDS);
+                curr_val = (1 << (bits_per_word)) + (saved_words);
+
+                set_wah_i(w, &curr_val, WAH_SIZE, word_i);
+                //fprintf(stderr,"curr_val:%u\tword_i:%u\n", curr_val, word_i);
+
+                curr_word += saved_words; // move to the next word
+                word_i += 1;
+                curr_val = 0;
+                if (word_i > w_num) {
+                    w_num *= 2;
+                    w = (uint8_t *)realloc(w,
+                                           sizeof(uint32_t) + 
+                                           (w_num * 
+                                           (WAH_SIZE/BYTE) * 
+                                           sizeof(uint8_t)));
+                }
+                
+                val -= saved_words * bits_per_word;
+            }
+
+            if (val > 0) {
+                curr_val = 1 << ( bits_per_word - val);
+            } else {
+                curr_val = 0;
+            }
+        }
+    }
+
+    if (curr_val > 0)  {
+        set_wah_i(w, &curr_val, WAH_SIZE, word_i);
+        //fprintf(stderr,"curr_val:%u\tword_i:%u\n", curr_val, word_i);
+    }
+
+    w = (uint8_t *)realloc(w,
+                           sizeof(uint32_t) + 
+                           ((word_i + 1) * 
+                           (WAH_SIZE/BYTE) * 
+                           sizeof(uint8_t)));
+
+    WAH_LEN(w) = word_i + 1;
+    //fprintf(stderr, "WAH_LEN:%u\n", WAH_LEN(w));
+    return w;
+}
+//}}}
+
 #if 0
 //{{{ uint32_t wah_or_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 uint32_t wah_nand_8(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)

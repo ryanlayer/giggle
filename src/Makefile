@@ -16,6 +16,7 @@ LIB=bpt.o \
     lists.o \
     ll.o \
     util.o \
+    timer.o \
     wah.o
 
 
@@ -29,7 +30,8 @@ OBJS=$(addprefix $(OBJ)/, $(LIB))
 PROG=index_search \
      index \
      search \
-     test
+     test \
+     speed_tests
 
 
 LIST=$(addprefix $(BIN)/, $(PROG))
@@ -46,4 +48,4 @@ $(BIN)/%: %.c $(OBJS)
 		-I$(HTS_ROOT) \
 		-DSAMTOOLS=1 \
 		$(HTS_ROOT)/libhts.a \
-		-ldl -lz -lm  -pthread
+		-ldl -lz -lm  -pthread -ltcmalloc

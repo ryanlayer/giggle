@@ -54,7 +54,7 @@ void unordered_list_destroy(struct unordered_list **ul,
 uint32_t unordered_list_add(struct unordered_list *ul,
                             void *data);
 void *unordered_list_get(struct unordered_list *ul, uint32_t i);
-struct unordered_list *ordered_list_load(
+struct unordered_list *unordered_list_load(
                 FILE *f,
                 char *file_name,
                 void *(*ul_load)(FILE *f, char *file_name));

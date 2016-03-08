@@ -78,4 +78,13 @@ struct cache_handler uint32_t_ll_leading_cache_handler;
 
 void uint32_t_ll_giggle_set_data_handler();
 
+struct cache_handler uint32_t_ll_wah_leading_cache_handler;
+void uint32_t_ll_wah_giggle_set_data_handler();
+struct cache_handler uint32_t_ll_wah_non_leading_cache_handler;
+uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
+                                              void **serialized);
+
+uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
+                                                  void **serialized);
+
 #endif

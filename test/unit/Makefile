@@ -13,6 +13,7 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 lists.c \
 		 util.c \
 		 ll.c \
+		 timer.c \
 		 file_read.c \
 		 bpt.c \
 		 wah.c \

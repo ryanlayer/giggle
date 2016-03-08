@@ -13,6 +13,7 @@
 #include "lists.h"
 #include "file_read.h"
 #include "util.h"
+#include "timer.h"
 
 //{{{ void *file_id_offset_pair_load(FILE *f, char *file_name)
 void *file_id_offset_pair_load(FILE *f, char *file_name)
@@ -527,7 +528,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                                  uint32_t force,
                                  void (*giggle_set_data_handler)(void))
 {
-    ORDER = 50;
+    ORDER = 100;
 
     char **cache_names = NULL;
 
@@ -645,7 +646,7 @@ uint32_t giggle_store(struct giggle_index *gi)
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void))
 {
-    ORDER = 50;
+    ORDER = 100;
 
     if (data_dir == NULL)
         return NULL;
@@ -660,6 +661,7 @@ struct giggle_index *giggle_load(char *data_dir,
     gi->data_dir = strdup(data_dir);
 
     // root_ids
+    start();
     int ret = asprintf(&(gi->root_ids_file_name),
                        "%s/root_ids.dat",
                        data_dir);
@@ -680,8 +682,12 @@ struct giggle_index *giggle_load(char *data_dir,
     check_file_read(gi->root_ids_file_name, f, gi->len, fr);
 
     fclose(f);
+    stop();
+
+    fprintf(stderr, "root_ids:%lu\n", report());
 
     // chrm_index
+    start();
     ret = asprintf(&(gi->chrm_index_file_name),
                    "%s/chrm_index.dat",
                    data_dir);
@@ -693,32 +699,38 @@ struct giggle_index *giggle_load(char *data_dir,
                                       str_uint_pair_search_element_cmp,
                                       str_uint_pair_search_key_cmp);
     fclose(f);
+    stop();
+    fprintf(stderr, "chrm_index:%lu\n", report());
 
 
+    start();
     ret = asprintf(&(gi->file_index_file_name),
                    "%s/file_index.dat",
                    data_dir);
     f = fopen(gi->file_index_file_name, "rb");
-    gi->file_index = ordered_list_load(f,
+    gi->file_index = unordered_list_load(f,
                                        gi->file_index_file_name,
                                        c_str_load);
     fclose(f);
+    stop();
+    fprintf(stderr, "file_index:%lu\n", report());
 
+    start();
     ret = asprintf(&(gi->offset_index_file_name),
                    "%s/offset_index.dat",
                    data_dir);
 
-
-
-
     f = fopen(gi->offset_index_file_name, "rb");
-    gi->offset_index = ordered_list_load(f,
+    gi->offset_index = unordered_list_load(f,
                                          gi->offset_index_file_name,
                                          file_id_offset_pair_load);
 
     fclose(f);
+    stop();
+    fprintf(stderr, "offset_index:%lu\n", report());
 
 
+    start();
     char **cache_names = (char **)calloc(gi->len, sizeof(char *));
     uint32_t i;
     for (i = 0; i < gi->len; ++i) {
@@ -728,17 +740,14 @@ struct giggle_index *giggle_load(char *data_dir,
                           i);
     }
 
-
-
     struct simple_cache *sc = simple_cache_init(1000,
                                                 gi->len,
                                                 cache_names);
+    stop();
+    fprintf(stderr, "simple_cache:%lu\n", report());
 
     giggle_set_data_handler();
-
-
 
     return gi;
 }
 //}}}
-

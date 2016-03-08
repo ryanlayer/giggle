@@ -1,8 +1,196 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <err.h>
+#include "util.h"
 #include "ll.h"
 #include "giggle.h"
+#include "wah.h"
+
+void uint32_t_ll_wah_giggle_set_data_handler()
+{
+    bpt_node_repair = uint32_t_ll_leading_repair;
+
+    uint32_t_ll_giggle_data_handler.non_leading_cache_handler =
+        uint32_t_ll_wah_non_leading_cache_handler;
+    uint32_t_ll_giggle_data_handler.leading_cache_handler = 
+        uint32_t_ll_wah_leading_cache_handler;
+    uint32_t_ll_giggle_data_handler.new_non_leading = 
+        uint32_t_ll_new_non_leading;
+    uint32_t_ll_giggle_data_handler.new_leading = 
+        uint32_t_ll_new_leading;
+    uint32_t_ll_giggle_data_handler.non_leading_SA_add_scalar = 
+        uint32_t_ll_non_leading_SA_add_scalar;
+    uint32_t_ll_giggle_data_handler.non_leading_SE_add_scalar = 
+        uint32_t_ll_non_leading_SE_add_scalar;
+    uint32_t_ll_giggle_data_handler.leading_B_add_scalar = 
+        uint32_t_ll_leading_B_add_scalar;
+    uint32_t_ll_giggle_data_handler.leading_union_with_B = 
+        uint32_t_ll_leading_union_with_B;
+    uint32_t_ll_giggle_data_handler.non_leading_union_with_SA = 
+        uint32_t_ll_non_leading_union_with_SA;
+    uint32_t_ll_giggle_data_handler.non_leading_union_with_SA_subtract_SE = 
+        uint32_t_ll_non_leading_union_with_SA_subtract_SE;
+
+    giggle_data_handler = uint32_t_ll_giggle_data_handler;
+}
+struct cache_handler uint32_t_ll_wah_leading_cache_handler = {
+        uint32_t_ll_leading_serialize_to_wah,
+        uint32_t_ll_leading_deserialize,
+        uint32_t_ll_leading_free
+};
+//{{{uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
+uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
+                                              void **serialized)
+{
+    if (deserialized == NULL) {
+        *serialized = NULL;
+        return 0;
+    }
+
+    struct uint32_t_ll_bpt_leading_data *d =  
+            (struct uint32_t_ll_bpt_leading_data *)deserialized;
+
+    uint32_t B_len;
+
+    if (d->B != NULL)
+        B_len = d->B->len;
+    else {
+        B_len = 0;
+    }
+
+    struct wah_8_bpt_leading_data *wah_d =  
+        (struct wah_8_bpt_leading_data *)
+        calloc(1,
+               sizeof(struct wah_8_bpt_leading_data));
+
+    wah_d->B = NULL;
+
+    if (d->B != NULL) {
+        uint32_t *B = (uint32_t *)calloc(B_len,sizeof(uint32_t));
+        uint32_t i;
+        struct uint32_t_ll_node *curr;
+
+        curr = d->B->head;
+        i = 0;
+        while (curr != NULL) {
+            B[i++] = curr->val;
+            curr = curr->next;
+        }
+
+        if (i != d->B->len)
+            errx(1, "Incorrect length in B:leading_data.");
+
+        qsort(B, d->B->len, sizeof(uint32_t), uint32_t_cmp);
+        uint8_t *w = uints_to_wah(B, d->B->len);
+
+        wah_d->B = w;
+        free(B);
+    }
+
+    uint64_t w_size = wah_8_leading_serialize(wah_d, serialized);
+
+    if (wah_d->B != NULL)
+        free(wah_d->B);
+    free(wah_d);
+
+    return w_size;
+}
+//}}}
+
+struct cache_handler uint32_t_ll_wah_non_leading_cache_handler = {
+        uint32_t_ll_non_leading_serialize_to_wah,
+        uint32_t_ll_non_leading_deserialize,
+        uint32_t_ll_non_leading_free
+};
+
+
+//{{{uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
+uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
+                                                  void **serialized)
+{
+    if (deserialized == NULL) {
+        *serialized = NULL;
+        return 0;
+    }
+
+    struct uint32_t_ll_bpt_non_leading_data *d =  
+            (struct uint32_t_ll_bpt_non_leading_data *)deserialized;
+
+    uint32_t SA_len, SE_len, serialized_len;
+
+    if (d->SA != NULL)
+        SA_len = d->SA->len;
+    else
+        SA_len = 0;
+
+    if (d->SE != NULL)
+        SE_len = d->SE->len;
+    else
+        SE_len = 0;
+
+    struct wah_8_bpt_non_leading_data *wah_d =  
+        (struct wah_8_bpt_non_leading_data *)
+        calloc(1,
+               sizeof(struct wah_8_bpt_non_leading_data));
+
+    wah_d->SA = NULL;
+    wah_d->SE = NULL;
+
+    if (d->SA != NULL) {
+        uint32_t *B = (uint32_t *)calloc(SA_len,sizeof(uint32_t));
+        uint32_t i;
+        struct uint32_t_ll_node *curr;
+
+        curr = d->SA->head;
+        i = 0;
+        while (curr != NULL) {
+            B[i++] = curr->val;
+            curr = curr->next;
+        }
+
+        if (i != d->SA->len)
+            errx(1, "Incorrect length in SA:leading_data.");
+
+        qsort(B, d->SA->len, sizeof(uint32_t), uint32_t_cmp);
+        uint8_t *w = uints_to_wah(B, d->SA->len);
+
+        wah_d->SA = w;
+        free(B);
+    }
+
+    if (d->SE != NULL) {
+        uint32_t *B = (uint32_t *)calloc(SE_len,sizeof(uint32_t));
+        uint32_t i;
+        struct uint32_t_ll_node *curr;
+
+        curr = d->SE->head;
+        i = 0;
+        while (curr != NULL) {
+            B[i++] = curr->val;
+            curr = curr->next;
+        }
+
+        if (i != d->SE->len)
+            errx(1, "Incorrect length in SE:leading_data.");
+
+        qsort(B, d->SE->len, sizeof(uint32_t), uint32_t_cmp);
+        uint8_t *w = uints_to_wah(B, d->SE->len);
+
+        wah_d->SE = w;
+        free(B);
+    }
+
+    uint64_t w_size = wah_8_non_leading_serialize(wah_d, serialized);
+
+    if (wah_d->SA != NULL)
+        free(wah_d->SA);
+    if (wah_d->SE != NULL)
+        free(wah_d->SE);
+    free(wah_d);
+
+    return w_size;
+}
+//}}}
 
 //{{{ uint32_t_ll_non_leading_cache_handler
 struct cache_handler uint32_t_ll_non_leading_cache_handler = {
@@ -232,6 +420,7 @@ void uint32_t_ll_leading_free(void **deserialized)
 }
 //}}}
 //}}}
+
 
 //{{{ giggle_data_handler :: int32_t_ll_giggle_data_handler
 
@@ -630,3 +819,5 @@ void uint32_t_ll_leading_repair(uint32_t domain,
     }
 }
 //}}}
+
+

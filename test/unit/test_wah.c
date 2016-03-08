@@ -1251,3 +1251,64 @@ void  test_wah_8_leading_repair(void)
     cache.destroy();
 }
 //}}}
+
+
+void test_ints_to_wah(void)
+{
+    uint32_t i, size = 100;
+    uint32_t *D = (uint32_t *)calloc(size,sizeof(uint32_t));
+
+
+    D[0] = 5;
+    D[1] = 6;
+    D[2] = 13;
+    D[3] = 14;
+    D[4] = 15;
+    D[5] = 100;
+    D[6] = 101;
+    D[7] = 1000;
+
+    // 00000110000001110000000000000000 101122048
+    // 10000000000000000000000000000010 2147483650
+    // 00000001100000000000000000000000 25165824
+    // 10000000000000000000000000011100 2147483676
+    // 00000000100000000000000000000000 8388608
+
+    uint8_t *w = uints_to_wah(D, 8);
+
+    TEST_ASSERT_EQUAL(5, WAH_LEN(w));
+    uint32_t v;
+    get_wah_i(w, &v, 32, 0);
+    TEST_ASSERT_EQUAL(bin_char_to_int("00000110000001110000000000000000"), v);
+    get_wah_i(w, &v, 32, 1);
+    TEST_ASSERT_EQUAL(bin_char_to_int("10000000000000000000000000000010"), v);
+    get_wah_i(w, &v, 32, 2);
+    TEST_ASSERT_EQUAL(bin_char_to_int("00000001100000000000000000000000"), v);
+    get_wah_i(w, &v, 32, 3);
+    TEST_ASSERT_EQUAL(bin_char_to_int("10000000000000000000000000011100"), v);
+    get_wah_i(w, &v, 32, 4);
+    TEST_ASSERT_EQUAL(bin_char_to_int("00000000100000000000000000000000"), v);
+
+    free(w);
+    w = NULL;
+
+    for (i = 0; i < size; i+=2) {
+        D[i] = rand();
+        D[i+1] = D[i] + 30;
+    }
+
+    qsort(D, size, sizeof(uint32_t), uint32_t_cmp);
+
+    w = uints_to_wah(D, size);
+
+    uint32_t R_size, *R = NULL;
+    R_size = wah_get_ints_8(w, &R);
+
+    TEST_ASSERT_EQUAL(size, R_size);
+
+    for (i = 0; i < size; ++i) 
+        TEST_ASSERT_EQUAL(D[i], R[i]);
+
+    free(w);
+    free(R);
+}

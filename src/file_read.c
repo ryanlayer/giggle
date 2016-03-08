@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <err.h>
+#include <sysexits.h>
 
+#include "util.h"
 #include "file_read.h"
 
 //{{{int scan_s(char *str, int str_len, int *s, int *e, const char delim)
@@ -38,6 +40,8 @@ struct input_file *input_file_init(char *file_name)
         err(1,"Not a bgzip compressed file: %s\n", file_name);
 
     i->last_offset = 0;
+
+    
 
     return i;
 }
@@ -98,8 +102,85 @@ int input_file_get_next_interval(struct input_file *i,
 }
 //}}}
 
+//{{{void input_file_seek(struct input_file *i, long offset)
 void input_file_seek(struct input_file *i, long offset)
 {
     bgzf_seek(i->fp, offset, SEEK_SET);
     i->last_offset = offset;
 }
+//}}}
+
+//{{{void file_data_store(void *v, FILE *f, char *file_name)
+void file_data_store(void *v, FILE *f, char *file_name)
+{
+    struct file_data *fd = (struct file_data *)v;
+    uint32_t size = strlen(fd->file_name) +
+                    sizeof(uint32_t) + 
+                    sizeof(double);
+
+    if (fwrite(&size, sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR,
+            "Error writing file_data size to '%s'.", file_name);
+
+    if (fwrite(fd->file_name,
+               sizeof(char),
+               strlen(fd->file_name), f) != strlen(fd->file_name))
+        err(EX_IOERR,
+            "Error writing file_data file_name to '%s'.", file_name);
+
+    if (fwrite(&(fd->num_intervals),
+               sizeof(uint32_t),
+               1, f) != 1)
+        err(EX_IOERR,
+            "Error writing file_data num_intervals to '%s'.", file_name);
+
+    if (fwrite(&(fd->mean_interval_size),
+               sizeof(double),
+               1, f) != 1)
+        err(EX_IOERR,
+            "Error writing file_data mean_interval_size to '%s'.", file_name);
+
+}
+//}}}
+
+//{{{ void *file_data_load(FILE *f, char *file_name)
+void *file_data_load(FILE *f, char *file_name)
+{
+    uint32_t size;
+    size_t fr = fread(&size, sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    uint32_t str_len = size - sizeof(uint32_t) - sizeof(double);
+
+    struct file_data *fd = (struct file_data *)
+        calloc(1, sizeof(struct file_data));
+
+    fd->file_name = (char *)calloc(str_len + 1, sizeof(char));
+
+    fr = fread(fd->file_name, sizeof(char), str_len, f);
+    check_file_read(file_name, f, str_len, fr);
+
+    fd->file_name[str_len] = '\0';
+
+    uint32_t v;
+    fr = fread(&v, sizeof(uint32_t), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    fd->num_intervals = v;
+
+    fr = fread(&(fd->mean_interval_size), sizeof(double), 1, f);
+    check_file_read(file_name, f, 1, fr);
+
+    return (void *)fd;
+}
+//}}}
+
+//{{{void file_data_free(void **v)
+void file_data_free(void **v)
+{
+    struct file_data **fd = (struct file_data **)v;
+    free((*fd)->file_name);
+    free(*fd);
+    *fd = NULL;
+}
+//}}}

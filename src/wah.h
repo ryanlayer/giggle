@@ -89,4 +89,5 @@ void wah_8_giggle_set_data_handler();
 void set_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i);
 void get_wah_i(uint8_t *W, void *v, uint32_t word_size, uint32_t i);
 
+uint8_t *uints_to_wah(uint32_t *D, uint32_t D_num);
 #endif

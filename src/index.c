@@ -38,7 +38,7 @@ int main(int argc, char **argv)
         gi = giggle_init(num_chrms,
                          output_dir,
                          force,
-                         wah_8_giggle_set_data_handler);
+                         uint32_t_ll_wah_giggle_set_data_handler);
 
     uint32_t r = giggle_index_directory(gi, input_dir, 0);
     

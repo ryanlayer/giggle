@@ -4,6 +4,17 @@
 #include <htslib/bgzf.h>
 #include <stdint.h>
 
+struct file_data
+{
+    char *file_name;
+    uint32_t num_intervals;
+    double mean_interval_size;
+};
+
+void file_data_free(void **v);
+void file_data_store(void *v, FILE *f, char *file_name);
+void *file_data_load(FILE *f, char *file_name);
+
 struct input_file
 {
     char *file_name;

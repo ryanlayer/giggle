@@ -46,6 +46,16 @@ int main(int argc, char **argv)
         gi = giggle_load(index_dir,
                          uint32_t_ll_giggle_set_data_handler);
 
+        struct uint32_t_ll *R =
+                (struct uint32_t_ll *)giggle_query_region(gi,
+                                                          chrm,
+                                                          start,
+                                                          end);
+
+
+
+#if 0
+
         for (i = 0; i < N; ++i) {
             start += 10;
             end += 10;
@@ -67,19 +77,31 @@ int main(int argc, char **argv)
 
             free(R);
         }
+#endif
 
     } else {
         gi = giggle_load(index_dir,
                          wah_8_giggle_set_data_handler);
 
-        uint8_t *R = (uint8_t *)giggle_query_region(gi,
-                                                    chrm,
-                                                    start,
-                                                    end);
+        for (i = 0; i < N; ++i) {
+            start += 10;
+            end += 10;
+            char *rand_chr = NULL;
+            //asprintf(&rand_chr, "chr%u", 1 + rand() %10);
+            //fprintf(stderr, "%s:%u-%u\n", rand_chr, start, end);
+ 
+            uint8_t *R = (uint8_t *)giggle_query_region(gi,
+                                                        chrm,
+                                                        start,
+                                                        end);
+            /*
         if (R != NULL)
             printf("Hits:%u\n", wah_get_ints_count_8(R));
         else
             printf("Hits:0\n");
+        */
+            free(R);
+        }
 
     }
 
