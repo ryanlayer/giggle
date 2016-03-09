@@ -58,10 +58,10 @@ uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
         B_len = 0;
     }
 
-    struct wah_8_bpt_leading_data *wah_d =  
-        (struct wah_8_bpt_leading_data *)
+    struct wah_bpt_leading_data *wah_d =  
+        (struct wah_bpt_leading_data *)
         calloc(1,
-               sizeof(struct wah_8_bpt_leading_data));
+               sizeof(struct wah_bpt_leading_data));
 
     wah_d->B = NULL;
 
@@ -87,7 +87,7 @@ uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
         free(B);
     }
 
-    uint64_t w_size = wah_8_leading_serialize(wah_d, serialized);
+    uint64_t w_size = wah_leading_serialize(wah_d, serialized);
 
     if (wah_d->B != NULL)
         free(wah_d->B);
@@ -128,10 +128,10 @@ uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
     else
         SE_len = 0;
 
-    struct wah_8_bpt_non_leading_data *wah_d =  
-        (struct wah_8_bpt_non_leading_data *)
+    struct wah_bpt_non_leading_data *wah_d =  
+        (struct wah_bpt_non_leading_data *)
         calloc(1,
-               sizeof(struct wah_8_bpt_non_leading_data));
+               sizeof(struct wah_bpt_non_leading_data));
 
     wah_d->SA = NULL;
     wah_d->SE = NULL;
@@ -180,7 +180,7 @@ uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
         free(B);
     }
 
-    uint64_t w_size = wah_8_non_leading_serialize(wah_d, serialized);
+    uint64_t w_size = wah_non_leading_serialize(wah_d, serialized);
 
     if (wah_d->SA != NULL)
         free(wah_d->SA);

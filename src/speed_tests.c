@@ -25,7 +25,7 @@ int main(int argc, char **argv)
         start();
         for (i = 0; i < size; ++i) {
             W_1[i] = rand();
-            wah_8_uniq_append(&w_1, W_1[i]);
+            wah_uniq_append(&w_1, W_1[i]);
         }
         stop();
         fprintf(stderr, "%lu\t", report());
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         start();
         for (i = 0; i < size; ++i) {
             W_2[i] = rand();
-            wah_8_uniq_append(&w_2, W_2[i]);
+            wah_uniq_append(&w_2, W_2[i]);
         }
         stop();
         fprintf(stderr, "%lu\t", report());
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         uint32_t r_size = 0;
 
         start();
-        uint32_t resize = wah_or_8(w_1, w_2, &r, &r_size);
+        uint32_t resize = wah_or(w_1, w_2, &r, &r_size);
         stop();
         fprintf(stderr, "%lu\n", report());
     } else if (argv[2][0] == 'l') {
