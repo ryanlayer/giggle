@@ -543,6 +543,10 @@ void uint32_t_ll_leading_union_with_B(uint32_t domain,
                                       void **R,
                                       void *leading)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_leading_union_with_B\n");
+#endif
+
     struct uint32_t_ll_node *curr = 
         ((struct uint32_t_ll_bpt_leading_data *)(leading))->B->head;
     while (curr != NULL) {
@@ -558,6 +562,9 @@ void uint32_t_ll_leading_union_with_B(uint32_t domain,
 //{{{void uint32_t_ll_non_leading_union_with_SA(void **R, void *d)
 void uint32_t_ll_non_leading_union_with_SA(uint32_t domain, void **R, void *d)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_non_leading_union_with_SA\n");
+#endif
     struct uint32_t_ll_bpt_non_leading_data *nld = 
             (struct uint32_t_ll_bpt_non_leading_data *) d;
     if (nld != NULL) {
@@ -580,6 +587,10 @@ void uint32_t_ll_non_leading_union_with_SA_subtract_SE(uint32_t domain,
                                                        void **R,
                                                        void *d)
 {
+#if DEBUG
+    fprintf(stderr, "uint32_t_ll_non_leading_union_with_SA_subtract_SE\n");
+#endif
+
     struct uint32_t_ll_bpt_non_leading_data *nld = 
             (struct uint32_t_ll_bpt_non_leading_data *) d;
     if (nld != NULL) {

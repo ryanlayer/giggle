@@ -118,7 +118,7 @@ void test_unordered_list_store_load_file_id_offset_pair(void)
 
     f = fopen(file_name, "rb");
 
-    struct unordered_list *ul_2 = ordered_list_load(f,
+    struct unordered_list *ul_2 = unordered_list_load(f,
                                                     file_name,
                                                     file_id_offset_pair_load);
 
@@ -131,6 +131,7 @@ void test_unordered_list_store_load_file_id_offset_pair(void)
 
     unordered_list_destroy(&ul, free_wrapper);
     unordered_list_destroy(&ul_2, free_wrapper);
+    remove("test_unordered_list_store_load_file_id_offset_pair.dat");
 }
 //}}}
 
@@ -169,7 +170,7 @@ void test_unordered_list_store_load_c_str(void)
 
     f = fopen(file_name, "rb");
 
-    struct unordered_list *ul_2 = ordered_list_load(f,
+    struct unordered_list *ul_2 = unordered_list_load(f,
                                                     file_name,
                                                     c_str_load);
 
@@ -181,6 +182,7 @@ void test_unordered_list_store_load_c_str(void)
 
     unordered_list_destroy(&ul, free_wrapper);
     unordered_list_destroy(&ul_2, free_wrapper);
+    remove(file_name);
 }
 //}}}
 
@@ -357,6 +359,7 @@ void test_ordered_set_store_load(void)
 
     ordered_set_destroy(&os, str_uint_pair_free);
     ordered_set_destroy(&os_2, str_uint_pair_free);
+    remove(file_name);
 }
 //}}}
 
@@ -709,6 +712,7 @@ void test_indexed_list(void)
     indexed_list_destroy(&il_1);
     TEST_ASSERT_EQUAL(NULL, il);
     TEST_ASSERT_EQUAL(NULL, il_1);
+    remove("test_indexed_list.tmp");
 }
 //}}}
 
@@ -947,5 +951,6 @@ void test_bit_map(void)
 
     bit_map_destroy(&bm);
     bit_map_destroy(&bm_r);
+    remove(file_name);
 }
 //}}}

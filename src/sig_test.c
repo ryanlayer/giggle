@@ -1,0 +1,169 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <err.h>
+#include <string.h>
+
+#include "giggle.h"
+#include "wah.h"
+#include "cache.h"
+#include "file_read.h"
+#include "kfunc.h"
+
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+
+struct doubles_uint32_t_tuple
+{
+    double d1,d2;
+    uint32_t u1,u2,u3;
+};
+
+int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b)
+{
+    struct doubles_uint32_t_tuple *a = (struct doubles_uint32_t_tuple *)_a;
+    struct doubles_uint32_t_tuple *b = (struct doubles_uint32_t_tuple *)_b;
+
+    if (a->d1 < b->d1)
+        return -1;
+    else if (a->d1 > b->d1)
+        return 1;
+    else {
+        if (a->d2 < b->d2)
+            return -1;
+        else if (a->d2 > b->d2)
+            return 1;
+
+        return 0;
+    }
+}
+
+
+
+int main(int argc, char **argv)
+{
+    WAH_SIZE = 32;
+    WAH_MAX_FILL_WORDS = (1<<(WAH_SIZE-1)) - 1;
+
+    uint32_t num_chrms = 100;
+
+    if ((argc != 4)) {
+        errx(1,
+             "usage:\t%s <input file> <index dir> <w|i>",
+             argv[0]);
+    }
+
+    double genome_size =  3095677412.0;
+
+    char *input_file = argv[1];
+    char *index_dir = argv[2];
+    char *i_type = argv[3];
+
+    struct input_file *in_f = input_file_init(input_file);
+
+    int chrm_len = 50;
+    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    uint32_t start, end;
+    long offset;
+
+    struct giggle_index *gi;
+
+    gi = giggle_load(index_dir,
+                     uint32_t_ll_giggle_set_data_handler);
+
+    uint32_t *file_counts = (uint32_t *)
+            calloc(gi->file_index->num, sizeof(uint32_t));
+
+    uint32_t num_intervals = 0;
+    double mean_interval_size = 0.0;
+    while ( input_file_get_next_interval(in_f, 
+                                         &chrm,
+                                         &chrm_len,
+                                         &start,
+                                         &end,
+                                         &offset) >= 0 ) {
+        num_intervals += 1;
+        mean_interval_size += end - start;
+
+        struct uint32_t_ll *R =
+                (struct uint32_t_ll *)giggle_query_region(gi,
+                                                          chrm,
+                                                          start,
+                                                          end);
+        if (R != NULL) {
+            struct uint32_t_ll_node *curr = R->head;
+
+            while (curr != NULL) {
+                struct file_id_offset_pair *fid_off = 
+                    (struct file_id_offset_pair *)
+                    unordered_list_get(gi->offset_index, curr->val);
+                struct file_data *fd = 
+                    (struct file_data *)
+                    unordered_list_get(gi->file_index, fid_off->file_id);
+
+                file_counts[fid_off->file_id] += 1;
+
+                curr = curr->next;
+            }
+            uint32_t_ll_free((void **)&R);
+        }
+    }
+
+    mean_interval_size = mean_interval_size/num_intervals;
+
+    struct doubles_uint32_t_tuple *sig = (struct doubles_uint32_t_tuple *)
+        calloc(gi->file_index->num, sizeof(struct doubles_uint32_t_tuple));
+
+    uint32_t i;
+    for (i = 0; i < gi->file_index->num; ++i) {
+        struct file_data *fd = 
+            (struct file_data *)
+            unordered_list_get(gi->file_index, i);
+
+        long long n11 = (long long)(file_counts[i]);
+        long long n12 = (long long)(MAX(0,num_intervals - file_counts[i]));
+        long long n21 = (long long)(MAX(0,fd->num_intervals - file_counts[i]));
+        double comp_mean = ((fd->mean_interval_size+mean_interval_size));
+        long long n22_full = (long long)
+            MAX(n11 + n12 + n21, genome_size/comp_mean);
+        long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
+        double left, right, two;
+        double r = kt_fisher_exact(n11, n12, n21, n22, &left, &right, &two);
+
+        double ratio = (((double)n11/(double)n12) / ((double)n21/(double)n22));
+
+        //fprintf(stderr, "%s\t%f\n", fd->file_name, two);
+        sig[i].d1 = right;
+        sig[i].d2 = ratio;
+        sig[i].u1 = i;
+        sig[i].u2 = file_counts[i];
+    }
+
+    qsort(sig,
+          gi->file_index->num,
+          sizeof(struct doubles_uint32_t_tuple), 
+          doubles_uint32_t_tuple_cmp);
+
+    for (i = 0; i < gi->file_index->num; ++i) {
+        struct file_data *fd = 
+            (struct file_data *)
+            unordered_list_get(gi->file_index, sig[i].u1);
+        /*
+        printf("%s\t"
+               "right:%f\t"
+               "%f\n", fd->file_name, sig[i].d1, sig[i].d2);
+        */
+        printf( "sig:%f\t"
+                "size:%u\t"
+                "overlap:%u\t"
+                "ratio:%f\t"
+                "%s\n",
+                sig[i].d1,
+                fd->num_intervals,
+                sig[i].u2,
+                sig[i].d2,
+                fd->file_name);
+    }
+
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
