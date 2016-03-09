@@ -26,7 +26,7 @@ void test_uint32_t_ll_giggle_insert(void)
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
     uint32_t_ll_giggle_set_data_handler();
-    //wah_8_giggle_set_data_handler();
+    //wah_giggle_set_data_handler();
 
     uint32_t root_id = 0;
     uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
@@ -272,12 +272,12 @@ void test_uint32_t_ll_giggle_insert(void)
 //}}}
 
 //{{{void test_uint32_t_ll_giggle_insert(void)
-void test_wah_8_giggle_insert(void)
+void test_wah_giggle_insert(void)
 {
     uint32_t *R = NULL, R_size;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
-    wah_8_giggle_set_data_handler();
+    wah_giggle_set_data_handler();
 
     uint32_t root_id = 0;
     uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
@@ -300,12 +300,12 @@ void test_wah_8_giggle_insert(void)
     TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[2]);
     TEST_ASSERT_EQUAL(5, BPT_KEYS(root)[3]);
 
-    struct wah_8_bpt_non_leading_data *nld = 
+    struct wah_bpt_non_leading_data *nld = 
         cache.get(domain,
                   BPT_POINTERS(root)[0] - 1,
                   &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -315,7 +315,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(root)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -325,7 +325,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(root)[2] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -335,7 +335,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(root)[3] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -367,12 +367,12 @@ void test_wah_8_giggle_insert(void)
     TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
     TEST_ASSERT_TRUE(BPT_LEADING(second_leaf) != 0);
 
-    struct wah_8_bpt_leading_data *ld =
-            (struct wah_8_bpt_leading_data *)
+    struct wah_bpt_leading_data *ld =
+            (struct wah_bpt_leading_data *)
             cache.get(domain,
                       BPT_LEADING(second_leaf) - 1,
                       &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -392,7 +392,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -402,7 +402,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
 
@@ -413,7 +413,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -428,13 +428,13 @@ void test_wah_8_giggle_insert(void)
     nld = cache.get(domain,
                     BPT_POINTERS(next_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(3, R[1] - 1);
     free(R);
     R = NULL;
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -444,7 +444,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -454,7 +454,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[2] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(3, R[0] - 1);
     free(R);
@@ -464,7 +464,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[3] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     free(R);
@@ -486,7 +486,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(4, R[1] - 1);
@@ -497,7 +497,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -509,7 +509,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(3, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -526,13 +526,13 @@ void test_wah_8_giggle_insert(void)
     nld = cache.get(domain,
                     BPT_POINTERS(next_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(3, R[1] - 1);
     free(R);
     R = NULL;
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -542,7 +542,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -552,7 +552,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[2] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(3, R[0] - 1);
     free(R);
@@ -562,7 +562,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[3] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(4, R[1] - 1);
@@ -591,7 +591,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(4, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -606,7 +606,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(4, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(3, R[1] - 1);
@@ -761,13 +761,13 @@ void test_uint32_t_ll_giggle_search(void)
 }
 //}}}
 
-//{{{ void test_wah_8_giggle_search(void)
-void test_wah_8_giggle_search(void)
+//{{{ void test_wah_giggle_search(void)
+void test_wah_giggle_search(void)
 {
     ORDER = 7;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
-    wah_8_giggle_set_data_handler();
+    wah_giggle_set_data_handler();
 
     /*
      *  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
@@ -813,7 +813,7 @@ void test_wah_8_giggle_search(void)
     //uint32_t R_id = 
     uint8_t *w = giggle_search(domain, root_id, 2, 5);
     uint32_t *R = NULL, R_size;
-    R_size = wah_get_ints_8(w, &R);
+    R_size = wah_get_ints(w, &R);
     TEST_ASSERT_EQUAL(5, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(2, R[1] - 1);
@@ -827,7 +827,7 @@ void test_wah_8_giggle_search(void)
     R = NULL;
 
     w = giggle_search(domain, root_id, 5, 15);
-    R_size = wah_get_ints_8(w, &R);
+    R_size = wah_get_ints(w, &R);
     TEST_ASSERT_EQUAL(9, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -846,7 +846,7 @@ void test_wah_8_giggle_search(void)
 
     w = giggle_search(domain, root_id, 19, 20);
     if (w != NULL) {
-        R_size = wah_get_ints_8(w, &R);
+        R_size = wah_get_ints(w, &R);
         TEST_ASSERT_EQUAL(0, R_size);
         free(R);
         R = NULL;
@@ -857,7 +857,7 @@ void test_wah_8_giggle_search(void)
     }
 
     w = giggle_search(domain, root_id, 18, 20);
-    R_size = wah_get_ints_8(w, &R);
+    R_size = wah_get_ints(w, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(7, R[0] - 1);
     TEST_ASSERT_EQUAL(9, R[1] - 1);
@@ -1073,11 +1073,11 @@ void test_uint32_t_ll_giggle_query_region(void)
 //}}}
 
 //{{{void test_giggle_query_region(void)
-void test_wah_8_giggle_query_region(void)
+void test_wah_giggle_query_region(void)
 {
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-    wah_8_giggle_set_data_handler();
+    wah_giggle_set_data_handler();
     struct giggle_index *gi = giggle_init_index(30);
     char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t ret = giggle_index_file(gi, file_name);
@@ -1093,7 +1093,7 @@ void test_wah_8_giggle_query_region(void)
      */
 
     uint32_t *R = NULL;
-    uint32_t R_len = wah_get_ints_8(R_bm, &R);
+    uint32_t R_len = wah_get_ints(R_bm, &R);
     TEST_ASSERT_EQUAL(2, R_len);
 
     struct file_id_offset_pair *r = 

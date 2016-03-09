@@ -132,14 +132,14 @@ void test_uint32_t_ll_leading_serialize_to_wah(void)
                                                  &serialized);
 
     void *deserialized = NULL;
-    uint64_t d_size = wah_8_leading_deserialize(serialized,
+    uint64_t d_size = wah_leading_deserialize(serialized,
                                                 s_size,
                                                 &deserialized);
-    struct wah_8_bpt_leading_data *wah_ld =  
-            (struct wah_8_bpt_leading_data *)deserialized;
+    struct wah_bpt_leading_data *wah_ld =  
+            (struct wah_bpt_leading_data *)deserialized;
 
     uint32_t R_size, *R = NULL;
-    R_size = wah_get_ints_8(wah_ld->B, &R);
+    R_size = wah_get_ints(wah_ld->B, &R);
 
     TEST_ASSERT_EQUAL(size, R_size);
 
@@ -188,14 +188,14 @@ void test_uint32_t_ll_non_leading_serialize_to_wah(void)
                                                      &serialized);
 
     void *deserialized = NULL;
-    uint64_t d_size = wah_8_non_leading_deserialize(serialized,
+    uint64_t d_size = wah_non_leading_deserialize(serialized,
                                                     s_size,
                                                     &deserialized);
-    struct wah_8_bpt_non_leading_data *wah_nld =  
-            (struct wah_8_bpt_non_leading_data *)deserialized;
+    struct wah_bpt_non_leading_data *wah_nld =  
+            (struct wah_bpt_non_leading_data *)deserialized;
 
     uint32_t R_size, *R = NULL;
-    R_size = wah_get_ints_8(wah_nld->SA, &R);
+    R_size = wah_get_ints(wah_nld->SA, &R);
 
     TEST_ASSERT_EQUAL(size, R_size);
 
@@ -206,7 +206,7 @@ void test_uint32_t_ll_non_leading_serialize_to_wah(void)
     free(R);
     R = NULL;
 
-    R_size = wah_get_ints_8(wah_nld->SE, &R);
+    R_size = wah_get_ints(wah_nld->SE, &R);
 
     TEST_ASSERT_EQUAL(size, R_size);
 
@@ -246,11 +246,11 @@ void test_uint32_t_ll_non_leading_serialize_to_wah_corners(void)
             uint32_t_ll_non_leading_serialize_to_wah(ll_nld,
                                                      &serialized);
     void *deserialized = NULL;
-    uint64_t d_size = wah_8_non_leading_deserialize(serialized,
+    uint64_t d_size = wah_non_leading_deserialize(serialized,
                                                     s_size,
                                                     &deserialized);
-    struct wah_8_bpt_non_leading_data *wah_nld =  
-            (struct wah_8_bpt_non_leading_data *)deserialized;
+    struct wah_bpt_non_leading_data *wah_nld =  
+            (struct wah_bpt_non_leading_data *)deserialized;
 
     TEST_ASSERT_EQUAL(NULL, wah_nld->SA);
     TEST_ASSERT_EQUAL(NULL, wah_nld->SE);
