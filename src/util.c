@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include <err.h>
 #include <sysexits.h>
 #include <stdlib.h>
@@ -7,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #include <ftw.h>
 
 #include "util.h"

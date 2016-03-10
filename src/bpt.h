@@ -1,5 +1,6 @@
 #ifndef __BPT_H__
 #define __BPT_H__
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>

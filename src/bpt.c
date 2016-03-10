@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

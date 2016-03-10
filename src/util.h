@@ -1,5 +1,8 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
+
+#define _XOPEN_SOURCE 500
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <ftw.h>

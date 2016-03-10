@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <err.h>
@@ -669,7 +671,7 @@ void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val)
 void uint32_t_ll_remove(struct uint32_t_ll **ll, uint32_t val)
 {
     if (*ll != NULL) {
-        struct uint32_t_ll_node *tmp, *last, *curr = (*ll)->head;
+        struct uint32_t_ll_node *tmp, *last = NULL, *curr = (*ll)->head;
         while (curr != NULL) {
             if (curr->val == val) {
                 if ((curr == (*ll)->head) && (curr == (*ll)->tail)) {
