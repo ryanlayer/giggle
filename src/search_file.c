@@ -100,13 +100,13 @@ int main(int argc, char **argv)
         struct file_data *fd = 
                 (struct file_data *)unordered_list_get(gi->file_index, i); 
 
-        fprintf(stderr, "# %s\t", fd->file_name);
+        printf("#\t%s\t", fd->file_name);
 
         if (offsets[i] == NULL) {
-            fprintf(stderr, "0\n");
+            printf("0\n");
             continue;
         } else {
-            fprintf(stderr, "%u\n", offsets[i]->len);
+            printf("%u\n", offsets[i]->len);
         }
 
        
