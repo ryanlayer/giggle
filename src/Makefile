@@ -1,6 +1,5 @@
 BIN=../bin
 OBJ=../obj
-#BPT_ROOT=$(HOME)/src/cs/b_plus_tree
 HTS_ROOT=../../htslib
 #CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
@@ -51,4 +50,4 @@ $(BIN)/%: %.c $(OBJS)
 		-I$(HTS_ROOT) \
 		-DSAMTOOLS=1 \
 		$(HTS_ROOT)/libhts.a \
-		-ldl -lz -lm  -pthread -ltcmalloc
+		-ldl -lz -lm  -pthread
