@@ -1,3 +1,7 @@
+#define _GNU_SOURCE
+
+#include "util.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +12,6 @@
 #include <err.h>
 #include <sysexits.h>
 
-#include "util.h"
 #include "unity.h"
 #include "bpt.h"
 #include "giggle.h"

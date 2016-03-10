@@ -27,16 +27,18 @@ ifdef TRAVIS_BUILD_DIR
 HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib
 endif
 
+export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(HTS_ROOT)
+
 
 %: %.c
 	#ruby $(UNITY_ROOT)/auto/generate_test_runner.rb $@.c
 	ruby $(UNITY_ROOT)/generate_test_runner.rb $@.c
 	$(CC) -Werror -g -o $@ \
-	    -lz \
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
 	    -I$(HTS_ROOT) \
-	    $(HTS_ROOT)/libhts.a \
+	    -L$(HTS_ROOT) \
+	    -l hts \
 	    -DTEST $(UNITY_ROOT)/unity.c \
 	    -DSAMTOOLS=1 \
 	    -pthread \
