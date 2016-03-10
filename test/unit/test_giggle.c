@@ -26,7 +26,7 @@ void test_uint32_t_ll_giggle_insert(void)
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
     uint32_t_ll_giggle_set_data_handler();
-    //wah_8_giggle_set_data_handler();
+    //wah_giggle_set_data_handler();
 
     uint32_t root_id = 0;
     uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
@@ -272,12 +272,12 @@ void test_uint32_t_ll_giggle_insert(void)
 //}}}
 
 //{{{void test_uint32_t_ll_giggle_insert(void)
-void test_wah_8_giggle_insert(void)
+void test_wah_giggle_insert(void)
 {
     uint32_t *R = NULL, R_size;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
-    wah_8_giggle_set_data_handler();
+    wah_giggle_set_data_handler();
 
     uint32_t root_id = 0;
     uint32_t r = giggle_insert(domain, &root_id, 1, 3, 0);
@@ -300,12 +300,12 @@ void test_wah_8_giggle_insert(void)
     TEST_ASSERT_EQUAL(4, BPT_KEYS(root)[2]);
     TEST_ASSERT_EQUAL(5, BPT_KEYS(root)[3]);
 
-    struct wah_8_bpt_non_leading_data *nld = 
+    struct wah_bpt_non_leading_data *nld = 
         cache.get(domain,
                   BPT_POINTERS(root)[0] - 1,
                   &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -315,7 +315,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(root)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -325,7 +325,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(root)[2] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -335,7 +335,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(root)[3] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -367,12 +367,12 @@ void test_wah_8_giggle_insert(void)
     TEST_ASSERT_EQUAL(0, BPT_LEADING(first_leaf));
     TEST_ASSERT_TRUE(BPT_LEADING(second_leaf) != 0);
 
-    struct wah_8_bpt_leading_data *ld =
-            (struct wah_8_bpt_leading_data *)
+    struct wah_bpt_leading_data *ld =
+            (struct wah_bpt_leading_data *)
             cache.get(domain,
                       BPT_LEADING(second_leaf) - 1,
                       &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -392,7 +392,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -402,7 +402,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
 
@@ -413,7 +413,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -428,13 +428,13 @@ void test_wah_8_giggle_insert(void)
     nld = cache.get(domain,
                     BPT_POINTERS(next_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(3, R[1] - 1);
     free(R);
     R = NULL;
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -444,7 +444,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -454,7 +454,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[2] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(3, R[0] - 1);
     free(R);
@@ -464,7 +464,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[3] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     free(R);
@@ -486,7 +486,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(4, R[1] - 1);
@@ -497,7 +497,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(first_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SE);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -509,7 +509,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(3, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -526,13 +526,13 @@ void test_wah_8_giggle_insert(void)
     nld = cache.get(domain,
                     BPT_POINTERS(next_leaf)[0] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
-    R_size = wah_get_ints_8(nld->SA, &R);
+    R_size = wah_get_ints(nld->SA, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(3, R[1] - 1);
     free(R);
     R = NULL;
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     free(R);
@@ -542,7 +542,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[1] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(1, R[0] - 1);
     free(R);
@@ -552,7 +552,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[2] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(1, R_size);
     TEST_ASSERT_EQUAL(3, R[0] - 1);
     free(R);
@@ -562,7 +562,7 @@ void test_wah_8_giggle_insert(void)
                     BPT_POINTERS(next_leaf)[3] - 1,
                     &giggle_data_handler.non_leading_cache_handler);
     TEST_ASSERT_EQUAL(NULL, nld->SA);
-    R_size = wah_get_ints_8(nld->SE, &R);
+    R_size = wah_get_ints(nld->SE, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(4, R[1] - 1);
@@ -591,7 +591,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(4, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -606,7 +606,7 @@ void test_wah_8_giggle_insert(void)
     ld = cache.get(domain,
                    BPT_LEADING(next_leaf) - 1,
                    &giggle_data_handler.leading_cache_handler);
-    R_size = wah_get_ints_8(ld->B, &R);
+    R_size = wah_get_ints(ld->B, &R);
     TEST_ASSERT_EQUAL(4, R_size);
     TEST_ASSERT_EQUAL(2, R[0] - 1);
     TEST_ASSERT_EQUAL(3, R[1] - 1);
@@ -761,13 +761,13 @@ void test_uint32_t_ll_giggle_search(void)
 }
 //}}}
 
-//{{{ void test_wah_8_giggle_search(void)
-void test_wah_8_giggle_search(void)
+//{{{ void test_wah_giggle_search(void)
+void test_wah_giggle_search(void)
 {
     ORDER = 7;
     struct simple_cache *sc = simple_cache_init(5, 1, NULL);
     uint32_t domain = 0;
-    wah_8_giggle_set_data_handler();
+    wah_giggle_set_data_handler();
 
     /*
      *  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
@@ -813,7 +813,7 @@ void test_wah_8_giggle_search(void)
     //uint32_t R_id = 
     uint8_t *w = giggle_search(domain, root_id, 2, 5);
     uint32_t *R = NULL, R_size;
-    R_size = wah_get_ints_8(w, &R);
+    R_size = wah_get_ints(w, &R);
     TEST_ASSERT_EQUAL(5, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(2, R[1] - 1);
@@ -827,7 +827,7 @@ void test_wah_8_giggle_search(void)
     R = NULL;
 
     w = giggle_search(domain, root_id, 5, 15);
-    R_size = wah_get_ints_8(w, &R);
+    R_size = wah_get_ints(w, &R);
     TEST_ASSERT_EQUAL(9, R_size);
     TEST_ASSERT_EQUAL(0, R[0] - 1);
     TEST_ASSERT_EQUAL(1, R[1] - 1);
@@ -846,7 +846,7 @@ void test_wah_8_giggle_search(void)
 
     w = giggle_search(domain, root_id, 19, 20);
     if (w != NULL) {
-        R_size = wah_get_ints_8(w, &R);
+        R_size = wah_get_ints(w, &R);
         TEST_ASSERT_EQUAL(0, R_size);
         free(R);
         R = NULL;
@@ -857,7 +857,7 @@ void test_wah_8_giggle_search(void)
     }
 
     w = giggle_search(domain, root_id, 18, 20);
-    R_size = wah_get_ints_8(w, &R);
+    R_size = wah_get_ints(w, &R);
     TEST_ASSERT_EQUAL(2, R_size);
     TEST_ASSERT_EQUAL(7, R[0] - 1);
     TEST_ASSERT_EQUAL(9, R[1] - 1);
@@ -1026,8 +1026,10 @@ void test_uint32_t_ll_giggle_query_region(void)
         (struct file_id_offset_pair *)
         unordered_list_get(gi->offset_index, R->head->val);
 
-    struct input_file *i = input_file_init(unordered_list_get(gi->file_index,
-                                           r->file_id));
+    struct file_data *fd = unordered_list_get(gi->file_index,
+                                              r->file_id);
+
+    struct input_file *i = input_file_init(fd->file_name);
 
     input_file_seek(i, r->offset);
 
@@ -1071,11 +1073,11 @@ void test_uint32_t_ll_giggle_query_region(void)
 //}}}
 
 //{{{void test_giggle_query_region(void)
-void test_wah_8_giggle_query_region(void)
+void test_wah_giggle_query_region(void)
 {
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-    wah_8_giggle_set_data_handler();
+    wah_giggle_set_data_handler();
     struct giggle_index *gi = giggle_init_index(30);
     char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t ret = giggle_index_file(gi, file_name);
@@ -1091,15 +1093,17 @@ void test_wah_8_giggle_query_region(void)
      */
 
     uint32_t *R = NULL;
-    uint32_t R_len = wah_get_ints_8(R_bm, &R);
+    uint32_t R_len = wah_get_ints(R_bm, &R);
     TEST_ASSERT_EQUAL(2, R_len);
 
     struct file_id_offset_pair *r = 
         (struct file_id_offset_pair *)
         unordered_list_get(gi->offset_index, R[0] - 1);
 
-    struct input_file *i = input_file_init(unordered_list_get(gi->file_index,
-                                           r->file_id));
+    struct file_data *fd = unordered_list_get(gi->file_index,
+                                              r->file_id);
+
+    struct input_file *i = input_file_init(fd->file_name);
 
     input_file_seek(i, r->offset);
 
@@ -1163,14 +1167,21 @@ void test_giggle_index_directory(void)
                                                                       "chr1",
                                                                       1000,
                                                                       3000000);
-    /*
-     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 39
-     */
     TEST_ASSERT_EQUAL(39, R->len);
-
     uint32_t_ll_free((void **)&R);
+    
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr1",
+                                                  999207,
+                                                  1000014);
+    TEST_ASSERT_EQUAL(NULL, R);
 
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr12",
+                                                  52463173,
+                                                  52464215);
+
+    TEST_ASSERT_EQUAL(1, R->len);
     giggle_index_destroy(&gi);
     cache.destroy();
 }
@@ -1255,6 +1266,18 @@ void test_giggle_init_store_load(void)
                                                    1000000);
     TEST_ASSERT_EQUAL(11, R->len);
     uint32_t_ll_free((void **)&R);
+
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr9",
+                                                  112989628,
+                                                  112989630);
+
+
+    fprintf(stderr, "%u\n", R->len);
+
+
+
+
     giggle_index_destroy(&gi);
     cache.destroy();
 
@@ -1327,6 +1350,292 @@ void test_giggle_index_store(void)
                          file_id_offset_pair_store);
     fclose(f);
 
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
+//}}}
+
+//{{{ void test_giggle_count_hits_by_file(void)
+void test_giggle_count_hits_by_file(void)
+{
+    ORDER = 10;
+    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+    uint32_t_ll_giggle_set_data_handler();
+    struct giggle_index *gi = giggle_init_index(30);
+    char *path_name = "../data/many/*bed.gz";
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+    TEST_ASSERT_EQUAL(11000, r);
+    TEST_ASSERT_EQUAL(11, gi->file_index->num);
+    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
+
+    //giggle_query_region(gi, "chr11", 1000, 3000000);
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                                      "chr1",
+                                                                      1000,
+                                                                      3000000);
+    //ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
+    //39
+    TEST_ASSERT_EQUAL(39, R->len);
+
+    struct uint32_t_ll_node *curr = R->head;
+    uint32_t *file_counts = (uint32_t *)
+            calloc(gi->file_index->num, sizeof(uint32_t));
+    while (curr != NULL) {
+        struct file_id_offset_pair *fid_off = 
+            (struct file_id_offset_pair *)
+            unordered_list_get(gi->offset_index, curr->val);
+        struct file_data *fd = 
+            (struct file_data *)
+            unordered_list_get(gi->file_index, fid_off->file_id);
+
+        file_counts[fid_off->file_id] += 1;
+        curr = curr->next;
+    }
+
+    uint32_t i;
+    for (i = 0; i < gi->file_index->num; ++i) {
+        struct file_data *fd = 
+            (struct file_data *) unordered_list_get(gi->file_index, i);
+
+        /*
+        fprintf(stderr,
+                "%u %u %f\n",
+                file_counts[i],
+                fd->num_intervals,
+                fd->mean_interval_size);
+                */
+    }
+
+    uint32_t_ll_free((void **)&R);
+
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
+//}}}
+
+//{{{void valid_giggle_index(struct giggle_index *gi)
+void valid_giggle_index(struct giggle_index *gi)
+{
+    uint32_t i,j;
+    for (i = 0; i < gi->num; ++i) {
+        struct uint32_t_ll *current_ids = NULL;
+        struct bpt_node *r = cache.get(i,
+                                       gi->root_ids[i] - 1,
+                                       &bpt_node_cache_handler);
+        while (BPT_IS_LEAF(r) == 0) {
+            uint32_t left_most_id = BPT_POINTERS(r)[0];
+            r = cache.get(i,
+                          left_most_id - 1,
+                          &bpt_node_cache_handler);
+        }
+
+        while (1) {
+            if (BPT_LEADING(r) != 0) {
+                struct uint32_t_ll_bpt_leading_data *ld = 
+                        cache.get(i,
+                                  BPT_LEADING(r) - 1,
+                                  &uint32_t_ll_leading_cache_handler);
+
+                if (ld->B != NULL) {
+                    struct uint32_t_ll_node *curr = ld->B->head;
+                    while (curr != NULL) {
+
+//                        if (uint32_t_ll_contains(current_ids, curr->val) == 0) {
+//                            fprintf(stderr, "%u\n", curr->val); 
+//                            struct file_id_offset_pair *p = 
+//                                (struct file_id_offset_pair *)
+//                                unordered_list_get(gi->offset_index,
+//                                                   curr->val);
+//
+//                            struct file_data *fd = (struct file_data *)
+//                                    unordered_list_get(gi->file_index,
+//                                                       p->file_id);
+//
+//                            struct input_file *ipf = 
+//                                    input_file_init(fd->file_name);
+//
+//                            input_file_seek(ipf, p->offset);
+//
+//                            int chrm_len = 10;
+//                            char *r_chrm = (char *)
+//                                    malloc(chrm_len*sizeof(char));
+//                            uint32_t r_start, r_end;
+//                            long r_offset;
+//            
+//                            int x = input_file_get_next_interval(ipf,
+//                                                                 &r_chrm,
+//                                                                 &chrm_len,
+//                                                                 &r_start,
+//                                                                 &r_end,
+//                                                                 &r_offset);
+//                            fprintf(stderr,
+//                                    "%u\t%u\t%s\t%u\t%u\n",
+//                                    p->file_id,
+//                                    curr->val,
+//                                    r_chrm,
+//                                    r_start,
+//                                    r_end);
+//
+//                        }
+
+                        TEST_ASSERT_EQUAL(1,
+                                uint32_t_ll_contains(current_ids, curr->val));
+                        curr = curr->next;
+                    }
+                }
+            }
+
+
+            for (j = 0; j < BPT_NUM_KEYS(r); ++j) {
+                struct uint32_t_ll_bpt_non_leading_data *nld = 
+                        cache.get(i,
+                                  BPT_POINTERS(r)[j] - 1,
+                                  &uint32_t_ll_non_leading_cache_handler);
+
+                if (nld->SA != NULL) {
+                    struct uint32_t_ll_node *curr = nld->SA->head;
+                    while (curr != NULL) {
+                        uint32_t_ll_uniq_append(&current_ids, curr->val);
+                        curr = curr->next;
+                    }
+                }
+
+                if (nld->SE != NULL) {
+                    struct uint32_t_ll_node *curr = nld->SE->head;
+                    while (curr != NULL) {
+                        uint32_t_ll_remove(&current_ids, curr->val);
+                        curr = curr->next;
+                    }
+                }
+            }
+
+            if (BPT_NEXT(r) == 0)
+                break;
+            r = cache.get(i,
+                          BPT_NEXT(r) - 1,
+                          &bpt_node_cache_handler);
+        }
+        TEST_ASSERT_EQUAL(NULL, current_ids);
+    }
+}
+//}}}
+
+//{{{
+void test_valid_giggle_index(void)
+{
+    ORDER=100;
+    struct giggle_index *gi = giggle_init(23,
+                                          "tmp",
+                                          1,
+                                          uint32_t_ll_giggle_set_data_handler);
+
+    uint32_t total = 0;
+
+    char *files[11] = { "../data/many/0.bed.gz",
+                        "../data/many/1.bed.gz",
+                        "../data/many/2.bed.gz",
+                        "../data/many/3.bed.gz",
+                        "../data/many/4.bed.gz",
+                        "../data/many/5.bed.gz",
+                        "../data/many/6.bed.gz",
+                        "../data/many/7.bed.gz",
+                        "../data/many/8.bed.gz",
+                        "../data/many/9.bed.gz",
+                        "../data/many/10.bed.gz"};
+
+    total += giggle_index_file(gi, files[0]);
+    valid_giggle_index(gi);
+
+    //total += giggle_index_file(gi, files[1]);
+    //valid_giggle_index(gi);
+
+
+    struct input_file *i = input_file_init(files[1]);
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    uint32_t start, end;
+    long offset;
+
+    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+    struct file_data *fd = (struct file_data *)
+        calloc(1, sizeof(struct file_data));
+    fd->file_name = strdup(files[1]);
+    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+    uint32_t file_id = unordered_list_add(gi->file_index, fd);
+
+    uint32_t j = 0;
+
+    struct file_id_offset_pair *p;
+    uint32_t intrv_id;
+
+    while (input_file_get_next_interval(i,
+                                        &chrm,
+                                        &chrm_len,
+                                        &start,
+                                        &end,
+                                        &offset) >= 0) {
+        //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
+        p = (struct file_id_offset_pair *)
+                malloc(sizeof(struct file_id_offset_pair));
+        p->offset = offset;
+        p->file_id = file_id;
+        intrv_id = unordered_list_add(gi->offset_index, p);
+        uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
+        uint32_t r = giggle_insert(chrm_id,
+                                   &(gi->root_ids[chrm_id]),
+                                   start,
+                                   end,
+                                   intrv_id);
+        valid_giggle_index(gi);
+        fd->mean_interval_size += end-start;
+        fd->num_intervals += 1;
+        j += 1;
+    }
+    fd->mean_interval_size = fd->mean_interval_size/fd->num_intervals;
+    input_file_destroy(&i);
+
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
+//}}}
+
+//{{{ void test_giggle_init_store_load(void)
+void test_giggle_index_search_store_search(void)
+{
+    struct giggle_index *gi = giggle_init(
+                23,
+                "tmp",
+                1,
+                uint32_t_ll_giggle_set_data_handler);
+
+    char *path_name = "../data/many/*bed.gz";
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)
+                giggle_query_region(gi,
+                                    "chr9",
+                                    112989628,
+                                    112989630);
+   
+    //ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
+    //39
+    //TEST_ASSERT_EQUAL(39, R->len);
+
+    uint32_t_ll_free((void **)&R);
+    TEST_ASSERT_EQUAL(0, giggle_store(gi));
+    giggle_index_destroy(&gi);
+    cache.destroy();
+
+    gi = giggle_load("tmp",
+                     uint32_t_ll_giggle_set_data_handler);
+
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr9",
+                                                  112989628,
+                                                  112989630);
     giggle_index_destroy(&gi);
     cache.destroy();
 }

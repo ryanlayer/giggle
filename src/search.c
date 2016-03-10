@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     } else {
         gi = giggle_load(index_dir,
-                         wah_8_giggle_set_data_handler);
+                         wah_giggle_set_data_handler);
 
         for (i = 0; i < N; ++i) {
             start += 10;
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
                                                         end);
             /*
         if (R != NULL)
-            printf("Hits:%u\n", wah_get_ints_count_8(R));
+            printf("Hits:%u\n", wah_get_ints_count(R));
         else
             printf("Hits:0\n");
         */

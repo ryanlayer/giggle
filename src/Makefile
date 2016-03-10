@@ -2,8 +2,8 @@ BIN=../bin
 OBJ=../obj
 #BPT_ROOT=$(HOME)/src/cs/b_plus_tree
 HTS_ROOT=../../htslib
-CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
-#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+#CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-Wall -O0 -g -fno-inline -fkeep-inline-functions -D_FILE_OFFSET_BITS=64 -fPIC -DDEBUG -D_DEBUG
 CC=gcc
 
@@ -17,7 +17,8 @@ LIB=bpt.o \
     ll.o \
     util.o \
     timer.o \
-    wah.o
+    wah.o \
+    kfunc.o
 
 
 .SUFFIXES:
@@ -30,7 +31,9 @@ OBJS=$(addprefix $(OBJ)/, $(LIB))
 PROG=index_search \
      index \
      search \
+     search_file \
      test \
+     sig_test \
      speed_tests
 
 

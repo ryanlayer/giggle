@@ -14,6 +14,15 @@
 
 #include "unity.h"
 
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
 //{{{ int uint32_t_cmp(const void *a, const void *b)
 static int uint32_t_cmp(const void *a, const void *b)
 {
@@ -28,14 +37,6 @@ static int uint32_t_cmp(const void *a, const void *b)
     return 0;
 }
 //}}}
-
-void setUp(void)
-{
-}
-
-void tearDown(void)
-{
-}
 
 //{{{ void test_b_search(void)
 void test_b_search(void)
@@ -2023,6 +2024,8 @@ void test_bpt_write_tree(void)
     }
 
     cache.destroy();
+    remove("test_bpt_write_tree.out.idx");
+    remove("test_bpt_write_tree.out.dat");
 
     /*
     struct disk_store *ds = disk_store_load(&f, bpt_file_out);

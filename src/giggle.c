@@ -133,37 +133,6 @@ uint32_t giggle_insert(uint32_t domain,
     fprintf(stderr, "%u %u\n", start, end);
 #endif
 
-    uint32_t start_leaf_id = 0;
-    int start_pos;
-
-    uint32_t start_id = bpt_find(domain,
-                                 *root_id,
-                                 &start_leaf_id,
-                                 &start_pos,
-                                 start);
-
-    if (start_id == 0) {
-        void *d = giggle_data_handler.new_non_leading(domain);
-        giggle_data_handler.non_leading_SA_add_scalar(domain, d, &id);
-        uint32_t v_id;
-        int pos;
-        *root_id =bpt_insert_new_value(
-                domain,
-                *root_id,
-                start,
-                d,
-                &giggle_data_handler.non_leading_cache_handler,
-                &v_id,
-                &start_leaf_id,
-                &start_pos);
-    } else {
-        void *start_v = cache.get(
-                domain,
-                start_id - 1,
-                &giggle_data_handler.non_leading_cache_handler);
-        giggle_data_handler.non_leading_SA_add_scalar(domain, start_v, &id);
-    }
-
     uint32_t end_leaf_id = 0;
     int end_pos;
 
@@ -174,6 +143,9 @@ uint32_t giggle_insert(uint32_t domain,
                                end + 1);
 
     if (end_id == 0) {
+#if DEBUG
+        fprintf(stderr ,"->%u\n", end);
+#endif
         void *d = giggle_data_handler.new_non_leading(domain);
         giggle_data_handler.non_leading_SE_add_scalar(domain, d, &id);
 
@@ -189,11 +161,52 @@ uint32_t giggle_insert(uint32_t domain,
                 &end_leaf_id,
                 &end_pos);
     } else {
+#if DEBUG
+        fprintf(stderr ,"||%u\n", end);
+#endif
         void *end_v = cache.get(domain,
                                 end_id - 1,
                                 &giggle_data_handler.non_leading_cache_handler);
         giggle_data_handler.non_leading_SE_add_scalar(domain, end_v, &id);
     }
+
+    uint32_t start_leaf_id = 0;
+    int start_pos;
+
+    uint32_t start_id = bpt_find(domain,
+                                 *root_id,
+                                 &start_leaf_id,
+                                 &start_pos,
+                                 start);
+
+    if (start_id == 0) {
+#if DEBUG
+        fprintf(stderr ,"->%u\n", start);
+#endif
+        void *d = giggle_data_handler.new_non_leading(domain);
+        giggle_data_handler.non_leading_SA_add_scalar(domain, d, &id);
+        uint32_t v_id;
+        int pos;
+        *root_id = bpt_insert_new_value(
+                domain,
+                *root_id,
+                start,
+                d,
+                &giggle_data_handler.non_leading_cache_handler,
+                &v_id,
+                &start_leaf_id,
+                &start_pos);
+    } else {
+#if DEBUG
+        fprintf(stderr ,"||%u\n", start);
+#endif
+        void *start_v = cache.get(
+                domain,
+                start_id - 1,
+                &giggle_data_handler.non_leading_cache_handler);
+        giggle_data_handler.non_leading_SA_add_scalar(domain, start_v, &id);
+    }
+
 
 #if DEBUG
     fprintf(stderr, "s_id:%u e_id:%u\t", start_leaf_id, end_leaf_id);
@@ -205,11 +218,21 @@ uint32_t giggle_insert(uint32_t domain,
     // keys ended up on the same leaf.  If they are differnet we just double
     // check to see that this is not the case.
     
-    if (start_leaf_id != end_leaf_id) 
-        start_leaf_id = bpt_find_leaf(domain, *root_id, start);
+    //if (start_leaf_id != end_leaf_id) 
+    start_leaf_id = bpt_find_leaf(domain, *root_id, start);
+    end_leaf_id = bpt_find_leaf(domain, *root_id, end);
 
 #if DEBUG
     fprintf(stderr, "s_id:%u e_id:%u\n", start_leaf_id, end_leaf_id);
+
+    struct bpt_node *test_leaf = cache.get(domain,
+                                           start_leaf_id - 1,
+                                           &bpt_node_cache_handler);
+    uint32_t x;
+    for (x = 0; x < BPT_NUM_KEYS(test_leaf); ++x) {
+        fprintf(stderr, "%u ", BPT_KEYS(test_leaf)[x]);
+    }
+    fprintf(stderr, "\n");
 #endif
 
     if (start_leaf_id != end_leaf_id) {
@@ -270,9 +293,17 @@ void *giggle_search(uint32_t domain,
                                             &bpt_node_cache_handler);
     if ((pos_start_id == 0) && (BPT_KEYS(leaf_start)[0] != start))
         pos_start_id = -1;
+    else if ( (pos_start_id >=0) && 
+              (pos_start_id < BPT_NUM_KEYS(leaf_start)) &&
+              (BPT_KEYS(leaf_start)[pos_start_id] > start))
+        pos_start_id -= 1;
+
 
 #if DEBUG
-    fprintf(stderr, "pos_start_id:%d\t", pos_start_id);
+    fprintf(stderr,
+            "leaf_start_id:%u\tpos_start_id:%d\n",
+            leaf_start_id,
+            pos_start_id);
 #endif
 
     uint32_t leaf_end_id;
@@ -289,6 +320,14 @@ void *giggle_search(uint32_t domain,
     struct bpt_node *leaf_end = cache.get(domain,
                                           leaf_end_id - 1,
                                           &bpt_node_cache_handler);
+
+#if DEBUG
+    fprintf(stderr,
+            "leaf_end_id:%u\tpos_end_id:%u\t\n",
+            leaf_end_id,
+            pos_end_id);
+#endif
+
     if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
         pos_end_id = -1;
     else if ( (pos_end_id >=0) && 
@@ -297,10 +336,26 @@ void *giggle_search(uint32_t domain,
         pos_end_id -= 1;
 
 #if DEBUG
+    fprintf(stderr,
+            "leaf_end_id:%u\tpos_end_id:%u\t\n",
+            leaf_end_id,
+            pos_end_id);
+#endif
+
+#if DEBUG
     fprintf(stderr, "pos_end_id:%d %u\n", pos_end_id,
             ( ((pos_end_id >=0)&&(pos_end_id<BPT_NUM_KEYS(leaf_end))) ?
-              BPT_KEYS(leaf_end)[pos_end_r] : 0)
+              BPT_KEYS(leaf_end)[pos_end_id] : 0)
             );
+#endif
+
+    if ((leaf_start_id == leaf_end_id) && (pos_start_id > pos_end_id))
+        return r;
+
+#if DEBUG
+    if (BPT_LEADING(leaf_start) == 0)
+        fprintf(stderr, "BPT_LEADING(leaf_start) == 0\n");
+
 #endif
 
     // get everything in the leading value
@@ -315,6 +370,12 @@ void *giggle_search(uint32_t domain,
     // add any SA and remove any that are an SE up to and including this point
     int i;
     for (i = 0; (i < BPT_NUM_KEYS(leaf_start)) && (i <= pos_start_id); ++i) {
+#if DEBUG
+        fprintf(stderr,
+                "BPT_KEY(leaf_start)[%u] == %u\n",
+                i,
+                BPT_KEYS(leaf_start)[i]);
+#endif
         void *nld = cache.get(domain,
                               BPT_POINTERS(leaf_start)[i] - 1,
                               &giggle_data_handler.non_leading_cache_handler);
@@ -430,7 +491,8 @@ void giggle_index_destroy(struct giggle_index **gi)
         free((*gi)->root_ids_file_name);
 
     free((*gi)->root_ids);
-    unordered_list_destroy(&((*gi)->file_index), free_wrapper);
+    //unordered_list_destroy(&((*gi)->file_index), free_wrapper);
+    unordered_list_destroy(&((*gi)->file_index), file_data_free);
     unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
     ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
     free(*gi);
@@ -449,7 +511,12 @@ uint32_t giggle_index_file(struct giggle_index *gi,
     uint32_t start, end;
     long offset;
 
-    uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+    struct file_data *fd = (struct file_data *)
+        calloc(1, sizeof(struct file_data));
+    fd->file_name = strdup(file_name);
+    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+    uint32_t file_id = unordered_list_add(gi->file_index, fd);
 
     uint32_t j = 0;
 
@@ -474,8 +541,11 @@ uint32_t giggle_index_file(struct giggle_index *gi,
                                    start,
                                    end,
                                    intrv_id);
+        fd->mean_interval_size += end-start;
+        fd->num_intervals += 1;
         j += 1;
     }
+    fd->mean_interval_size = fd->mean_interval_size/fd->num_intervals;
 
     input_file_destroy(&i);
     free(chrm);
@@ -630,7 +700,8 @@ uint32_t giggle_store(struct giggle_index *gi)
     unordered_list_store(gi->file_index,
                          f,
                          gi->file_index_file_name,
-                         c_str_store);
+                         file_data_store);
+                         //c_str_store);
     fclose(f);
 
     f = fopen(gi->offset_index_file_name, "wb");
@@ -663,7 +734,7 @@ struct giggle_index *giggle_load(char *data_dir,
     gi->data_dir = strdup(data_dir);
 
     // root_ids
-    start();
+    //start();
     int ret = asprintf(&(gi->root_ids_file_name),
                        "%s/root_ids.dat",
                        data_dir);
@@ -684,12 +755,11 @@ struct giggle_index *giggle_load(char *data_dir,
     check_file_read(gi->root_ids_file_name, f, gi->len, fr);
 
     fclose(f);
-    stop();
-
-    fprintf(stderr, "root_ids:%lu\n", report());
+    //stop();
+    //fprintf(stderr, "root_ids:%lu\n", report());
 
     // chrm_index
-    start();
+    //start();
     ret = asprintf(&(gi->chrm_index_file_name),
                    "%s/chrm_index.dat",
                    data_dir);
@@ -701,23 +771,24 @@ struct giggle_index *giggle_load(char *data_dir,
                                       str_uint_pair_search_element_cmp,
                                       str_uint_pair_search_key_cmp);
     fclose(f);
-    stop();
-    fprintf(stderr, "chrm_index:%lu\n", report());
+    //stop();
+    //fprintf(stderr, "chrm_index:%lu\n", report());
 
 
-    start();
+    //start();
     ret = asprintf(&(gi->file_index_file_name),
                    "%s/file_index.dat",
                    data_dir);
     f = fopen(gi->file_index_file_name, "rb");
     gi->file_index = unordered_list_load(f,
                                        gi->file_index_file_name,
-                                       c_str_load);
+                                       file_data_load);
+                                       //c_str_load);
     fclose(f);
-    stop();
-    fprintf(stderr, "file_index:%lu\n", report());
+    //stop();
+    //fprintf(stderr, "file_index:%lu\n", report());
 
-    start();
+    //start();
     ret = asprintf(&(gi->offset_index_file_name),
                    "%s/offset_index.dat",
                    data_dir);
@@ -728,11 +799,11 @@ struct giggle_index *giggle_load(char *data_dir,
                                          file_id_offset_pair_load);
 
     fclose(f);
-    stop();
-    fprintf(stderr, "offset_index:%lu\n", report());
+    //stop();
+    //fprintf(stderr, "offset_index:%lu\n", report());
 
 
-    start();
+    //start();
     char **cache_names = (char **)calloc(gi->len, sizeof(char *));
     uint32_t i;
     for (i = 0; i < gi->len; ++i) {
@@ -745,8 +816,8 @@ struct giggle_index *giggle_load(char *data_dir,
     struct simple_cache *sc = simple_cache_init(1000,
                                                 gi->len,
                                                 cache_names);
-    stop();
-    fprintf(stderr, "simple_cache:%lu\n", report());
+    //stop();
+    //fprintf(stderr, "simple_cache:%lu\n", report());
 
     giggle_set_data_handler();
 

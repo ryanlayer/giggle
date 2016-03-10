@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
     } else {
         gi = giggle_load(index_dir,
-                         wah_8_giggle_set_data_handler);
+                         wah_giggle_set_data_handler);
 
         uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
         //return giggle_search(chr_id, gi->root_ids[chr_id], start, end);
@@ -84,20 +84,20 @@ int main(int argc, char **argv)
         bpt_print_node(leaf_start);
 
         
-        struct wah_8_bpt_non_leading_data *nld = 
+        struct wah_bpt_non_leading_data *nld = 
                 cache.get(domain,
                           BPT_POINTERS(leaf_start)[0] - 1,
-                          &wah_8_non_leading_cache_handler);
+                          &wah_non_leading_cache_handler);
 
         fprintf(stderr,
                 "WAH_LEN:%u\t"
-                "wah_get_ints_count_8:%u\t"
+                "wah_get_ints_count:%u\t"
                 "\n",
                 WAH_LEN(nld->SA),
-                wah_get_ints_count_8(nld->SA));
+                wah_get_ints_count(nld->SA));
             
         uint32_t *R = NULL;
-        uint32_t R_len = wah_get_ints_8(nld->SA, &R);
+        uint32_t R_len = wah_get_ints(nld->SA, &R);
 
         uint32_t i;
         for (i = 0; i < R_len; ++i) {
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
                                                     start,
                                                     end);
         if (R != NULL)
-            printf("Hits:%u\n", wah_get_ints_count_8(R));
+            printf("Hits:%u\n", wah_get_ints_count(R));
         else
             printf("Hits:0\n");
         */
