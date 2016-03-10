@@ -25,11 +25,33 @@ struct uint32_t_ll
     struct uint32_t_ll_node *head, *tail;
 };
 
+
 void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val);
 void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val);
 void uint32_t_ll_remove(struct uint32_t_ll **ll, uint32_t val);
 uint32_t uint32_t_ll_contains(struct uint32_t_ll *ll, uint32_t val);
 void uint32_t_ll_free(void **ll);
+
+struct long_ll_node
+{
+    long val;
+    struct long_ll_node *next;
+};
+
+struct long_ll
+{
+    uint32_t len;
+    struct long_ll_node *head, *tail;
+};
+
+void long_ll_append(struct long_ll **ll, long val);
+void long_ll_uniq_append(struct long_ll **ll, long val);
+void long_ll_remove(struct long_ll **ll, long val);
+uint32_t long_ll_contains(struct long_ll *ll, long val);
+void long_ll_free(void **ll);
+
+
+
 
 // bpt_node_repair :: uint32_t_ll_leading_repair
 void uint32_t_ll_leading_repair(uint32_t domain,
@@ -86,5 +108,7 @@ uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
 
 uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
                                                   void **serialized);
+
+
 
 #endif

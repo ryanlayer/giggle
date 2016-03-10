@@ -421,7 +421,6 @@ void uint32_t_ll_leading_free(void **deserialized)
 //}}}
 //}}}
 
-
 //{{{ giggle_data_handler :: int32_t_ll_giggle_data_handler
 
 void uint32_t_ll_giggle_set_data_handler()
@@ -830,5 +829,145 @@ void uint32_t_ll_leading_repair(uint32_t domain,
     }
 }
 //}}}
+
+
+
+
+//{{{void long_ll_append(struct long_ll **ll, long val)
+void long_ll_append(struct long_ll **ll, long val)
+{
+    struct long_ll_node *n = (struct long_ll_node *)
+        malloc(sizeof(struct long_ll_node));
+    n->val = val;
+    n->next = NULL;
+
+    if (*ll == NULL) {
+        *ll = (struct long_ll *)malloc(sizeof(struct long_ll));
+        (*ll)->head = n;
+        (*ll)->len = 1;
+    } else {
+        (*ll)->tail->next = n;
+        (*ll)->len = (*ll)->len + 1;
+    }
+
+    (*ll)->tail = n;
+}
+//}}}
+
+//{{{void long_ll_uniq_append(struct long_ll **ll, long val)
+void long_ll_uniq_append(struct long_ll **ll, long val)
+{
+#if DEBUG
+    fprintf(stderr, "long_ll_uniq_append\n");
+    fprintf(stderr, "val:%lu\n", val);
+#endif
+    struct long_ll_node *n = (struct long_ll_node *)
+        malloc(sizeof(struct long_ll_node));
+    n->val = val;
+    n->next = NULL;
+
+    if (*ll == NULL) {
+        *ll = (struct long_ll *)malloc(sizeof(struct long_ll));
+        (*ll)->head = n;
+        (*ll)->len = 1;
+    } else {
+
+        struct long_ll_node *curr = (*ll)->head;
+        while (curr != NULL) {
+            if (curr->val == val) {
+                free(n);
+                return;
+            }
+            curr = curr->next;
+        }
+
+        (*ll)->tail->next = n;
+        (*ll)->len = (*ll)->len + 1;
+    }
+
+    (*ll)->tail = n;
+}
+//}}}
+
+//{{{void long_ll_remove(struct long_ll **ll, long val)
+void long_ll_remove(struct long_ll **ll, long val)
+{
+    if (*ll != NULL) {
+        struct long_ll_node *tmp, *last, *curr = (*ll)->head;
+        while (curr != NULL) {
+            if (curr->val == val) {
+                if ((curr == (*ll)->head) && (curr == (*ll)->tail)) {
+                    free(curr);
+                    free(*ll);
+                    *ll = NULL;
+                    return;
+                } else if (curr == (*ll)->head) {
+                    tmp = curr->next;
+                    free(curr);
+                    (*ll)->head = tmp;
+                    curr = tmp;
+                    (*ll)->len = (*ll)->len - 1;
+                } else if (curr == (*ll)->tail) {
+                    free(curr);
+                    curr = NULL;
+                    (*ll)->tail = last;
+                    last->next = NULL;
+                    (*ll)->len = (*ll)->len - 1;
+                } else {
+                    tmp = curr;
+                    last->next = tmp->next;
+                    curr = tmp->next;
+                    free(tmp);
+                    (*ll)->len = (*ll)->len - 1;
+                }
+            } else {
+                last = curr;
+                curr = curr->next;
+            }
+        }
+    }
+}
+//}}}
+
+//{{{int long_ll_contains(struct long_ll *ll, long val)
+uint32_t long_ll_contains(struct long_ll *ll, long val)
+{
+    if (ll == NULL)
+       return 0; 
+
+    uint32_t r = 0;
+    
+    struct long_ll_node *curr = ll->head;
+    while (curr != NULL) {
+        if (curr->val == val)
+            r += 1;
+        curr = curr->next;
+    }
+
+    return r;
+}
+//}}}
+
+//{{{void long_ll_free(struct long_ll **ll)
+//void long_ll_free(struct long_ll **ll)
+void long_ll_free(void **_ll)
+{
+    struct long_ll **ll = (struct long_ll **)_ll;
+    struct long_ll_node *curr, *tmp;
+
+    if (*ll != NULL) {
+        curr = (*ll)->head;
+        while (curr != NULL) {
+            tmp = curr->next;
+            free(curr);
+            curr = tmp;
+        }
+
+        free(*ll);
+        *ll = NULL;
+    }
+}
+//}}}
+
 
 

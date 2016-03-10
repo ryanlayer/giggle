@@ -291,6 +291,11 @@ void *giggle_search(uint32_t domain,
                                             &bpt_node_cache_handler);
     if ((pos_start_id == 0) && (BPT_KEYS(leaf_start)[0] != start))
         pos_start_id = -1;
+    else if ( (pos_start_id >=0) && 
+              (pos_start_id < BPT_NUM_KEYS(leaf_start)) &&
+              (BPT_KEYS(leaf_start)[pos_start_id] > start))
+        pos_start_id -= 1;
+
 
 #if DEBUG
     fprintf(stderr,
@@ -313,6 +318,14 @@ void *giggle_search(uint32_t domain,
     struct bpt_node *leaf_end = cache.get(domain,
                                           leaf_end_id - 1,
                                           &bpt_node_cache_handler);
+
+#if DEBUG
+    fprintf(stderr,
+            "leaf_end_id:%u\tpos_end_id:%u\t\n",
+            leaf_end_id,
+            pos_end_id);
+#endif
+
     if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
         pos_end_id = -1;
     else if ( (pos_end_id >=0) && 
@@ -322,7 +335,7 @@ void *giggle_search(uint32_t domain,
 
 #if DEBUG
     fprintf(stderr,
-            "leaf_end_id:%u\tpos_end_id:%u\n",
+            "leaf_end_id:%u\tpos_end_id:%u\t\n",
             leaf_end_id,
             pos_end_id);
 #endif
@@ -330,8 +343,17 @@ void *giggle_search(uint32_t domain,
 #if DEBUG
     fprintf(stderr, "pos_end_id:%d %u\n", pos_end_id,
             ( ((pos_end_id >=0)&&(pos_end_id<BPT_NUM_KEYS(leaf_end))) ?
-              BPT_KEYS(leaf_end)[pos_end_r] : 0)
+              BPT_KEYS(leaf_end)[pos_end_id] : 0)
             );
+#endif
+
+    if ((leaf_start_id == leaf_end_id) && (pos_start_id > pos_end_id))
+        return r;
+
+#if DEBUG
+    if (BPT_LEADING(leaf_start) == 0)
+        fprintf(stderr, "BPT_LEADING(leaf_start) == 0\n");
+
 #endif
 
     // get everything in the leading value
@@ -346,6 +368,12 @@ void *giggle_search(uint32_t domain,
     // add any SA and remove any that are an SE up to and including this point
     int i;
     for (i = 0; (i < BPT_NUM_KEYS(leaf_start)) && (i <= pos_start_id); ++i) {
+#if DEBUG
+        fprintf(stderr,
+                "BPT_KEY(leaf_start)[%u] == %u\n",
+                i,
+                BPT_KEYS(leaf_start)[i]);
+#endif
         void *nld = cache.get(domain,
                               BPT_POINTERS(leaf_start)[i] - 1,
                               &giggle_data_handler.non_leading_cache_handler);

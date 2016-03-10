@@ -1167,14 +1167,21 @@ void test_giggle_index_directory(void)
                                                                       "chr1",
                                                                       1000,
                                                                       3000000);
-    /*
-     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 39
-     */
     TEST_ASSERT_EQUAL(39, R->len);
-
     uint32_t_ll_free((void **)&R);
+    
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr1",
+                                                  999207,
+                                                  1000014);
+    TEST_ASSERT_EQUAL(NULL, R);
 
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr12",
+                                                  52463173,
+                                                  52464215);
+
+    TEST_ASSERT_EQUAL(1, R->len);
     giggle_index_destroy(&gi);
     cache.destroy();
 }
@@ -1408,6 +1415,7 @@ void test_giggle_count_hits_by_file(void)
 }
 //}}}
 
+//{{{void valid_giggle_index(struct giggle_index *gi)
 void valid_giggle_index(struct giggle_index *gi)
 {
     uint32_t i,j;
@@ -1512,8 +1520,9 @@ void valid_giggle_index(struct giggle_index *gi)
         TEST_ASSERT_EQUAL(NULL, current_ids);
     }
 }
+//}}}
 
-
+//{{{
 void test_valid_giggle_index(void)
 {
     ORDER=100;
@@ -1590,56 +1599,48 @@ void test_valid_giggle_index(void)
     giggle_index_destroy(&gi);
     cache.destroy();
 }
-
 //}}}
 
 //{{{ void test_giggle_init_store_load(void)
-//void test_giggle_index_search_store_search(void)
-//{
-//    struct giggle_index *gi = giggle_init(
-//                23,
-//                "tmp",
-//                1,
-//                uint32_t_ll_giggle_set_data_handler);
-//
-//    char *path_name = "../data/many/*bed.gz";
-//    uint32_t r = giggle_index_directory(gi, path_name, 0);
-//
-//
-//    struct uint32_t_ll *R = (struct uint32_t_ll *)
-//                giggle_query_region(gi,
-//                                    "chr9",
-//                                    112989628,
-//                                    112989630);
-//   
-//    fprintf(stderr, "-----\t%u\n", R->len);
-//     //ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-//     //39
-//    //TEST_ASSERT_EQUAL(39, R->len);
-//
-//    uint32_t_ll_free((void **)&R);
-//    TEST_ASSERT_EQUAL(0, giggle_store(gi));
-//    giggle_index_destroy(&gi);
-//    cache.destroy();
-//
-//    gi = giggle_load("tmp",
-//                     uint32_t_ll_giggle_set_data_handler);
-//
-//    R = (struct uint32_t_ll *)giggle_query_region(gi,
-//                                                  "chr9",
-//                                                  112989628,
-//                                                  112989630);
-//
-//
-//    fprintf(stderr, "-----\t%u\n", R->len);
-//
-//
-//
-//
-//    giggle_index_destroy(&gi);
-//    cache.destroy();
-//}
+void test_giggle_index_search_store_search(void)
+{
+    struct giggle_index *gi = giggle_init(
+                23,
+                "tmp",
+                1,
+                uint32_t_ll_giggle_set_data_handler);
+
+    char *path_name = "../data/many/*bed.gz";
+    uint32_t r = giggle_index_directory(gi, path_name, 0);
+
+
+    struct uint32_t_ll *R = (struct uint32_t_ll *)
+                giggle_query_region(gi,
+                                    "chr9",
+                                    112989628,
+                                    112989630);
+   
+    //ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
+    //39
+    //TEST_ASSERT_EQUAL(39, R->len);
+
+    uint32_t_ll_free((void **)&R);
+    TEST_ASSERT_EQUAL(0, giggle_store(gi));
+    giggle_index_destroy(&gi);
+    cache.destroy();
+
+    gi = giggle_load("tmp",
+                     uint32_t_ll_giggle_set_data_handler);
+
+    R = (struct uint32_t_ll *)giggle_query_region(gi,
+                                                  "chr9",
+                                                  112989628,
+                                                  112989630);
+    giggle_index_destroy(&gi);
+    cache.destroy();
+}
 //}}}
+
 void test_LAST(void)
 {
 }

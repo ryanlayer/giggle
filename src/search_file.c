@@ -9,7 +9,19 @@
 #include "file_read.h"
 #include "kfunc.h"
 
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+int long_cmp(const void *_a, const void *_b)
+{
+    long *a = (long *)_a;
+    long *b = (long *)_b;
+
+    if (*a < *b)
+        return -1;
+    else if (*a > *b)
+        return 1;
+    else
+        return 0;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -42,20 +54,22 @@ int main(int argc, char **argv)
     gi = giggle_load(index_dir,
                      uint32_t_ll_giggle_set_data_handler);
 
-    uint32_t *file_counts = (uint32_t *)
-            calloc(gi->file_index->num, sizeof(uint32_t));
+    struct long_ll **offsets = (struct long_ll **)
+            calloc(gi->file_index->num, sizeof(struct long_ll *));
+
+    uint32_t i,j;
+
+    for (i = 0; i < gi->file_index->num; ++i)
+        offsets[i] = NULL;
+
 
     uint32_t num_intervals = 0;
-    double mean_interval_size = 0.0;
     while ( input_file_get_next_interval(in_f, 
                                          &chrm,
                                          &chrm_len,
                                          &start,
                                          &end,
                                          &offset) >= 0 ) {
-        num_intervals += 1;
-        mean_interval_size += end - start;
-
         struct uint32_t_ll *R =
                 (struct uint32_t_ll *)giggle_query_region(gi,
                                                           chrm,
@@ -69,42 +83,66 @@ int main(int argc, char **argv)
                 struct file_id_offset_pair *fid_off = 
                     (struct file_id_offset_pair *)
                     unordered_list_get(gi->offset_index, curr->val);
-                struct file_data *fd = 
-                    (struct file_data *)
-                    unordered_list_get(gi->file_index, fid_off->file_id);
 
-                struct input_file *i = input_file_init(fd->file_name);
+                long_ll_append(&(offsets[fid_off->file_id]), fid_off->offset);
 
-                input_file_seek(i, fid_off->offset);
-
-                int chrm_len = 10;
-                char *r_chrm = (char *)malloc(chrm_len*sizeof(char));
-                uint32_t r_start, r_end;
-                long r_offset;
-            
-                int x = input_file_get_next_interval(i,
-                                        &r_chrm,
-                                        &chrm_len,
-                                        &r_start,
-                                        &r_end,
-                                        &r_offset);
-                fprintf(stderr, "%u\t%u\t%s\t%u\t%u\t%u\n",
-                       fid_off->file_id,
-                       curr->val,
-                       r_chrm,
-                       r_start,
-                       r_end,
-                       count);
-
-                input_file_destroy(&i);
                 curr = curr->next;
-                count += 1;
             }
             uint32_t_ll_free((void **)&R);
             R=NULL;
-        }
+        } 
+        num_intervals += 1;
     }
 
+    uint32_t sorted_offsets_num = num_intervals * 2;
+    long *sorted_offsets = (long *)malloc(sorted_offsets_num*sizeof(long));
+    for (i = 0; i < gi->file_index->num; ++i) {
+        struct file_data *fd = 
+                (struct file_data *)unordered_list_get(gi->file_index, i); 
+
+        fprintf(stderr, "# %s\t", fd->file_name);
+
+        if (offsets[i] == NULL) {
+            fprintf(stderr, "0\n");
+            continue;
+        } else {
+            fprintf(stderr, "%u\n", offsets[i]->len);
+        }
+
+       
+        if (sorted_offsets_num < offsets[i]->len) {
+            sorted_offsets_num = offsets[i]->len * 2;
+            sorted_offsets = (long *)realloc(sorted_offsets,
+                                             sorted_offsets_num*sizeof(long));
+        }
+    
+        j = 0;
+        struct long_ll_node *curr = offsets[i]->head;
+        while (curr != NULL) {
+            sorted_offsets[j++] = curr->val;
+            curr = curr->next;
+        }
+
+        qsort(sorted_offsets, offsets[i]->len, sizeof(long), long_cmp);
+
+        struct input_file *ipf = input_file_init(fd->file_name);
+
+
+        for (j = 0; j < offsets[i]->len; ++j) {
+            input_file_seek(ipf, sorted_offsets[j]);
+            input_file_get_next_interval(ipf,
+                                         &chrm,
+                                         &chrm_len,
+                                         &start,
+                                         &end,
+                                         &offset);
+            printf("%s %u\t", chrm, chrm_len);
+            printf("%u\t", start);
+            printf("%u\n", end);
+        }
+
+        input_file_destroy(&ipf);
+    }
 
     giggle_index_destroy(&gi);
     cache.destroy();
