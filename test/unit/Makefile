@@ -27,7 +27,6 @@ ifdef TRAVIS_BUILD_DIR
 HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib
 endif
 
-export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(HTS_ROOT)
 
 
 %: %.c
@@ -37,13 +36,12 @@ export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(HTS_ROOT)
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
 	    -I$(HTS_ROOT) \
-	    -L$(HTS_ROOT) \
-	    -l hts \
 	    -DTEST $(UNITY_ROOT)/unity.c \
 	    -DSAMTOOLS=1 \
+	    -lz \
 	    -pthread \
 	    $(SRC_FILES) \
-	    -lz \
+	    $(HTS_ROOT)/libhts.a \
 	    $@.c $@_Runner.c -lm 
 	rm $@_Runner.c
 
