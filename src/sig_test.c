@@ -75,12 +75,12 @@ int main(int argc, char **argv)
 
     uint32_t num_intervals = 0;
     double mean_interval_size = 0.0;
-    while ( input_file_get_next_interval(in_f, 
-                                         &chrm,
-                                         &chrm_len,
-                                         &start,
-                                         &end,
-                                         &offset) >= 0 ) {
+    while ( in_f->input_file_get_next_interval(in_f, 
+                                               &chrm,
+                                               &chrm_len,
+                                               &start,
+                                               &end,
+                                               &offset) >= 0 ) {
         num_intervals += 1;
         mean_interval_size += end - start;
 
@@ -93,14 +93,18 @@ int main(int argc, char **argv)
             struct uint32_t_ll_node *curr = R->head;
 
             while (curr != NULL) {
+                /*
                 struct file_id_offset_pair *fid_off = 
                     (struct file_id_offset_pair *)
                     unordered_list_get(gi->offset_index, curr->val);
+                */
+                struct file_id_offset_pair fid_off = 
+                    gi->offset_index->vals[curr->val];
                 struct file_data *fd = 
                     (struct file_data *)
-                    unordered_list_get(gi->file_index, fid_off->file_id);
+                    unordered_list_get(gi->file_index, fid_off.file_id);
 
-                file_counts[fid_off->file_id] += 1;
+                file_counts[fid_off.file_id] += 1;
 
                 curr = curr->next;
             }

@@ -64,12 +64,12 @@ int main(int argc, char **argv)
 
 
     uint32_t num_intervals = 0;
-    while ( input_file_get_next_interval(in_f, 
-                                         &chrm,
-                                         &chrm_len,
-                                         &start,
-                                         &end,
-                                         &offset) >= 0 ) {
+    while ( in_f->input_file_get_next_interval(in_f, 
+                                               &chrm,
+                                               &chrm_len,
+                                               &start,
+                                               &end,
+                                               &offset) >= 0 ) {
         struct uint32_t_ll *R =
                 (struct uint32_t_ll *)giggle_query_region(gi,
                                                           chrm,
@@ -80,11 +80,10 @@ int main(int argc, char **argv)
 
             uint32_t count = 0;
             while (curr != NULL) {
-                struct file_id_offset_pair *fid_off = 
-                    (struct file_id_offset_pair *)
-                    unordered_list_get(gi->offset_index, curr->val);
+                struct file_id_offset_pair fid_off = 
+                    gi->offset_index->vals[curr->val];
 
-                long_ll_append(&(offsets[fid_off->file_id]), fid_off->offset);
+                long_ll_append(&(offsets[fid_off.file_id]),fid_off.offset);
 
                 curr = curr->next;
             }
@@ -128,17 +127,12 @@ int main(int argc, char **argv)
         struct input_file *ipf = input_file_init(fd->file_name);
 
 
+        char *str;
         for (j = 0; j < offsets[i]->len; ++j) {
             input_file_seek(ipf, sorted_offsets[j]);
-            input_file_get_next_interval(ipf,
-                                         &chrm,
-                                         &chrm_len,
-                                         &start,
-                                         &end,
-                                         &offset);
-            printf("%s %u\t", chrm, chrm_len);
-            printf("%u\t", start);
-            printf("%u\n", end);
+            ipf->input_file_get_next_line(ipf,
+                                          &str);
+            printf("%s\n", str);
         }
 
         input_file_destroy(&ipf);

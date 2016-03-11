@@ -15,6 +15,12 @@ struct file_id_offset_pair
 void *file_id_offset_pair_load(FILE *f, char *file_name);
 void file_id_offset_pair_store(void *v, FILE *f, char *file_name);
 
+struct file_id_offset_pairs
+{
+    uint64_t num,size;
+    struct file_id_offset_pair *vals;
+};
+
 void c_str_store(void *v, FILE *f, char *file_name);
 void *c_str_load(FILE *f, char *file_name);
 
@@ -24,7 +30,8 @@ struct giggle_index
     uint32_t len, num;
     struct ordered_set *chrm_index;
     struct unordered_list *file_index;
-    struct unordered_list *offset_index;
+    //struct unordered_list *offset_index;
+    struct file_id_offset_pairs *offset_index;
 
     char *data_dir,
          *chrm_index_file_name,

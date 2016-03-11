@@ -21,6 +21,12 @@ int main(int argc, char **argv)
     char *region_s = argv[2];
     char *i_type = argv[3];
 
+    struct giggle_index *gi;
+    gi = giggle_load(index_dir,
+                     uint32_t_ll_giggle_set_data_handler);
+
+
+#if 0
     char *chrm = region_s;
     uint32_t start = 0, end = 0;
     uint32_t i, len = strlen(region_s);
@@ -116,7 +122,7 @@ int main(int argc, char **argv)
         */
 
     }
-
+#endif
     giggle_index_destroy(&gi);
     cache.destroy();
 }

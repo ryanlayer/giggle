@@ -44,6 +44,10 @@ struct input_file *input_file_init(char *file_name)
     i->last_offset = 0;
 
     
+    i->input_file_get_next_interval = 
+        input_file_get_next_interval_bed;
+    i->input_file_get_next_line = 
+        input_file_get_next_line_bgzf;
 
     return i;
 }
@@ -61,13 +65,13 @@ void input_file_destroy(struct input_file **i)
 }
 //}}}
 
-//{{{int input_file_get_next_interval(struct input_file *i,
-int input_file_get_next_interval(struct input_file *i,
-                                 char **chrm,
-                                 int *chrm_len,
-                                 uint32_t *start,
-                                 uint32_t *end,
-                                 long *offset)
+//{{{int input_file_get_next_interval_bed(struct input_file *i,
+int input_file_get_next_interval_bed(struct input_file *i,
+                                     char **chrm,
+                                     int *chrm_len,
+                                     uint32_t *start,
+                                     uint32_t *end,
+                                     long *offset)
 {
     *offset = i->last_offset;
     int ret = bgzf_getline(i->fp, '\n', i->kstr);
@@ -100,6 +104,17 @@ int input_file_get_next_interval(struct input_file *i,
         s = e + 1;
     }
 
+    return ret;
+}
+//}}}
+
+//{{{int input_file_get_next_line_bgzf(struct input_file *i,
+int input_file_get_next_line_bgzf(struct input_file *i,
+                                  char **str)
+{
+    int ret = bgzf_getline(i->fp, '\n', i->kstr);
+    i->last_offset = bgzf_tell(i->fp);
+    *str = i->kstr->s;
     return ret;
 }
 //}}}

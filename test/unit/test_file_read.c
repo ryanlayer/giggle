@@ -74,23 +74,23 @@ void test_bed_file_read(void)
 
     int j;
     for (j = 0; j < 10; ++j) {
-        int ret = input_file_get_next_interval(i,
-                &chrm,
-                &chrm_len,
-                &start,
-                &end,
-                &offset);
+        int ret = i->input_file_get_next_interval(i,
+                                                  &chrm,
+                                                  &chrm_len,
+                                                  &start,
+                                                  &end,
+                                                  &offset);
         TEST_ASSERT_EQUAL(0,strcmp(chrm_A[j], chrm));
         TEST_ASSERT_EQUAL(start_A[j], start);
         TEST_ASSERT_EQUAL(end_A[j], end);
     }
 
-    while (input_file_get_next_interval(i,
-                &chrm,
-                &chrm_len,
-                &start,
-                &end,
-                &offset) >= 0) {
+    while (i->input_file_get_next_interval(i,
+                                           &chrm,
+                                           &chrm_len,
+                                           &start,
+                                           &end,
+                                           &offset) >= 0) {
         ++j;
     }
 
@@ -104,6 +104,7 @@ void test_bed_file_read(void)
 }
 //}}}
 
+//{{{void test_get_file_stats(void)
 void test_get_file_stats(void)
 {
 
@@ -130,12 +131,12 @@ void test_get_file_stats(void)
     struct file_id_offset_pair *p;
     uint32_t intrv_id;
 
-    while (input_file_get_next_interval(i,
-                &chrm,
-                &chrm_len,
-                &start,
-                &end,
-                &offset) >= 0) {
+    while (i->input_file_get_next_interval(i,
+                                           &chrm,
+                                           &chrm_len,
+                                           &start,
+                                           &end,
+                                           &offset) >= 0) {
         fd->mean_interval_size += end-start;
         fd->num_intervals += 1;
     }
@@ -168,3 +169,26 @@ void test_get_file_stats(void)
 
     remove(out_file_name);
 }
+//}}}
+
+//{{{void test_get_file_stats(void)
+void test_input_file_get_next_interval_vcf(void)
+{
+#if 0
+    struct input_file *i = input_file_init("../data/1k.vcf.gz");
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    uint32_t start, end;
+    long offset;
+
+    while (i->input_file_get_next_interval(i,
+                                           &chrm,
+                                           &chrm_len,
+                                           &start,
+                                           &end,
+                                           &offset) >= 0) {
+        offset += 1;
+    }
+#endif
+}
+//}}}
