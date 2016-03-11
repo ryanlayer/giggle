@@ -5,6 +5,11 @@ HTS_ROOT=../../htslib
 CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-Wall -O0 -g -fno-inline -fkeep-inline-functions -D_FILE_OFFSET_BITS=64 -fPIC -DDEBUG -D_DEBUG
 CC=gcc
+check-env:
+ifdef TRAVIS_BUILD_DIR
+HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib
+endif
+
 
 LIB=bpt.o \
     disk_store.o \

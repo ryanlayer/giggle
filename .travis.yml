@@ -12,3 +12,7 @@ before_install:
 script:
     - cd test/unit/
     - make
+    - cd $TRAVIS_BUILD_DIR
+    - make
+    - cd test/unit/
+    - ./giggle_tests.sh
