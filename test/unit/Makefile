@@ -1,5 +1,6 @@
 UNITY_ROOT=./unity
 HTS_ROOT=$(HOME)/src/htslib
+#HTS_ROOT=/usr/local/src/htslib
 CC=gcc
 SRC=../../src/
 TEST_SRC=$(wildcard *.c)
@@ -38,11 +39,11 @@ endif
 	    -I$(HTS_ROOT) \
 	    -DTEST $(UNITY_ROOT)/unity.c \
 	    -DSAMTOOLS=1 \
-	    -lz \
 	    -pthread \
 	    $(SRC_FILES) \
+	    $@.c $@_Runner.c \
 	    $(HTS_ROOT)/libhts.a \
-	    $@.c $@_Runner.c -lm 
+	    -lz -lm
 	rm $@_Runner.c
 
 test:
