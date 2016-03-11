@@ -14,5 +14,6 @@ script:
     - make
     - cd $TRAVIS_BUILD_DIR
     - make
+    - cd $TRAVIS_BUILD_DIR
     - cd test/unit/
     - ./giggle_tests.sh
