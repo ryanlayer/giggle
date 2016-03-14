@@ -895,7 +895,7 @@ void long_ll_uniq_append(struct long_ll **ll, long val)
 void long_ll_remove(struct long_ll **ll, long val)
 {
     if (*ll != NULL) {
-        struct long_ll_node *tmp, *last, *curr = (*ll)->head;
+        struct long_ll_node *tmp, *last = NULL, *curr = (*ll)->head;
         while (curr != NULL) {
             if (curr->val == val) {
                 if ((curr == (*ll)->head) && (curr == (*ll)->tail)) {
