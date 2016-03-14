@@ -26,6 +26,6 @@ then
         ../data/1k.sort.bed.gz \
         ../data/many_i i 
     assert_exit_code 0
-    assert_equal 0 $(diff <(grep -v "#" $STDOUT_FILE) bt.out | wc -l)
+    assert_equal 0 $(diff <(grep -v "#" $STDOUT_FILE | sort) <(cat bt.out | sort) | wc -l)
     rm -f bt.out
 fi
