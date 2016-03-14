@@ -40,6 +40,33 @@ struct giggle_index
          *root_ids_file_name;
 };
 
+struct gigle_query_result
+{
+    struct giggle_index *gi;
+    uint32_t num_files;
+    struct long_ll **offsets;
+};
+
+struct gigle_query_result *giggle_query(struct giggle_index *gi,
+                                        char *chrm,
+                                        uint32_t start,
+                                        uint32_t end);
+struct giggle_query_iter
+{
+    struct giggle_index *gi;
+    uint32_t file_id, curr, num;
+    struct input_file *ipf;
+    long *sorted_offsets;
+};
+                       
+struct giggle_query_iter *giggle_get_query_itr(struct gigle_query_result *gqr,
+                                               uint32_t file_id);
+
+int giggle_query_next(struct giggle_query_iter *gqi,
+                      char **result);
+
+void giggle_iter_destroy(struct giggle_query_iter **gqi);
+
 uint32_t giggle_insert(uint32_t domain,
                        uint32_t *root_id,
                        uint32_t start,

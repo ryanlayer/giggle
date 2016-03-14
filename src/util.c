@@ -69,3 +69,17 @@ uint32_t bin_char_to_int(char *bin)
     return i;
 }
 
+int long_cmp(const void *_a, const void *_b)
+{
+    long *a = (long *)_a;
+    long *b = (long *)_b;
+
+    if (*a < *b)
+        return -1;
+    else if (*a > *b)
+        return 1;
+    else
+        return 0;
+}
+
+

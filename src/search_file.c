@@ -3,24 +3,12 @@
 #include <err.h>
 #include <string.h>
 
+#include "util.h"
 #include "giggle.h"
 #include "wah.h"
 #include "cache.h"
 #include "file_read.h"
 #include "kfunc.h"
-
-int long_cmp(const void *_a, const void *_b)
-{
-    long *a = (long *)_a;
-    long *b = (long *)_b;
-
-    if (*a < *b)
-        return -1;
-    else if (*a > *b)
-        return 1;
-    else
-        return 0;
-}
 
 
 int main(int argc, char **argv)

@@ -900,3 +900,154 @@ struct giggle_index *giggle_load(char *data_dir,
     return gi;
 }
 //}}}
+
+//{{{struct gigle_query_result *giggle_query(struct giggle_index *gi,
+struct gigle_query_result *giggle_query(struct giggle_index *gi,
+                                        char *chrm,
+                                        uint32_t start,
+                                        uint32_t end)
+{
+    uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
+    struct uint32_t_ll *R  = giggle_search(chr_id,
+                                           gi->root_ids[chr_id],
+                                           start,
+                                           end);
+
+    struct gigle_query_result *gqr = (struct gigle_query_result *) 
+                malloc(sizeof(struct gigle_query_result));
+
+    gqr->gi = gi;
+    gqr->num_files = gi->file_index->num;
+    gqr->offsets = (struct long_ll **)
+        calloc(gi->file_index->num, sizeof(struct long_ll *));
+
+    uint32_t i,j;
+    for (i = 0; i < gi->file_index->num; ++i)
+        gqr->offsets[i] = NULL;
+
+    if (R != NULL) {
+        struct uint32_t_ll_node *curr = R->head;
+
+#ifdef DEBUG
+        fprintf(stderr,
+                "giggle_query R->len:%u\n",
+                R->len);
+#endif
+
+        while (curr != NULL) {
+            struct file_id_offset_pair fid_off = 
+                    gi->offset_index->vals[curr->val];
+            long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+            curr = curr->next;
+        }
+
+        uint32_t_ll_free((void **)&R);
+        R=NULL;
+    } 
+#ifdef DEBUG
+    else {
+        fprintf(stderr,
+                "giggle_query R->len:%u\n",
+                0);
+    }
+#endif
+    return gqr;
+}
+//}}}
+
+//{{{struct giggle_query_iter *giggle_get_query_itr(struct gigle_query_result
+struct giggle_query_iter *giggle_get_query_itr(struct gigle_query_result *gqr,
+                                               uint32_t file_id)
+{
+#ifdef DEBUG
+    fprintf(stderr ,"giggle_get_query_itr file_id:%u\n", file_id);
+#endif
+
+    struct giggle_query_iter *gqi = (struct giggle_query_iter *)
+        malloc(sizeof(struct giggle_query_iter));
+
+    gqi->gi = gqr->gi;
+    gqi->curr = 0;
+    gqi->num = 0;
+    gqi->file_id = file_id;
+    gqi->sorted_offsets = NULL;
+    gqi->ipf = NULL;
+
+    if (gqr->offsets[file_id] == NULL)
+        return gqi;
+
+#ifdef DEBUG
+    fprintf(stderr,
+            "giggle_get_query_itr offsets->len:%u\n", 
+            gqr->offsets[file_id]->len);
+#endif
+
+    gqi->num = gqr->offsets[file_id]->len;
+
+    gqi->sorted_offsets = (long *)
+            malloc(gqr->offsets[file_id]->len * sizeof(long));
+
+    struct long_ll_node *curr = gqr->offsets[file_id]->head;
+    uint32_t i = 0;
+    while (curr != NULL) {
+        gqi->sorted_offsets[i++] = curr->val;
+        curr = curr->next;
+    }
+
+    qsort(gqi->sorted_offsets,
+          gqr->offsets[file_id]->len,
+          sizeof(long),
+          long_cmp);
+
+    return gqi;
+}
+//}}}
+
+//{{{int giggle_query_next(struct giggle_query_iter *gqi,
+int giggle_query_next(struct giggle_query_iter *gqi,
+                      char **result)
+{
+#ifdef DEBUG
+    fprintf(stderr,
+            "giggle_query_next num:%u\tcurr:%u\n",
+            gqi->num,
+            gqi->curr);
+#endif
+
+    if ((gqi->num == 0) || (gqi->curr == gqi->num)) {
+#ifdef DEBUG
+        fprintf(stderr, "giggle_query_next -1\n");
+#endif
+        return -1; 
+    }
+
+    if (gqi->ipf == NULL) {
+        struct file_data *fd = 
+                (struct file_data *)unordered_list_get(gqi->gi->file_index,
+                                                       gqi->file_id); 
+        gqi->ipf = input_file_init(fd->file_name);
+    }
+
+    gqi->ipf->input_file_seek(gqi->ipf, gqi->sorted_offsets[gqi->curr]);
+    gqi->ipf->input_file_get_next_line(gqi->ipf, result);
+
+    gqi->curr += 1;
+
+#ifdef DEBUG
+    fprintf(stderr, "giggle_query_next 0\n");
+#endif
+    return 0;
+}
+//}}}
+
+//{{{void giggle_iter_destroy(struct giggle_query_iter **gqi)
+void giggle_iter_destroy(struct giggle_query_iter **gqi)
+{
+    if ((*gqi)->ipf != NULL)
+        input_file_destroy(&((*gqi)->ipf));
+    if ((*gqi)->sorted_offsets != NULL);
+        free((*gqi)->sorted_offsets);
+    free(*gqi);
+    *gqi = NULL;
+}
+//}}}
