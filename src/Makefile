@@ -1,8 +1,8 @@
 BIN=../bin
 OBJ=../obj
 HTS_ROOT=../../htslib
-#CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
-CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-Wall -O0 -g -fno-inline -fkeep-inline-functions -D_FILE_OFFSET_BITS=64 -fPIC -DDEBUG -D_DEBUG
 CC=gcc
 

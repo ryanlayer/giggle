@@ -1033,7 +1033,7 @@ void test_uint32_t_ll_giggle_query_region(void)
                                               r.file_id);
     struct input_file *i = input_file_init(fd->file_name);
 
-    input_file_seek(i, r.offset);
+    i->input_file_seek(i, r.offset);
 
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
@@ -1055,7 +1055,7 @@ void test_uint32_t_ll_giggle_query_region(void)
     //r = (struct file_id_offset_pair *)
             //unordered_list_get(gi->offset_index, R->head->next->val);
     r = gi->offset_index->vals[R->head->next->val];
-    input_file_seek(i, r.offset);
+    i->input_file_seek(i, r.offset);
     x = i->input_file_get_next_interval(i,
                                         &chrm,
                                         &chrm_len,
@@ -1110,7 +1110,7 @@ void test_wah_giggle_query_region(void)
 
     struct input_file *i = input_file_init(fd->file_name);
 
-    input_file_seek(i, r.offset);
+    i->input_file_seek(i, r.offset);
 
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
@@ -1131,7 +1131,7 @@ void test_wah_giggle_query_region(void)
     //r = (struct file_id_offset_pair *)
             //unordered_list_get(gi->offset_index, R[1] - 1);
     r = gi->offset_index->vals[R[1] - 1];
-    input_file_seek(i, r.offset);
+    i->input_file_seek(i, r.offset);
     x = i->input_file_get_next_interval(i,
                                         &chrm,
                                         &chrm_len,
@@ -1473,7 +1473,7 @@ void valid_giggle_index(struct giggle_index *gi)
 //                            struct input_file *ipf = 
 //                                    input_file_init(fd->file_name);
 //
-//                            input_file_seek(ipf, p->offset);
+//                            ipf->input_file_seek(ipf, p->offset);
 //
 //                            int chrm_len = 10;
 //                            char *r_chrm = (char *)

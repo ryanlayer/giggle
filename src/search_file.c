@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
         char *str;
         for (j = 0; j < offsets[i]->len; ++j) {
-            input_file_seek(ipf, sorted_offsets[j]);
+            ipf->input_file_seek(ipf, sorted_offsets[j]);
             ipf->input_file_get_next_line(ipf,
                                           &str);
             printf("%s\n", str);
