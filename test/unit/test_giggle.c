@@ -929,29 +929,29 @@ void test_giggle_index_file(void)
                           32,
                           12};
 
-    char *chrms[23] = {"chr1",
-                       "chr10",
-                       "chr11",
-                       "chr12",
-                       "chr13",
-                       "chr14",
-                       "chr15",
-                       "chr16",
-                       "chr17",
-                       "chr18",
-                       "chr19",
-                       "chr2",
-                       "chr20",
-                       "chr21",
-                       "chr22",
-                       "chr3",
-                       "chr4",
-                       "chr5",
-                       "chr6",
-                       "chr7",
-                       "chr8",
-                       "chr9",
-                       "chrX"};
+    char *chrms[23] = {"1",
+                       "10",
+                       "11",
+                       "12",
+                       "13",
+                       "14",
+                       "15",
+                       "16",
+                       "17",
+                       "18",
+                       "19",
+                       "2",
+                       "20",
+                       "21",
+                       "22",
+                       "3",
+                       "4",
+                       "5",
+                       "6",
+                       "7",
+                       "8",
+                       "9",
+                       "X"};
     /*
       for c in `gunzip -c 1k.unsort.bed.gz | cut -f1 | sort | uniq`
       do 
@@ -1014,7 +1014,7 @@ void test_uint32_t_ll_giggle_query_region(void)
     uint32_t ret = giggle_index_file(gi, file_name);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                                      "chr11",
+                                                                      "11",
                                                                       1000,
                                                                       3000000);
      //tabix 1k.sort.bed.gz chr11:1000-3000000
@@ -1047,7 +1047,7 @@ void test_uint32_t_ll_giggle_query_region(void)
                                             &end,
                                             &offset);
     
-    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(575808, start);
     TEST_ASSERT_EQUAL(576604, end);
 
@@ -1063,7 +1063,7 @@ void test_uint32_t_ll_giggle_query_region(void)
                                         &end,
                                         &offset);
 
-    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(2950239, start);
     TEST_ASSERT_EQUAL(2952321, end);
 
@@ -1087,7 +1087,7 @@ void test_wah_giggle_query_region(void)
     uint32_t ret = giggle_index_file(gi, file_name);
 
     uint8_t *R_bm = (uint8_t*)giggle_query_region(gi,
-                                                  "chr11",
+                                                  "11",
                                                   1000,
                                                   3000000);
     /*
@@ -1124,7 +1124,7 @@ void test_wah_giggle_query_region(void)
                                             &end,
                                             &offset);
 
-    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(575808, start);
     TEST_ASSERT_EQUAL(576604, end);
 
@@ -1139,7 +1139,7 @@ void test_wah_giggle_query_region(void)
                                         &end,
                                         &offset);
 
-    TEST_ASSERT_EQUAL(0, strcmp("chr11", chrm));
+    TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(2950239, start);
     TEST_ASSERT_EQUAL(2952321, end);
 
@@ -1167,23 +1167,23 @@ void test_giggle_index_directory(void)
     TEST_ASSERT_EQUAL(11, gi->file_index->num);
     TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
 
-    giggle_query_region(gi, "chr11", 1000, 3000000);
+    giggle_query_region(gi, "11", 1000, 3000000);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                                      "chr1",
+                                                                      "1",
                                                                       1000,
                                                                       3000000);
     TEST_ASSERT_EQUAL(39, R->len);
     uint32_t_ll_free((void **)&R);
     
     R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                  "chr1",
+                                                  "1",
                                                   999207,
                                                   1000014);
     TEST_ASSERT_EQUAL(NULL, R);
 
     R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                  "chr12",
+                                                  "12",
                                                   52463173,
                                                   52464215);
 
@@ -1209,10 +1209,10 @@ void test_giggle_init_null_dir(void)
     TEST_ASSERT_EQUAL(11, gi->file_index->num);
     TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
 
-    giggle_query_region(gi, "chr11", 1000, 3000000);
+    giggle_query_region(gi, "11", 1000, 3000000);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                                      "chr1",
+                                                                      "1",
                                                                       1000,
                                                                       3000000);
     /*
@@ -1246,10 +1246,10 @@ void test_giggle_init_store_load(void)
     TEST_ASSERT_EQUAL(11, gi->file_index->num);
     TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
 
-    giggle_query_region(gi, "chr11", 1000, 3000000);
+    giggle_query_region(gi, "11", 1000, 3000000);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                                      "chr1",
+                                                                      "1",
                                                                       1000,
                                                                       3000000);
     /*
@@ -1267,7 +1267,7 @@ void test_giggle_init_store_load(void)
                      uint32_t_ll_giggle_set_data_handler);
 
     R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                   "chr1",
+                                                   "1",
                                                    1000,
                                                    1000000);
     TEST_ASSERT_EQUAL(11, R->len);

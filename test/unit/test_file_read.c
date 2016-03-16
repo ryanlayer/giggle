@@ -38,16 +38,17 @@ void test_bed_file_read(void)
     long offset;
 
 
-    char *chrm_A[10] = {"chr11",
-        "chr11",  
-        "chr10",  
-        "chr16",  
-        "chr15",  
-        "chr19",  
-        "chr19",  
-        "chr18",  
-        "chr21",  
-        "chr7"};
+    char *chrm_A[10] = {
+        "11",
+        "11",  
+        "10",  
+        "16",  
+        "15",  
+        "19",  
+        "19",  
+        "18",  
+        "21",  
+        "7"};
 
     uint32_t start_A[10] = {64691252,
         129871988,
@@ -94,7 +95,7 @@ void test_bed_file_read(void)
         ++j;
     }
 
-    TEST_ASSERT_EQUAL(0,strcmp("chr1", chrm));
+    TEST_ASSERT_EQUAL(0,strcmp("1", chrm));
     TEST_ASSERT_EQUAL(25895359, start);
     TEST_ASSERT_EQUAL(25896171, end);
 

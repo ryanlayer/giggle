@@ -11,6 +11,7 @@ BEDTOOLS=`which bedtools`
 
 # Make the index
 ../../bin/index "../data/many/*gz" ../data/many_i i 1 2> /dev/null
+../../bin/index "../data/chr_mix/*gz" ../data/chr_mix_i i 1 2> /dev/null
 
 
 if [ -n "$BEDTOOLS" ]
@@ -29,3 +30,21 @@ then
     assert_equal 0 $(diff <(grep -v "#" $STDOUT_FILE | sort) <(cat bt.out | sort) | wc -l)
     rm -f bt.out
 fi
+
+
+
+for i in `seq 1 10`
+do
+R_CHRM=$((RANDOM%21 + 1))
+R_START=$RANDOM
+R_END=$((RANDOM*60+1+R_START))
+run check_chr_v_nochr_search_$i \
+        ../../bin/search \
+        ../data/chr_mix_i \
+        $R_CHRM:$R_START-$R_END \
+        i
+assert_equal 0 $(diff $STDOUT_FILE <( ../../bin/search \
+                                        ../data/chr_mix_i \
+                                        chr$R_CHRM:$R_START-$R_END \
+                                        i) | wc -l)
+done

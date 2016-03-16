@@ -163,8 +163,16 @@ int input_file_get_next_interval_bed(struct input_file *i,
                 if (*chrm == NULL)
                     errx(1, "Realloc error.\n");
             }
-            memcpy(*chrm, i->kstr->s + s, e - s);
-            (*chrm)[e - s] = '\0';
+
+
+            if( strncmp("chr", i->kstr->s + s, 3) == 0) {
+                memcpy(*chrm, i->kstr->s + s + 3, e - s - 3);
+                (*chrm)[e - s - 3] = '\0';
+            } else {
+                memcpy(*chrm, i->kstr->s + s, e - s);
+                (*chrm)[e - s] = '\0';
+            }
+
         } else if (col == 2) {
             *start = strtol(i->kstr->s + s, NULL, 0);
         } else if (col == 3) {
@@ -217,7 +225,11 @@ int input_file_get_next_interval_vcf(struct input_file *i,
         if (*chrm == NULL)
             errx(1, "Realloc error.\n");
     }
-    memcpy(*chrm, _chrm, strlen(_chrm) + 1);
+
+    if( strncmp("chr", _chrm, 3) == 0)
+        memcpy(*chrm, _chrm + 3, (strlen(_chrm) + 1) - 3);
+    else
+        memcpy(*chrm, _chrm, strlen(_chrm) + 1);
 
     *start = i->line->pos + 1;
 

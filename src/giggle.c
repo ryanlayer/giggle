@@ -583,7 +583,11 @@ void *giggle_query_region(struct giggle_index *gi,
                           uint32_t start,
                           uint32_t end)
 {
-    uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
+    uint32_t off = 0;
+    if (strncmp("chr", chrm, 3) == 0)
+        off = 3;
+
+    uint32_t chr_id = giggle_get_chrm_id(gi, chrm+off);
     return giggle_search(chr_id, gi->root_ids[chr_id], start, end);
 }
 //}}}
@@ -907,7 +911,12 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
                                         uint32_t start,
                                         uint32_t end)
 {
-    uint32_t chr_id = giggle_get_chrm_id(gi, chrm);
+    uint32_t off = 0;
+    if (strncmp("chr", chrm, 3) == 0)
+        off = 3;
+
+
+    uint32_t chr_id = giggle_get_chrm_id(gi, chrm + off);
     struct uint32_t_ll *R  = giggle_search(chr_id,
                                            gi->root_ids[chr_id],
                                            start,
