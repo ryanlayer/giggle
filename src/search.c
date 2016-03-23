@@ -204,8 +204,8 @@ int search_main(int argc, char **argv, char *full_cmd)
     //}}}
 
     uint32_t num_file_patterns = 0;
-    regex_t *regexs;
-    char **file_patterns;
+    regex_t *regexs = NULL;
+    char **file_patterns = NULL;
 
     //{{{ comiple file name regexs
     if (f_is_set == 1) {
