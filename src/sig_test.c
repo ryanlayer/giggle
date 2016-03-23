@@ -3,39 +3,15 @@
 #include <err.h>
 #include <string.h>
 
-#include "giggle.h"
+#include "giggle_index.h"
 #include "wah.h"
 #include "cache.h"
 #include "file_read.h"
 #include "kfunc.h"
+#include "util.h"
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-
-struct doubles_uint32_t_tuple
-{
-    double d1,d2;
-    uint32_t u1,u2,u3;
-};
-
-int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b)
-{
-    struct doubles_uint32_t_tuple *a = (struct doubles_uint32_t_tuple *)_a;
-    struct doubles_uint32_t_tuple *b = (struct doubles_uint32_t_tuple *)_b;
-
-    if (a->d1 < b->d1)
-        return -1;
-    else if (a->d1 > b->d1)
-        return 1;
-    else {
-        if (a->d2 < b->d2)
-            return -1;
-        else if (a->d2 > b->d2)
-            return 1;
-
-        return 0;
-    }
-}
 
 
 

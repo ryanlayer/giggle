@@ -5,7 +5,7 @@
 #include <err.h>
 #include "util.h"
 #include "ll.h"
-#include "giggle.h"
+#include "giggle_index.h"
 #include "wah.h"
 
 void uint32_t_ll_wah_giggle_set_data_handler()

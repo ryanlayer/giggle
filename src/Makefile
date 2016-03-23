@@ -12,13 +12,15 @@ LIB=bpt.o \
     cache.o \
     data_reg.o \
     file_read.o \
-    giggle.o \
+    giggle_index.o \
     lists.o \
     ll.o \
     util.o \
     timer.o \
     wah.o \
-    kfunc.o
+    kfunc.o \
+    index.o \
+    search.o
 
 
 .SUFFIXES:
@@ -29,14 +31,12 @@ OBJS=$(addprefix $(OBJ)/, $(LIB))
 
 
 PROG=index_search \
-     index \
-     search \
      search_file \
      test \
      sig_test \
      speed_tests \
-     api_test
-
+     api_test \
+     giggle
 
 LIST=$(addprefix $(BIN)/, $(PROG))
 

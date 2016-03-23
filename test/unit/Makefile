@@ -10,7 +10,7 @@ RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 
 NO_PRE_SRC_FILES= disk_store.c \
 		 cache.c \
-		 giggle.c \
+		 giggle_index.c \
 		 lists.c \
 		 util.c \
 		 ll.c \

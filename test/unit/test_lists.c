@@ -9,7 +9,7 @@
 #include "unity.h"
 #include "lists.h"
 #include "cache.h"
-#include "giggle.h"
+#include "giggle_index.h"
 
 void setUp(void) { }
 void tearDown(void) { }

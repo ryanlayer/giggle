@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "giggle.h"
+#include "giggle_index.h"
 
 int main(int argc, char **argv)
 {

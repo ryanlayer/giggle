@@ -7,6 +7,13 @@
 #include "ll.h"
 #include "cache.h"
 
+#define PROGRAM_NAME  "giggle"
+#define MAJOR_VERSION "0"
+#define MINOR_VERSION "0"
+#define REVISION_VERSION "1"
+#define BUILD_VERSION "0"
+#define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
+
 struct file_id_offset_pair
 {
     uint32_t file_id;
@@ -50,7 +57,8 @@ struct gigle_query_result
 struct gigle_query_result *giggle_query(struct giggle_index *gi,
                                         char *chrm,
                                         uint32_t start,
-                                        uint32_t end);
+                                        uint32_t end,
+                                        struct gigle_query_result *gqr);
 struct giggle_query_iter
 {
     struct giggle_index *gi;
@@ -58,7 +66,10 @@ struct giggle_query_iter
     struct input_file *ipf;
     long *sorted_offsets;
 };
-                       
+
+uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
+                              uint32_t file_id);
+                      
 struct giggle_query_iter *giggle_get_query_itr(struct gigle_query_result *gqr,
                                                uint32_t file_id);
 

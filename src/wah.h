@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "bpt.h"
-#include "giggle.h"
+#include "giggle_index.h"
 
 #define BYTE 8
 #define WAH_LEN(W) ( ((uint32_t *)W)[0] )

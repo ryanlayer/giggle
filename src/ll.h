@@ -1,7 +1,7 @@
 #ifndef __LL_H__
 #define __LL_H__
 
-#include "giggle.h"
+#include "giggle_index.h"
 
 struct uint32_t_ll_bpt_non_leading_data
 {

@@ -8,6 +8,13 @@
 #include <ftw.h>
 #include <stdint.h>
 
+struct doubles_uint32_t_tuple
+{
+    double d1,d2;
+    uint32_t u1,u2,u3;
+};
+int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b);
+
 extern struct FTW *ftwbuf;
 void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs);
 int unlink_cb(const char *fpath,

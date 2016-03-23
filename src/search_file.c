@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "util.h"
-#include "giggle.h"
+#include "giggle_index.h"
 #include "wah.h"
 #include "cache.h"
 #include "file_read.h"

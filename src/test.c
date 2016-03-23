@@ -3,7 +3,7 @@
 #include <err.h>
 #include <string.h>
 
-#include "giggle.h"
+#include "giggle_index.h"
 #include "wah.h"
 #include "cache.h"
 

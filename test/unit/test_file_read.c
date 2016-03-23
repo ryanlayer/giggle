@@ -9,7 +9,7 @@
 
 #include "unity.h"
 #include "bpt.h"
-#include "giggle.h"
+#include "giggle_index.h"
 #include "file_read.h"
 #include "lists.h"
 

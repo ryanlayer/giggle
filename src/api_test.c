@@ -3,7 +3,7 @@
 #include <err.h>
 #include <string.h>
 
-#include "giggle.h"
+#include "giggle_index.h"
 #include "wah.h"
 #include "cache.h"
 #include "file_read.h"
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     struct giggle_index *gi = giggle_load(index_dir,
                                           uint32_t_ll_giggle_set_data_handler);
 
-    struct gigle_query_result *gqr = giggle_query(gi, chrom, start, end);
+    struct gigle_query_result *gqr = giggle_query(gi, chrom, start, end, NULL);
 
 
 
