@@ -85,7 +85,10 @@ void *simple_cache_init(uint32_t size,
     _cache = sc;
     cache = simple_cache_def;
 
+    (void) pthread_mutex_init (&(sc->mutex), NULL);
     sc->num_domains = num_domains;
+
+
 
     sc->ils = (struct indexed_list **)calloc(num_domains,
                                              sizeof(struct indexed_list *));
@@ -93,6 +96,8 @@ void *simple_cache_init(uint32_t size,
     sc->seens = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
 
     sc->dss = NULL;
+    sc->data_file_names = NULL;
+    sc->index_file_names = NULL;
 
     uint32_t i;
     // opend attached files
@@ -194,6 +199,14 @@ void *simple_cache_get(uint32_t domain,
                                                            key);
 
     if (vh == NULL) {
+        (void) pthread_mutex_lock (&(sc->mutex));
+        vh = indexed_list_get(sc->ils[domain],
+                              key);
+        if (vh != NULL) {
+            (void) pthread_mutex_unlock (&(sc->mutex));
+            return vh->value;
+        }
+
         if ((sc->dss != NULL) && (sc->dss[domain] != NULL)) {
             uint64_t size;
             void *raw = disk_store_get(sc->dss[domain], key, &size);
@@ -207,8 +220,11 @@ void *simple_cache_get(uint32_t domain,
 
 
             simple_cache_add(domain, key, v, handler);
+            free(raw);
+            (void) pthread_mutex_unlock (&(sc->mutex));
             return v;
         } else {
+            (void) pthread_mutex_unlock (&(sc->mutex));
             return NULL;
         }
     } else 
@@ -223,6 +239,8 @@ void simple_cache_destroy()
         errx(1, "Cache has not been initialized.");
     struct simple_cache *sc = (struct simple_cache *)_cache;
 
+    (void) pthread_mutex_destroy (&(sc->mutex));
+
     uint32_t i,j;
 
     for (i = 0; i < sc->num_domains; ++i) {
@@ -235,9 +253,18 @@ void simple_cache_destroy()
             }
         }
 
+        if (sc->data_file_names != NULL)
+            free(sc->data_file_names[i]);
+        if (sc->index_file_names != NULL)
+            free(sc->index_file_names[i]);
+
         indexed_list_destroy(&(sc->ils[i]));
     }
 
+    if (sc->data_file_names != NULL)
+        free(sc->data_file_names);
+    if (sc->index_file_names != NULL)
+        free(sc->index_file_names);
 
     free(sc->ils);
     free(sc->nums);

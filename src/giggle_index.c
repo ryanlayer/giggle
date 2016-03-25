@@ -633,6 +633,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
     char **cache_names = NULL;
 
     struct giggle_index *gi = giggle_init_index(num_chrms);
+    gi->data_dir = NULL;
 
     if (data_dir != NULL) {
         gi->data_dir = strdup(data_dir);
@@ -686,6 +687,14 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                        "%s/root_ids.dat",
                        data_dir);
     }
+
+    if (cache_names != NULL) {
+        uint32_t i;
+        for (i = 0; i < num_chrms; ++i)
+            free(cache_names[i]);
+        free(cache_names);
+    }
+
 
     return gi;
 }
@@ -893,6 +902,11 @@ struct giggle_index *giggle_load(char *data_dir,
     struct simple_cache *sc = simple_cache_init(1000,
                                                 gi->len,
                                                 cache_names);
+    for (i = 0; i < gi->len; ++i)
+        free(cache_names[i]);
+    free(cache_names);
+
+
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread load_simple_cache\t%lu\n",
@@ -970,6 +984,20 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
     return gqr;
 }
 //}}}
+
+//{{{void gigle_query_result_destroy(struct gigle_query_result **gqr)
+void gigle_query_result_destroy(struct gigle_query_result **gqr)
+{
+    uint32_t i;
+    for (i = 0; i < (*gqr)->gi->file_index->num; ++i) {
+        long_ll_free((void **)&((*gqr)->offsets[i]));
+    }
+    free((*gqr)->offsets);
+    free(*gqr);
+    *gqr = NULL;
+}
+//}}}
+
 
 //{{{uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
 uint32_t giggle_get_query_len(struct gigle_query_result *gqr,

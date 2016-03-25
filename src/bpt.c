@@ -124,11 +124,14 @@ uint32_t bpt_find_leaf(uint32_t domain, uint32_t curr_id, uint32_t key)
             i+=1;
 
         // cache is zero-based, while bpt is one-based
+        uint32_t next = BPT_POINTERS(curr)[i] - 1;
         curr = cache.get(domain,
-                         BPT_POINTERS(curr)[i] - 1,
+                         next,
                          &bpt_node_cache_handler);
     }
-    return BPT_ID(curr);
+
+    uint32_t id = BPT_ID(curr);
+    return id;
 }
 //}}}
 

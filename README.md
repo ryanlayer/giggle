@@ -86,3 +86,22 @@
     real    0m3.249s
     user    0m2.280s
     sys 0m0.822s
+
+# Web server
+
+http://www.gnu.org/software/libmicrohttpd/
+
+    wget http://ftpmirror.gnu.org/libmicrohttpd/libmicrohttpd-0.9.46.tar.gz
+    tar zxvf libmicrohttpd-0.9.46.tar.gz
+    cd libmicrohttpd-0.9.46
+    ./configure --prefix=$HOME/usr/local/
+    make
+    make install
+
+    git clone https://github.com/json-c/json-c.git
+    cd json-c
+    sh autogen.sh
+    ./configure --prefix=$HOME/usr/local/
+    make
+    make install
+

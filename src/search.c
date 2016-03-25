@@ -16,7 +16,6 @@
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end);
 int search_help(int exit_code);
 int test_pattern_match(struct giggle_index *gi,
                        regex_t *regexs,
@@ -42,29 +41,6 @@ int search_help(int exit_code)
 "             -g genome size for significance testing (default 3095677412)\n",
             PROGRAM_NAME, VERSION, PROGRAM_NAME);
     return exit_code;
-}
-//}}}
-
-//{{{int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t
-int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end)
-{
-    *chrm = region_s;
-    *start = 0;
-    *end = 0;
-    uint32_t i, len = strlen(region_s);
-    
-    for (i = 0; i < len; ++i) {
-        if (region_s[i] == ':') {
-            region_s[i] = '\0';
-            *start = atoi(region_s + i + 1);
-        } else if (region_s[i] == '-') {
-            region_s[i] = '\0';
-            *end = atoi(region_s + i + 1);
-            return 0;
-        }
-    }
-
-    return 1;
 }
 //}}}
 
@@ -368,8 +344,9 @@ int search_main(int argc, char **argv, char *full_cmd)
             }
         }
     }
-
-    //giggle_index_destroy(&gi);
-    //cache.destroy();
+    gigle_query_result_destroy(&gqr);
+    giggle_index_destroy(&gi);
+    cache.destroy();
+    free(full_cmd);
     return EX_OK;
 }

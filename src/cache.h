@@ -2,6 +2,7 @@
 #define __CACHE_H__
 
 #include <stdint.h>
+#include <pthread.h>
 #include "disk_store.h"
 #include "lists.h"
 
@@ -58,6 +59,7 @@ struct simple_cache
     uint32_t *sizes, *nums, *seens, num_domains;
     char **index_file_names, **data_file_names;
     struct disk_store **dss;
+    pthread_mutex_t mutex;
 };
 
 void *simple_cache_init(uint32_t size,

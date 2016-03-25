@@ -832,9 +832,6 @@ void uint32_t_ll_leading_repair(uint32_t domain,
 }
 //}}}
 
-
-
-
 //{{{void long_ll_append(struct long_ll **ll, long val)
 void long_ll_append(struct long_ll **ll, long val)
 {

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -103,3 +104,29 @@ int long_cmp(const void *_a, const void *_b)
 }
 
 
+//{{{int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t
+int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end)
+{
+    *chrm = NULL;
+    *start = 0;
+    *end = 0;
+    uint32_t i, len = strlen(region_s);
+    
+    for (i = 0; i < len; ++i) {
+        if (region_s[i] == ':') {
+            region_s[i] = '\0';
+            *chrm = strndup(region_s, strlen(region_s) + 1);
+            *start = atoi(region_s + i + 1);
+        } else if (region_s[i] == '-') {
+            region_s[i] = '\0';
+            *end = atoi(region_s + i + 1);
+            if (*chrm != NULL)
+                return 0;
+            else 
+                return 1;
+        }
+    }
+
+    return 1;
+}
+//}}}

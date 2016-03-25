@@ -1,8 +1,12 @@
 BIN=../bin
 OBJ=../obj
 HTS_ROOT=../../htslib
-#CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
-CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+LIBMHD_INCLUDES=$(HOME)/usr/local/include
+LIBMHD_LIBS=$(HOME)/usr/local/lib
+CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+INCLUDES=-I$(HTS_ROOT)
+LIBS=-ldl -lz -lm -pthread 
+#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-Wall -O0 -g -fno-inline -fkeep-inline-functions -D_FILE_OFFSET_BITS=64 -fPIC -DDEBUG -D_DEBUG
 CC=gcc
 
@@ -40,19 +44,26 @@ PROG=index_search \
 
 LIST=$(addprefix $(BIN)/, $(PROG))
 
+
 all: check-env $(LIST)
 
+server: INCLUDES+=-I$(LIBMHD_INCLUDES) -L$(LIBMHD_LIBS)
+server: LIBS+=-lmicrohttpd
+server: $(BIN)/server_overlap
 
 $(OBJ)/%.o: %.c 
 	$(CC) -c $(CFLAGS) -o $@ $< \
 		-I$(HTS_ROOT)
 
+
 $(BIN)/%: %.c $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ \
-		-I$(HTS_ROOT) \
+		$(INCLUDES) \
 		-DSAMTOOLS=1 \
 		$(HTS_ROOT)/libhts.a \
-		-ldl -lz -lm  -pthread
+		$(LIBS)
+
+
 check-env:
 ifdef TRAVIS_BUILD_DIR
 HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib

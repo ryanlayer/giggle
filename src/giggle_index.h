@@ -59,6 +59,9 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
                                         uint32_t start,
                                         uint32_t end,
                                         struct gigle_query_result *gqr);
+
+void gigle_query_result_destroy(struct gigle_query_result **gqr);
+
 struct giggle_query_iter
 {
     struct giggle_index *gi;
