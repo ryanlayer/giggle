@@ -13,7 +13,25 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script> 
 <!-- Write Javascript code here -->
 <script type="text/javascript">
+
+$.urlParam = function(name){
+    var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+    if (results==null){
+        return null;
+    }else{
+        return results[1] || 0;
+    }
+}    
+
 $(document).ready(function(){
+  console.log(decodeURIComponent($.urlParam('server')));
+  if (decodeURIComponent($.urlParam('server')) != 'null') {
+    $('#servername').val("http://" + decodeURIComponent($.urlParam('server')));
+  } else {
+    console.log(2);
+    $('#servername').val("http://localhost:8080/");
+  }
+
   $(':submit').on('click', function() { 
     $('#hits').html(''); // Clear #hits div
     $('#hitshead').html(''); // Clear #hits div
@@ -60,7 +78,7 @@ $(document).ready(function(){
  
 <body>
   <div id="RequestInfo">
-    <input type="text" name="Server" value="http://localhost:8080/" /> </br>
+    <input type="text" name="Server" id="servername" value="http://localhost:8080/" /> </br>
     <input type="text" name="Region" value="chr1:100-1000" /> </br>
     <button value="all" type="submit">Get Overlaps</button>
   </div>
