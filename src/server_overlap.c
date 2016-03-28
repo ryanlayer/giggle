@@ -24,6 +24,7 @@ struct region
 struct args {
     struct giggle_index *gi;
     char **track_names;
+    char *header;
 };
 
 int scan_url_vals(void *cls,
@@ -71,7 +72,9 @@ int answer_to_connection(void *cls,
 
     if (r.success == 1) {
         char *page = NULL, *tmp_page = NULL;;
-        asprintf(&page, "myJsonMethod({\"files\":[");
+        asprintf(&page,
+                 "myJsonMethod({%s\"files\":[",
+                 ((struct args*)cls)->header);
         fprintf(stderr, "%s %u %u\n", r.chrm, r.start, r.end);
         struct giggle_index *gi = ((struct args*)cls)->gi;
         char **track_names = ((struct args*)cls)->track_names;
@@ -127,9 +130,9 @@ int answer_to_connection(void *cls,
 
 int main(int argc, char **argv)
 {
-    if (argc != 4) {
+    if (argc != 5) {
         fprintf(stderr,
-                "usage:\t%s <num threads> <index dir> <track names>\n",
+                "usage:\t%s <num threads> <index dir> <track names> <header>\n",
                 argv[0]);
         return 0;
     }
@@ -137,6 +140,18 @@ int main(int argc, char **argv)
     uint32_t NUMBER_OF_THREADS = atoi(argv[1]);
     char *index_dir_name = argv[2]; 
     char *track_name_file = argv[3]; 
+    char *header_file_name = argv[4]; 
+
+    FILE *fp = fopen(header_file_name, "r");
+    if (!fp)
+        err(1, "Could not open header file '%s'", header_file_name);
+    fseek(fp, 0, SEEK_END);
+    long fsize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    char *header = (char *)malloc((fsize + 1)*sizeof(char));
+    fread(header, fsize, 1, fp);
+    fclose(fp);
+
 
     struct args *arg = (struct args *)malloc(sizeof(struct args));
 
@@ -144,9 +159,10 @@ int main(int argc, char **argv)
                           uint32_t_ll_giggle_set_data_handler);
 
     arg->track_names = (char **)calloc(arg->gi->file_index->num, sizeof(char*));
+    arg->header = header;
     size_t linecap = 0;
     ssize_t linelen;
-    FILE *fp = fopen(track_name_file, "r");
+    fp = fopen(track_name_file, "r");
     if (!fp)
         err(1, "Could not open track names file '%s'", track_name_file);
 

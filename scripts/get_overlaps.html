@@ -28,10 +28,18 @@ $(document).ready(function(){
       jsonpCallback: "myJsonMethod",
     })
     .done(function(data) { 
+
+        console.log(data.dim1.vals.indexOf("Quiescent Low"));
+
         $('#hitshead').append('<td>hits</td>');
-        $.each(data.files[0].info, function(key,val){
-            $('#hitshead').append('<td>' + key + '</td>');
-        });
+
+        $('#hitshead').append('<td>' + data.dim1.name + '</td>');
+        $('#hitshead').append('<td>' + data.dim2.name + '</td>');
+
+        //$.each(data.files[0].info, function(key,val){
+            //$('#hitshead').append('<td>' + key + '</td>');
+        //});
+
         for (var i in data.files) {
             if (data.files[i].overlaps > 0 ) {
                 var row = '<tr>';
