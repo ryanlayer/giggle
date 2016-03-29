@@ -31,7 +31,7 @@
     make
     make install
 
-# [Dev Docs](https://github.com/ryanlayer/giggle.git)
+# [Dev Docs](http://ryanlayer.github.io/giggle/)
 
 # Example analysis
 ## Epigenomics Roadmap
