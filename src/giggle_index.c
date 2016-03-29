@@ -998,7 +998,6 @@ void gigle_query_result_destroy(struct gigle_query_result **gqr)
 }
 //}}}
 
-
 //{{{uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
 uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
                               uint32_t file_id)

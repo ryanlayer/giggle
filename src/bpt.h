@@ -9,18 +9,19 @@
 
 uint32_t ORDER;
 
-#define BPT_NODE_NUM_ELEMENTS (2*ORDER+9)
+#define BPT_NODE_NUM_ELEMENTS (2*ORDER+10)
 #define BPT_NODE_ELEMENT_SIZE sizeof(uint32_t)
 #define BPT_NODE_SIZE (BPT_NODE_NUM_ELEMENTS*BPT_NODE_ELEMENT_SIZE)
 
-#define BPT_ID(node) ((node)->data[0])
-#define BPT_PARENT(node) ((node)->data[1])
-#define BPT_IS_LEAF(node) ((node)->data[2])
-#define BPT_LEADING(node) ((node)->data[3])
-#define BPT_NEXT(node) ((node)->data[4])
-#define BPT_NUM_KEYS(node) ((node)->data[5])
-#define BPT_KEYS(node) ((node)->data + 6)
-#define BPT_POINTERS(node) ((node)->data + (6+ORDER+1))
+#define BPT_ID(node)            ((node)->data[0])
+#define BPT_PARENT(node)        ((node)->data[1])
+#define BPT_IS_LEAF(node)       ((node)->data[2])
+#define BPT_LEADING(node)       ((node)->data[3])
+#define BPT_NEXT(node)          ((node)->data[4])
+#define BPT_NUM_KEYS(node)      ((node)->data[5])
+#define BPT_KEYS(node)          ((node)->data + 6)
+#define BPT_POINTERS_HEAD(node) ((node)->data + (6+ORDER+1))
+#define BPT_POINTERS(node)      ((node)->data + (6+ORDER+2))
 
 struct ordered_set *id_to_offset_map;
 

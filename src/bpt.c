@@ -496,6 +496,28 @@ bool bpt_write_tree(uint32_t domain, uint32_t root_id)
     cache.store(domain, NULL);
 
     return true;
+    /*
+     * For each domain, start by writing out all of the non-leaf nodes.
+     * Next write the leaf-nodes, where each leaf is immediantly followed by a
+     * block of the pointer values. In this scheme the leaf-node will have a
+     * pointer (BPT_POINTERS_HEAD) to the block of pointer values.  
+     *
+     * A pointer block contains all of the pointers for a leaf node.
+     *
+     * only the block will be tracked in the cache, and the full block must be
+     * read to access any values in the block.
+     *
+     * Leaf node pointers are relative to the values in a block.
+     *
+     * The organization of these blocks can be applicaiton specific.
+     *
+     * For GIGGLE, each poiner holds a list of starts (SA) and ends (SE).  All
+     * SAs can be grouped into a single list, and the pointers can be offsets
+     * (end positions?) into that list.  Similarly for SEs.
+     *
+     * 
+     */
+
 #if 0
     if (root_id == 0)
         return;
