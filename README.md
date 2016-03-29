@@ -2,8 +2,6 @@
 
 # GIGGLE
 
-http://ryanlayer.github.io/giggle/
-
 # Build
     
 ## Giggle command line intervace
