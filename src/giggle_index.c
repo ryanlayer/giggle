@@ -1100,7 +1100,7 @@ void giggle_iter_destroy(struct giggle_query_iter **gqi)
 {
     if ((*gqi)->ipf != NULL)
         input_file_destroy(&((*gqi)->ipf));
-    if ((*gqi)->sorted_offsets != NULL);
+    if ((*gqi)->sorted_offsets != NULL)
         free((*gqi)->sorted_offsets);
     free(*gqi);
     *gqi = NULL;
