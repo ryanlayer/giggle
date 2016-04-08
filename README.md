@@ -34,7 +34,7 @@
 # [Dev Docs](http://ryanlayer.github.io/giggle/)
 
 # Example analysis
-## Epigenomics Roadmap
+## Epigenomics Roadmap (in examples/rme)
 
     mkdir data
     cd data
