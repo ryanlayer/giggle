@@ -72,6 +72,7 @@ void test_b_search(void)
 //{{{void test_bpt_node_macros(void)
 void test_bpt_node_macros(void)
 {
+    ORDER = 4;
     struct bpt_node *node = (struct bpt_node *)malloc(sizeof(struct bpt_node));
 
     uint32_t data[18] = {1,  // id

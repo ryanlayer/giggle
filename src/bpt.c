@@ -20,7 +20,8 @@
  *  greater than or equal to key[i-1] or less than key[i].
  */
 
-uint32_t ORDER = 4;
+//uint32_t ORDER = 4;
+uint32_t ORDER = 100;
 
 void (*bpt_node_repair)(uint32_t domain,
                         struct bpt_node *,
@@ -53,13 +54,13 @@ uint64_t bpt_node_serialize(void *deserialized, void **serialized)
     struct bpt_node *de = (struct bpt_node *)deserialized;
 
     //uint8_t *data = (uint8_t *)calloc(2*ORDER+9, sizeof(uint32_t));
-    uint8_t *data = (uint8_t *)calloc((2*ORDER+9)*sizeof(uint32_t),
+    uint8_t *data = (uint8_t *)calloc(BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t),
                                       sizeof(uint8_t));
 
-    memcpy(data, de->data, (2*ORDER+9)*sizeof(uint32_t));
+    memcpy(data, de->data, BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t));
 
     *serialized = (void *)data;
-    return (2*ORDER+9)*sizeof(uint32_t);
+    return BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t);
 }
 //}}}
 
@@ -72,8 +73,8 @@ uint64_t bpt_node_deserialize(void *serialized,
 
     struct bpt_node *n = (struct bpt_node *)malloc(sizeof(struct bpt_node));
 
-    n->data = (uint32_t *)calloc((2*ORDER+9),sizeof(uint32_t));
-    memcpy(n->data, data, (2*ORDER+9)*sizeof(uint32_t));
+    n->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS,sizeof(uint32_t));
+    memcpy(n->data, data, BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t));
 
     *deserialized = (void *)n;
 
@@ -96,7 +97,7 @@ void bpt_node_free_mem(void **deserialized)
 struct bpt_node *bpt_new_node(uint32_t domain)
 {
     struct bpt_node *n = (struct bpt_node *)malloc(sizeof(struct bpt_node));
-    n->data = (uint32_t *)calloc(2*ORDER+9, sizeof(uint32_t));
+    n->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS, sizeof(uint32_t));
 
     // zero is null for a bpt, so the ids start at one the cache number starts
     // at zero so add or subtract one to get the one/zero-based numbering 
@@ -500,7 +501,7 @@ bool bpt_write_tree(uint32_t domain, uint32_t root_id)
      * For each domain, start by writing out all of the non-leaf nodes.
      * Next write the leaf-nodes, where each leaf is immediantly followed by a
      * block of the pointer values. In this scheme the leaf-node will have a
-     * pointer (BPT_POINTERS_HEAD) to the block of pointer values.  
+     * pointer (BPT_POINTERS_BLOCK) to the block of pointer values.  
      *
      * A pointer block contains all of the pointers for a leaf node.
      *

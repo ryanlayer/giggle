@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <htslib/khash.h>
 #include "bpt.h"
-#include "ll.h"
+//#include "ll.h"
 #include "cache.h"
 
 #define PROGRAM_NAME  "giggle"
@@ -13,6 +13,27 @@
 #define REVISION_VERSION "1"
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
+
+#define LEAF_DATA_STARTS_START(node, i) \
+    ( i >= BPT_NUM_KEYS(node) \
+      ? BPT_POINTERS(node)[BPT_NUM_KEYS(node)-1] >> 16 \
+      : i == 0 ? 0 : BPT_POINTERS(node)[i-1] >> 16)
+
+#define LEAF_DATA_STARTS_END(node, i) \
+    ( i == BPT_NUM_KEYS(node) ? BPT_POINTERS(node)[i-1] >> 16 : \
+        i == -1 ? 0 : BPT_POINTERS(node)[i] >> 16)
+
+#define LEAF_DATA_ENDS_START(node, i) \
+    (i >= BPT_NUM_KEYS(node) \
+      ? BPT_POINTERS(node)[BPT_NUM_KEYS(node)-1] & 65535 \
+      : i == 0 ? 0:BPT_POINTERS(node)[i-1] & 65535)
+
+#define LEAF_DATA_ENDS_END(node, i) \
+    ( i == BPT_NUM_KEYS(node) ? BPT_POINTERS(node)[i-1] & 65535 : \
+    i == -1 ? 0 : BPT_POINTERS(node)[i] & 65535)
+
+#define LEAF_DATA_LEADING_START(node) (0)
+#define LEAF_DATA_LEADING_END(node) (node->num_leading)
 
 struct file_id_offset_pair
 {
@@ -116,10 +137,19 @@ struct giggle_def
     void (*non_leading_union_with_SA_subtract_SE)(uint32_t domain,
                                                   void **result,
                                                   void *non_leading);
+    void (*write_tree)(void *arg);
+    void *(*giggle_collect_intersection)(uint32_t leaf_start_id,
+                                         int pos_start_id,
+                                         uint32_t leaf_end_id,
+                                         int pos_end_id,
+                                         uint32_t domain,
+                                         void **r);
+    void (*map_intersection_to_offset_list)(struct giggle_index *gi,
+                                            struct gigle_query_result *gqr,
+                                            void *_R);
 };
 
 struct giggle_def giggle_data_handler;
-
 
 struct giggle_index *giggle_init_index(uint32_t init_size);
 void giggle_index_destroy(struct giggle_index **gi);
@@ -142,4 +172,67 @@ uint32_t giggle_store(struct giggle_index *gi);
 
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void));
+
+// LEAF DATA
+struct leaf_data {
+    uint32_t num_leading, num_starts, num_ends;
+    uint32_t *leading, *starts, *ends, *data;
+};
+
+struct leaf_data_result {
+    uint32_t len;
+    uint32_t *data;
+    struct leaf_data_result *next;
+};
+
+struct cache_handler leaf_data_cache_handler;
+void leaf_data_free_mem(void **deserialized);
+uint64_t leaf_data_deserialize(void *serialized,
+                               uint64_t serialized_size,
+                               void **deserialized);
+uint64_t leaf_data_serialize(void *deserialized, void **serialized);
+
+uint32_t giggle_get_leaf_data(struct giggle_index *gi,
+                              uint32_t domain,
+                              uint32_t leaf_id,
+                              struct leaf_data **lf,
+                              uint16_t **starts_ends_offsets);
+
+struct cache_handler leaf_data_cache_handler;
+
+uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
+                                                int pos_start_id,
+                                                uint32_t leaf_end_id,
+                                                int pos_end_id,
+                                                uint32_t domain);
+
+uint32_t giggle_leaf_data_get_intersection(uint32_t leaf_start_id,
+                                           int pos_start_id,
+                                           uint32_t leaf_end_id,
+                                           int pos_end_id,
+                                           uint32_t domain);
+
+void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
+                                               struct gigle_query_result *gqr,
+                                               void *_R);
+
+//void giggle_write_tree(struct giggle_index *gi);
+void giggle_write_tree_cache_dump(void *giggle_index);
+void giggle_write_tree_leaf_data(void *giggle_index);
+
+
+void *giggle_collect_intersection_data_in_pointers(uint32_t leaf_start_id,
+                                                   int pos_start_id,
+                                                   uint32_t leaf_end_id,
+                                                   int pos_end_id,
+                                                   uint32_t domain,
+                                                   void **r);
+
+void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
+                                                int pos_start_id,
+                                                uint32_t leaf_end_id,
+                                                int pos_end_id,
+                                                uint32_t domain,
+                                                void **r);
+
 #endif

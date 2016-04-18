@@ -13,6 +13,7 @@
 #include "file_read.h"
 #include "util.h"
 #include "kfunc.h"
+#include "ll.h"
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
@@ -228,6 +229,14 @@ int search_main(int argc, char **argv, char *full_cmd)
     struct giggle_index *gi =
                 giggle_load(index_dir_name,
                             uint32_t_ll_giggle_set_data_handler);
+
+#if BLOCK_STORE
+    giggle_data_handler.giggle_collect_intersection =
+            giggle_collect_intersection_data_in_block;
+
+    giggle_data_handler.map_intersection_to_offset_list =
+            leaf_data_map_intersection_to_offset_list;
+#endif
 
     struct gigle_query_result *gqr = NULL;
 

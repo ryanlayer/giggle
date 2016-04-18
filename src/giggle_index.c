@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <glob.h>
 #include <sysexits.h>
+#include <inttypes.h>
 
 #include "bpt.h"
 #include "cache.h"
@@ -16,6 +17,7 @@
 #include "file_read.h"
 #include "util.h"
 #include "timer.h"
+#include "fastlz.h"
 
 //{{{ void *file_id_offset_pair_load(FILE *f, char *file_name)
 void *file_id_offset_pair_load(FILE *f, char *file_name)
@@ -220,11 +222,13 @@ uint32_t giggle_insert(uint32_t domain,
     
     //if (start_leaf_id != end_leaf_id) 
     start_leaf_id = bpt_find_leaf(domain, *root_id, start);
-    end_leaf_id = bpt_find_leaf(domain, *root_id, end);
+    end_leaf_id = bpt_find_leaf(domain, *root_id, end + 1);
 
 #if DEBUG
-    fprintf(stderr, "s_id:%u e_id:%u\n", start_leaf_id, end_leaf_id);
+    fprintf(stderr, ":::\ts_id:%u e_id:%u\n", start_leaf_id, end_leaf_id);
+#endif
 
+#if DEBUG
     struct bpt_node *test_leaf = cache.get(domain,
                                            start_leaf_id - 1,
                                            &bpt_node_cache_handler);
@@ -272,7 +276,7 @@ void *giggle_search(uint32_t domain,
                     uint32_t start,
                     uint32_t end)
 {
-#if DEBUG
+#if DEBUG_GIGGLE_SEARCH
     fprintf(stderr, "giggle_search\n");
     fprintf(stderr, "start:%u\tend:%u\n", start, end);
 #endif
@@ -299,7 +303,7 @@ void *giggle_search(uint32_t domain,
         pos_start_id -= 1;
 
 
-#if DEBUG
+#if DEBUG_GIGGLE_SEARCH
     fprintf(stderr,
             "leaf_start_id:%u\tpos_start_id:%d\n",
             leaf_start_id,
@@ -308,8 +312,6 @@ void *giggle_search(uint32_t domain,
 
     uint32_t leaf_end_id;
     int pos_end_id;
-
-    void *r = NULL;
 
     uint32_t nld_end_id = bpt_find(domain,
                                    root_id,
@@ -321,13 +323,6 @@ void *giggle_search(uint32_t domain,
                                           leaf_end_id - 1,
                                           &bpt_node_cache_handler);
 
-#if DEBUG
-    fprintf(stderr,
-            "leaf_end_id:%u\tpos_end_id:%u\t\n",
-            leaf_end_id,
-            pos_end_id);
-#endif
-
     if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
         pos_end_id = -1;
     else if ( (pos_end_id >=0) && 
@@ -335,28 +330,307 @@ void *giggle_search(uint32_t domain,
               (BPT_KEYS(leaf_end)[pos_end_id] > end))
         pos_end_id -= 1;
 
-#if DEBUG
+#if DEBUG_GIGGLE_SEARCH
     fprintf(stderr,
             "leaf_end_id:%u\tpos_end_id:%u\t\n",
             leaf_end_id,
             pos_end_id);
 #endif
 
-#if DEBUG
+#if DEBUG_GIGGLE_SEARCH
     fprintf(stderr, "pos_end_id:%d %u\n", pos_end_id,
             ( ((pos_end_id >=0)&&(pos_end_id<BPT_NUM_KEYS(leaf_end))) ?
               BPT_KEYS(leaf_end)[pos_end_id] : 0)
             );
 #endif
 
+    //if ((leaf_start_id == leaf_end_id) && (pos_start_id >= pos_end_id))
     if ((leaf_start_id == leaf_end_id) && (pos_start_id > pos_end_id))
-        return r;
+        return NULL;
 
-#if DEBUG
+#if DEBUG_GIGGLE_SEARCH
     if (BPT_LEADING(leaf_start) == 0)
         fprintf(stderr, "BPT_LEADING(leaf_start) == 0\n");
-
 #endif
+
+    return giggle_data_handler.
+            giggle_collect_intersection(leaf_start_id,
+                                        pos_start_id,
+                                        leaf_end_id,
+                                        pos_end_id,
+                                        domain,
+                                        NULL); 
+}
+//}}}
+
+//{{{void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
+void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
+                                                int pos_start_id,
+                                                uint32_t leaf_end_id,
+                                                int pos_end_id,
+                                                uint32_t domain,
+                                                void **r)
+{
+#if DEBUG
+    fprintf(stderr, "giggle_collect_intersection_data_in_block\n");
+#endif
+
+    uint32_t I_size =
+            giggle_leaf_data_get_intersection_size(leaf_start_id,
+                                                   pos_start_id,
+                                                   leaf_end_id,
+                                                   pos_end_id,
+                                                   domain);
+
+#if DEBUG
+    fprintf(stderr, "I_size:%u\n", I_size);
+#endif
+
+    uint32_t *I = (uint32_t *)calloc(I_size, sizeof(uint32_t));
+
+    struct bpt_node *leaf_start = cache.get(domain,
+                                            leaf_start_id - 1,
+                                            &bpt_node_cache_handler);
+    struct leaf_data *leaf_start_data = 
+            cache.get(domain,
+                      BPT_POINTERS_BLOCK(leaf_start) - 1,
+                      &leaf_data_cache_handler);
+
+    // get everything in the leading value
+
+    // The first step is to take the leading and the starts up to 
+    // and including pos_start_id and remove ends up to and including 
+    // pos_start_id
+    uint32_t buff_size = leaf_start_data->num_leading +
+            LEAF_DATA_STARTS_END(leaf_start, pos_start_id) +
+            LEAF_DATA_ENDS_END(leaf_start,  pos_start_id);
+
+    uint32_t *buff = (uint32_t *)calloc(buff_size, sizeof(uint32_t));
+
+    memcpy(buff,
+           leaf_start_data->leading,
+           leaf_start_data->num_leading * sizeof(uint32_t));
+
+    memcpy(buff + leaf_start_data->num_leading,
+           leaf_start_data->starts,
+           LEAF_DATA_STARTS_END(leaf_start, pos_start_id)*sizeof(uint32_t));
+
+    memcpy(buff + leaf_start_data->num_leading + 
+                LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
+           leaf_start_data->ends,
+           LEAF_DATA_ENDS_END(leaf_start, pos_start_id)*sizeof(uint32_t));
+
+    qsort(buff, buff_size, sizeof(uint32_t), uint32_t_cmp);
+
+    uint32_t i, I_i = 0;
+    for (i = 0; i < buff_size; ++i) {
+        if ( ((i + 1) == buff_size) || (buff[i] != buff[i+1]))
+            I[I_i++] =  buff[i];
+        else
+            i+=1;
+    }
+    free(buff);
+
+    // now process everything in between the start and end
+    struct bpt_node *leaf_curr = leaf_start;
+    int pos_curr_id = pos_start_id + 1;
+    struct leaf_data *ld;
+    uint32_t curr_size;
+
+    // any intermediate leaves
+    while (BPT_ID(leaf_curr) != leaf_end_id) {
+        // do from pos_curr to the last key
+        curr_size = LEAF_DATA_STARTS_END(leaf_curr,
+                                         BPT_NUM_KEYS(leaf_curr) - 1) -
+                     LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+
+        ld = cache.get(domain,
+                       BPT_POINTERS_BLOCK(leaf_curr) - 1,
+                       &leaf_data_cache_handler);
+
+        memcpy(I + I_i,
+               ld->starts + LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
+               curr_size * sizeof(uint32_t));
+
+        I_i += curr_size;
+
+        leaf_curr = cache.get(domain,
+                              BPT_NEXT(leaf_curr) - 1,
+                              &bpt_node_cache_handler);
+        pos_curr_id = 0;
+    }
+
+    ld = cache.get(domain,
+                   BPT_POINTERS_BLOCK(leaf_curr) - 1,
+                   &leaf_data_cache_handler);
+
+
+    curr_size = LEAF_DATA_STARTS_END(leaf_curr, pos_end_id) - 
+                LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+
+    memcpy(I + I_i,
+           ld->starts + LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
+           curr_size * sizeof(uint32_t));
+
+    struct leaf_data_result *ldr = (struct leaf_data_result *)
+            calloc(1,sizeof(struct leaf_data_result));
+
+    ldr->len = I_size;
+    ldr->data = I;
+    ldr->next = NULL;
+
+    if ((r == NULL) || (*r == NULL)) {
+        return ldr;
+    } else {
+        ((struct leaf_data_result *)*r)->next = ldr;
+        //*r = ldr;
+    }
+
+    return ldr;
+}
+//}}}
+
+//{{{uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
+uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
+                                                int pos_start_id,
+                                                uint32_t leaf_end_id,
+                                                int pos_end_id,
+                                                uint32_t domain)
+{
+#if DEBUG
+    fprintf(stderr, "giggle_leaf_data_get_intersection_size\n");
+    fprintf(stderr,
+            "leaf_start_id:%u\t"
+            "pos_start_id:%d\t"
+            "leaf_end_id:%u\t"
+            "pos_end_id:%d\t"
+            "domain:%u\n",
+            leaf_start_id,
+            pos_start_id,
+            leaf_end_id,
+            pos_end_id,
+            domain);
+#endif
+
+    struct bpt_node *leaf_start = cache.get(domain,
+                                            leaf_start_id - 1,
+                                            &bpt_node_cache_handler);
+    struct leaf_data *leaf_start_data = 
+            cache.get(domain,
+                      BPT_POINTERS_BLOCK(leaf_start) - 1,
+                      &leaf_data_cache_handler);
+
+    // Find sizes
+    // get everything in the leading value
+    uint32_t i_size = leaf_start_data->num_leading;
+#if DEBUG
+    fprintf(stderr,
+            "leaf_start_data->num_leading:%u\t"
+            "->num_starts:%u\t"
+            "->num_ends:%u\n",
+            leaf_start_data->num_leading,
+            leaf_start_data->num_starts,
+            leaf_start_data->num_ends);
+#endif
+//
+    uint32_t i;
+
+    i_size += LEAF_DATA_STARTS_END(leaf_start, pos_start_id);
+    i_size -= LEAF_DATA_ENDS_END(leaf_start,  pos_start_id);
+
+#if DEBUG
+    fprintf(stderr,
+            "LEAF_DATA_STARTS_END(leaf_start, pos_start_id):%u\t"
+            "LEAF_DATA_ENDS_END(leaf_start,  pos_start_id):%u\n",
+            LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
+            LEAF_DATA_ENDS_END(leaf_start,  pos_start_id));
+            
+    fprintf(stderr,
+            "i_size:%u\n",
+            i_size);
+#endif
+
+    // now process everything in between the start and end
+    struct bpt_node *leaf_curr = leaf_start;
+    int pos_curr_id = pos_start_id + 1;
+
+    // any intermediate leaves
+    while (BPT_ID(leaf_curr) != leaf_end_id) {
+#if DEBUG
+        fprintf(stderr,
+                "leaf_curr:%u\t"
+                "BPT_NUM_KEYS(leaf_curr):%u\t"
+                "pos_curr_id:%u\t"
+                "LEAF_DATA_STARTS_END(leaf_curr,BPT_NUM_KEYS(leaf_curr)-1):%u\t"
+                "LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id):%u\t%u\n",
+                BPT_ID(leaf_curr),
+                BPT_NUM_KEYS(leaf_curr),
+                pos_curr_id,
+                LEAF_DATA_STARTS_END(leaf_curr,BPT_NUM_KEYS(leaf_curr)-1),
+                LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
+                LEAF_DATA_STARTS_END(leaf_curr,BPT_NUM_KEYS(leaf_curr)-1) -
+                LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id));
+#endif
+
+        // do from pos_curr to the last key
+        i_size += LEAF_DATA_STARTS_END(leaf_curr,
+                                       BPT_NUM_KEYS(leaf_curr) - 1) -
+                  LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+
+#if DEBUG
+        fprintf(stderr,
+                "i_size:%u\n",
+                i_size);
+#endif
+
+        leaf_curr = cache.get(domain,
+                              BPT_NEXT(leaf_curr) - 1,
+                              &bpt_node_cache_handler);
+        pos_curr_id = 0;
+    }
+
+    i_size += LEAF_DATA_STARTS_END(leaf_curr, pos_end_id) - 
+                  LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+
+#if DEBUG
+    fprintf(stderr,
+            "pos_end_id:%d BPT_POINTERS(node)[i]:%u\tBPT_NUM_KEYS(node)%u\n",
+            pos_end_id,
+            BPT_POINTERS(leaf_curr)[pos_end_id],
+            BPT_NUM_KEYS(leaf_curr));
+
+    fprintf(stderr,
+            "LEAF_DATA_STARTS_END(leaf_curr, pos_end_id):%u\t"
+            "LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id):%u\t%u\n",
+            LEAF_DATA_STARTS_END(leaf_curr, pos_end_id),
+            LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
+            LEAF_DATA_STARTS_END(leaf_curr, pos_end_id) - 
+            LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id));
+
+    fprintf(stderr,
+            "i_size:%u\n",
+            i_size);
+#endif
+    return i_size;
+}
+//}}}
+
+//{{{void *giggle_collect_intersection_data_in_pointers(uint32_t
+void *giggle_collect_intersection_data_in_pointers(uint32_t leaf_start_id,
+                                                   int pos_start_id,
+                                                   uint32_t leaf_end_id,
+                                                   int pos_end_id,
+                                                   uint32_t domain,
+                                                   void **_r)
+{
+    void *r = NULL;
+#if DEBUG
+    fprintf(stderr, "giggle_collect_intersection_data_in_pointers\n");
+#endif
+
+    struct bpt_node *leaf_start = cache.get(domain,
+                                            leaf_start_id - 1,
+                                            &bpt_node_cache_handler);
 
     // get everything in the leading value
     if (BPT_LEADING(leaf_start) != 0) {
@@ -426,6 +700,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
+    gi->data_dir = NULL;
     gi->len = init_size;
     gi->num = 0;
     gi->root_ids = (uint32_t *)calloc(sizeof(uint32_t), gi->len);
@@ -442,7 +717,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
     gi->offset_index->num = 0;
     gi->offset_index->size = 1000;
     gi->offset_index->vals = (struct file_id_offset_pair *)
-            malloc(gi->offset_index->size *
+            calloc(gi->offset_index->size,
                    sizeof(struct file_id_offset_pair));
 
     gi->chrm_index_file_name = NULL;
@@ -496,6 +771,8 @@ void giggle_index_destroy(struct giggle_index **gi)
         free((*gi)->offset_index_file_name);
     if ((*gi)->root_ids_file_name != NULL)
         free((*gi)->root_ids_file_name);
+    if ((*gi)->data_dir != NULL)
+        free((*gi)->data_dir);
 
     free((*gi)->root_ids);
     //unordered_list_destroy(&((*gi)->file_index), free_wrapper);
@@ -553,6 +830,10 @@ uint32_t giggle_index_file(struct giggle_index *gi,
             gi->offset_index->vals = (struct file_id_offset_pair *)
                 realloc(gi->offset_index->vals,
                         gi->offset_index->size * 
+                        sizeof(struct file_id_offset_pair));
+            memset(gi->offset_index->vals + gi->offset_index->num,
+                   0,
+                   (gi->offset_index->size - gi->offset_index->num) *
                         sizeof(struct file_id_offset_pair));
         }
         gi->offset_index->vals[intrv_id].offset = offset;
@@ -628,12 +909,10 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                                  uint32_t force,
                                  void (*giggle_set_data_handler)(void))
 {
-    ORDER = 100;
 
     char **cache_names = NULL;
 
     struct giggle_index *gi = giggle_init_index(num_chrms);
-    gi->data_dir = NULL;
 
     if (data_dir != NULL) {
         gi->data_dir = strdup(data_dir);
@@ -707,9 +986,8 @@ uint32_t giggle_store(struct giggle_index *gi)
         return 1;
 
     uint32_t i;
-    for (i = 0; i < 30; ++i) {
-        bpt_write_tree(i, gi->root_ids[i]);
-    }
+
+    giggle_data_handler.write_tree(gi);
 
     FILE *f = fopen(gi->root_ids_file_name, "wb");
 
@@ -752,6 +1030,7 @@ uint32_t giggle_store(struct giggle_index *gi)
                sizeof(uint64_t),1, f) != 1)
         err(EX_IOERR, "Error writing offset_index num to '%s'.",
             gi->offset_index_file_name);
+
     if (fwrite(gi->offset_index->vals, 
                sizeof(struct file_id_offset_pair), 
                gi->offset_index->num, f) != gi->offset_index->num)
@@ -767,7 +1046,7 @@ uint32_t giggle_store(struct giggle_index *gi)
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void))
 {
-    ORDER = 100;
+    //ORDER = 100;
 
     if (data_dir == NULL)
         return NULL;
@@ -926,16 +1205,22 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
                                         uint32_t end,
                                         struct gigle_query_result *_gqr)
 {
+#if DEBUG_GIGGLE_QUERY
+    fprintf(stderr, "giggle_query\t%s\t%u\t%u\n", chrm, start, end);
+#endif
+
     uint32_t off = 0;
     if (strncmp("chr", chrm, 3) == 0)
         off = 3;
 
-
     uint32_t chr_id = giggle_get_chrm_id(gi, chrm + off);
-    struct uint32_t_ll *R  = giggle_search(chr_id,
-                                           gi->root_ids[chr_id],
-                                           start,
-                                           end);
+    
+    // HERE R COULD BE A LIST
+    void *R = giggle_search(chr_id,
+                            gi->root_ids[chr_id],
+                            start,
+                            end);
+
 
     uint32_t i,j;
     struct gigle_query_result *gqr;
@@ -954,32 +1239,7 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
         gqr = _gqr;
     }
 
-    if (R != NULL) {
-        struct uint32_t_ll_node *curr = R->head;
-
-#ifdef DEBUG
-        fprintf(stderr,
-                "giggle_query R->len:%u\n",
-                R->len);
-#endif
-
-        while (curr != NULL) {
-            struct file_id_offset_pair fid_off = 
-                    gi->offset_index->vals[curr->val];
-            long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
-            curr = curr->next;
-        }
-
-        uint32_t_ll_free((void **)&R);
-        R=NULL;
-    } 
-#ifdef DEBUG
-    else {
-        fprintf(stderr,
-                "giggle_query R->len:%u\n",
-                0);
-    }
-#endif
+    giggle_data_handler.map_intersection_to_offset_list(gi, gqr, R);
 
     return gqr;
 }
@@ -1103,5 +1363,568 @@ void giggle_iter_destroy(struct giggle_query_iter **gqi)
         free((*gqi)->sorted_offsets);
     free(*gqi);
     *gqi = NULL;
+}
+//}}}
+
+//{{{ void giggle_write_tree_cache_dump(void *giggle_index)
+void giggle_write_tree_cache_dump(void *giggle_index)
+{
+    struct giggle_index *gi = (struct giggle_index *)giggle_index;
+    uint32_t domain;
+    for (domain = 0; domain < gi->num; ++domain) {
+        bpt_write_tree(domain, gi->root_ids[domain]);
+    }
+}
+//}}}
+
+//{{{ void giggle_write_tree_leaf_data(void *giggle_index)
+void giggle_write_tree_leaf_data(void *giggle_index)
+{
+#if DEBUG
+    fprintf(stderr, "giggle_write_tree_leaf_data\n");
+#endif
+
+    struct giggle_index *gi = (struct giggle_index *)giggle_index;
+    struct simple_cache *sc = (struct simple_cache *)_cache;
+
+    // we will use this node to fill in the new values for all the nodes that
+    // are in cache
+    struct bpt_node *to_write_node = (struct bpt_node *)
+            malloc(sizeof(struct bpt_node));
+    to_write_node->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS,
+                                             sizeof(uint32_t));
+
+    uint32_t domain;
+    for (domain = 0; domain < gi->num; ++domain) {
+        if (sc->dss[domain] != NULL)
+            errx(1, "Modifying and existing bpt is not currently supported.");
+
+        // estimate the number of elements we want to write out, this is not
+        // exactly right, but that is okay 
+        uint32_t num_seen =  cache.seen(domain)/2;
+
+        // Each new node or leaf data in this domain will be appended to this
+        // disk store
+        struct disk_store *ds = disk_store_init(sc->seens[domain],
+                                                NULL,
+                                                sc->index_file_names[domain],
+                                                NULL,
+                                                sc->data_file_names[domain]);
+
+
+        // Use old_id_to_new_id_os to maintain the mapping between the IDs that
+        // are in memory and those that will be written to disk.
+        struct ordered_set *old_id_to_new_id_os =
+            ordered_set_init(num_seen,
+                             uint_pair_sort_by_first_element_cmp,
+                             uint_pair_search_by_first_element_cmp,
+                             uint_pair_search_by_first_key_cmp);
+
+        // Start with the root node for this domain
+        struct bpt_node *curr_node = cache.get(domain,
+                                               gi->root_ids[domain] - 1,
+                                               &bpt_node_cache_handler);
+
+        struct uint_pair *p, *r;
+
+        // put root into a map between the current id and the on-disk id
+        // first will but current id 
+        // second is the on-disk id
+        p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+        p->first = BPT_ID(curr_node);
+        p->second = old_id_to_new_id_os->num + 1;
+        r = ordered_set_add(old_id_to_new_id_os, p);
+
+        uint32_t new_root_id = p->second;
+
+        struct fifo_q *node_q = NULL, *leaf_q = NULL;
+        uint32_t *id = (uint32_t *)malloc(sizeof(uint32_t));
+        *id = BPT_ID(curr_node);
+        fifo_q_push(&node_q, id);
+
+        while (fifo_q_peek(node_q) != NULL) {
+            // pop the next node off the queue and get it from cache
+            uint32_t *curr_idp = fifo_q_pop(&node_q);
+            uint32_t curr_id = *curr_idp;
+            free(curr_idp);
+            // cache is zero-based, while bpt is one-based
+            curr_node = cache.get(domain,
+                                  curr_id - 1,
+                                  &bpt_node_cache_handler);
+            // Basic steps:
+            // - copy the values over to the temp node that we will write out
+            // if the node is not a leaf:
+            //   - map the pointer values using old_id_to_new_id_os
+            //   - put the child nodes into the queue
+            //   - set the pointer head to zero
+            //   - put the node onto disk
+            // if the node is a leaf:
+            //   - get the leaf data
+            //   - add the leaf data to the and the queue cache so we can write
+            //     it out later
+            //   - set the pointer head to the disk id of the leaf data
+            //   -- each 32bit pointer will be split into 2 16bit offsets
+            //      the first will be the start offset and the second the end
+
+            // Zero out the node that we will write to disk
+            memset(to_write_node->data, 0, BPT_NODE_SIZE);
+
+            // Get the on-disk id
+            uint32_t key = curr_id;
+            r = ordered_set_get(old_id_to_new_id_os, &key);
+            if (r == NULL)
+                errx(1, "Node %u has not been seen yet.", curr_id);
+
+            // Populate the node that we will write to disk
+            BPT_ID(to_write_node) =  r->second;
+            BPT_PARENT(to_write_node) = BPT_PARENT(curr_node);
+            BPT_IS_LEAF(to_write_node) = BPT_IS_LEAF(curr_node);
+            BPT_LEADING(to_write_node) = BPT_LEADING(curr_node);
+            BPT_NEXT(to_write_node) = BPT_NEXT(curr_node);
+            BPT_NUM_KEYS(to_write_node) = BPT_NUM_KEYS(curr_node);
+            BPT_POINTERS_BLOCK(to_write_node) = 0;
+            uint32_t i;
+            for (i = 0; i <= BPT_NUM_KEYS(curr_node); ++i)
+                BPT_KEYS(to_write_node)[i] = BPT_KEYS(curr_node)[i];
+
+
+            if (BPT_IS_LEAF(curr_node) == 0) {
+
+               for (i = 0; i <= BPT_NUM_KEYS(curr_node); ++i) {
+                    if (BPT_POINTERS(curr_node)[i] != 0) {
+                        // put a map between the current id and the to disk id
+                        p = (struct uint_pair *)
+                                malloc(sizeof(struct uint_pair));
+                        p->first = BPT_POINTERS(curr_node)[i];
+                        p->second = old_id_to_new_id_os->num + 1;
+                        r = ordered_set_add(old_id_to_new_id_os, p);
+
+                        if (r->second != p->second)
+                            errx(1,
+                                 "%u has already been seen at %u\n",
+                                 p->first,
+                                 r->first);
+
+                        // update the node we are writing to disk with the new 
+                        // id
+                        BPT_POINTERS(to_write_node)[i] =  p->second;
+
+                        // put the child on the queue
+                        id = (uint32_t *)malloc(sizeof(uint32_t));
+                        *id = BPT_POINTERS(curr_node)[i];
+                        fifo_q_push(&node_q, id);
+                    }
+                }
+
+                uint8_t *ds_node;
+                uint64_t d_size = bpt_node_serialize(to_write_node,
+                                                     (void **)&ds_node);
+
+                // Write the mapped node to disk
+                uint32_t ret = disk_store_append(ds,
+                                                 ds_node,
+                                                 d_size);
+
+                // Make sure it gets the ID that we expect
+                if (ret + 1 != BPT_ID(to_write_node))
+                    errx(1,
+                         "Disk write is out of sync.  Saw %u.  Expected %u.",
+                         ret + 1, 
+                         BPT_ID(to_write_node));
+
+                free(ds_node);
+            } else {
+
+                // replace the next id with the on disk id
+                if (BPT_NEXT(curr_node) != 0) {
+                    key = BPT_NEXT(curr_node);
+                    r = ordered_set_get(old_id_to_new_id_os, &key);
+                    if (r == NULL)
+                        errx(1, "Node %u has not been seen yet.", key);
+                    BPT_NEXT(to_write_node) = r->second;
+                }
+
+                // get the leaf data, then add it to the cache so we can
+                // grab it later
+                struct leaf_data *lf = NULL;
+                uint16_t *starts_ends_offsets = NULL;
+                uint32_t leaf_data_size = 
+                        giggle_get_leaf_data(gi,
+                                             domain,
+                                             curr_id,
+                                             &lf,
+                                             &starts_ends_offsets);
+                if (leaf_data_size == 0)
+                    errx(1, "Could not get leaf data.");
+
+                //uint8_t *output = (uint8_t *)malloc(
+                                   //2*leaf_data_size * sizeof(uint32_t));
+
+                //int cs = fastlz_compress(lf->data,
+                                    //leaf_data_size * sizeof(uint32_t),
+                                    //output);
+
+                uint32_t data_id = cache.seen(domain) + 1;
+                cache.add(domain,
+                          data_id - 1,
+                          lf,
+                          &leaf_data_cache_handler);
+
+                p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+                p->first = data_id;
+                p->second = old_id_to_new_id_os->num + 1;
+                r = ordered_set_add(old_id_to_new_id_os, p);
+
+                id = (uint32_t *)malloc(sizeof(uint32_t));
+                *id = data_id;
+                fifo_q_push(&leaf_q, id);
+
+                BPT_POINTERS_BLOCK(to_write_node) = p->second;
+
+                uint32_t i, a, b;
+                for (i = 0; i < BPT_NUM_KEYS(to_write_node); ++i) {
+                    a = (uint32_t)starts_ends_offsets[i*2];
+                    b = (uint32_t)starts_ends_offsets[i*2+1];
+                    BPT_POINTERS(to_write_node)[i] = (a << 16) + b;
+                }
+                free(starts_ends_offsets);
+
+
+                uint8_t *ds_node;
+                uint64_t d_size = bpt_node_serialize(to_write_node,
+                                                     (void **)&ds_node);
+
+                // Write the mapped node to disk
+                uint32_t ret = disk_store_append(ds,
+                                                 ds_node,
+                                                 d_size);
+
+                // Make sure it gets the ID that we expect
+                if (ret + 1 != BPT_ID(to_write_node))
+                    errx(1,
+                         "Disk write is out of sync.  Saw %u.  Expected %u.",
+                         ret + 1, 
+                         BPT_ID(to_write_node));
+
+                free(ds_node);
+            }
+        }
+        while (fifo_q_peek(leaf_q) != NULL) {
+            // pop the next node off the queue and get it from cache
+            uint32_t *curr_idp = fifo_q_pop(&leaf_q);
+            uint32_t curr_id = *curr_idp;
+            free(curr_idp);
+            // cache is zero-based, while bpt is one-based
+            struct leaf_data *lf = cache.get(domain,
+                                             curr_id - 1,
+                                             &leaf_data_cache_handler);
+
+            uint8_t *ds_data;
+            uint64_t d_size = leaf_data_serialize(lf,
+                                                 (void **)&ds_data);
+
+            // Write the mapped node to disk
+            uint32_t ret = disk_store_append(ds,
+                                             ds_data,
+                                             d_size);
+            free(ds_data);
+        }
+
+        sc->dss[domain] = ds;
+        ordered_set_destroy(&old_id_to_new_id_os, free_wrapper);
+        gi->root_ids[domain] = new_root_id;
+    }
+
+    bpt_node_free_mem((void **)&to_write_node);
+}
+//}}}
+
+//{{{ leaf_data_cache_handler
+
+    /*
+     * struct leaf_data {
+     *   uint32_t num_leading, num_starts, num_ends;
+     *   uint32_t *leading, *starts, *ends, *data;
+     * };
+     */
+struct cache_handler leaf_data_cache_handler = {leaf_data_serialize, 
+                                                leaf_data_deserialize,
+                                                leaf_data_free_mem};
+
+
+
+//{{{uint64_t leaf_data_serialize(void *deserialized, void **serialized)
+uint64_t leaf_data_serialize(void *deserialized, void **serialized)
+{
+#if 0
+    struct leaf_data *de = (struct leaf_data *)deserialized;
+
+    uint32_t *data = (uint32_t *)malloc(
+            3*sizeof(uint32_t) +
+            ((de->num_leading + de->num_starts + de->num_ends)
+             * sizeof(uint32_t))*2);
+    
+    data[0] = de->num_leading;
+    data[1] = de->num_starts;
+    data[2] = de->num_ends;
+
+    uint8_t *output = (uint8_t *)(data + 3);
+    int cs = fastlz_compress(de->data,
+                             (de->num_leading + 
+                             de->num_starts + 
+                             de->num_ends) * sizeof(uint32_t),
+                             output);
+    //realloc(data, 3*sizeof(uint32_t) + cs*sizeof(int));
+    *serialized = (void *)data;
+    return 3*sizeof(uint32_t) + cs*sizeof(int);
+
+#endif
+#if 1
+    struct leaf_data *de = (struct leaf_data *)deserialized;
+    uint32_t *data = (uint32_t *)calloc((3 +
+                                        de->num_leading +
+                                        de->num_starts +
+                                        de->num_ends),
+                                        sizeof(uint32_t));
+
+    data[0] = de->num_leading;
+    data[1] = de->num_starts;
+    data[2] = de->num_ends;
+    memcpy(data + 3,
+           de->data,
+           (de->num_leading + 
+            de->num_starts + 
+            de->num_ends)*sizeof(uint32_t));
+
+    *serialized = (void *)data;
+    return ((3 + de->num_leading + de->num_starts + de->num_ends) *
+        sizeof(uint32_t));
+#endif
+}
+//}}}
+
+//{{{ uint64_t leaf_data_deserialize(void *serialized,
+uint64_t leaf_data_deserialize(void *serialized,
+                               uint64_t serialized_size,
+                               void **deserialized)
+{
+    uint32_t *data = (uint32_t *)serialized;
+    
+    struct leaf_data *lf = (struct leaf_data *) 
+            calloc(1, sizeof(struct leaf_data));
+    lf->num_leading = data[0];
+    lf->num_starts = data[1];
+    lf->num_ends = data[2];
+    lf->data = (uint32_t *)calloc(lf->num_leading +
+                                    lf->num_starts +
+                                    lf->num_ends,
+                                  sizeof(uint32_t));
+
+    lf->leading = lf->data;
+    lf->starts = lf->data + lf->num_leading;
+    lf->ends = lf->data + lf->num_leading + lf->num_starts;
+    memcpy(lf->data,
+           data + 3,
+           (lf->num_leading + lf->num_starts + lf->num_ends)*sizeof(uint32_t));
+
+    *deserialized = (void *)lf;
+
+    return sizeof(struct leaf_data);
+}
+//}}}
+
+//{{{void leaf_data_free_mem(void **deserialized)
+void leaf_data_free_mem(void **deserialized)
+{
+    struct leaf_data **de = (struct leaf_data **)deserialized;
+    free((*de)->data);
+    free(*de);
+    *de = NULL;
+}
+//}}}
+//}}}
+
+//{{{ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
+uint32_t giggle_get_leaf_data(struct giggle_index *gi,
+                              uint32_t domain,
+                              uint32_t leaf_id,
+                              struct leaf_data **lf,
+                              uint16_t **starts_ends_offsets)
+{
+    // cache is zero-based, while bpt is one-based
+    struct bpt_node *curr_node = cache.get(domain,
+                                           leaf_id - 1,
+                                           &bpt_node_cache_handler);
+
+    // If the node is a leaf we need to deal with the leading values
+    if (BPT_IS_LEAF(curr_node)) {
+        *lf = (struct leaf_data *) calloc(1, sizeof(struct leaf_data));
+
+
+        // Do one scan to find the sizes
+        if (BPT_LEADING(curr_node) != 0) {
+            struct uint32_t_ll_bpt_leading_data *ld = 
+                    cache.get(domain,
+                              BPT_LEADING(curr_node) - 1,
+                              &uint32_t_ll_leading_cache_handler);
+            (*lf)->num_leading = ld->B->len;
+        }
+
+        uint32_t j, k;
+
+        for (j = 0; j <= BPT_NUM_KEYS(curr_node) - 1; ++j) {
+            struct uint32_t_ll_bpt_non_leading_data *nld = 
+                    cache.get(domain,
+                              BPT_POINTERS(curr_node)[j] - 1,
+                              &uint32_t_ll_non_leading_cache_handler);
+
+            (*lf)->num_starts += (nld->SA == NULL ? 0 : nld->SA->len);
+            (*lf)->num_ends += (nld->SE == NULL ? 0 : nld->SE->len);
+        }
+
+        // Allocate the memory and put in helper pointers
+        (*lf)->data = (uint32_t *)calloc(
+                (*lf)->num_leading + (*lf)->num_starts + (*lf)->num_ends,
+                sizeof(uint32_t));
+
+        if ((*lf)->num_leading > 0)
+            (*lf)->leading = (*lf)->data;
+        else
+            (*lf)->leading = NULL;
+
+        if ((*lf)->num_starts > 0)
+            (*lf)->starts = (*lf)->data + (*lf)->num_leading;
+        else
+            (*lf)->starts = NULL;
+
+        if ((*lf)->num_ends > 0)
+            (*lf)->ends = (*lf)->data + (*lf)->num_leading + (*lf)->num_starts;
+        else
+            (*lf)->ends = NULL;
+
+        //track the end of each array for each pointer
+        *starts_ends_offsets = 
+            (uint16_t *)calloc(BPT_NUM_KEYS(curr_node)*2, sizeof(uint16_t));
+
+        // Do a second scan to get the data into the array
+        uint32_t leading_i = 0, starts_i = 0, ends_i = 0;
+
+        if (BPT_LEADING(curr_node) != 0) {
+            struct uint32_t_ll_bpt_leading_data *ld = 
+                    cache.get(domain,
+                              BPT_LEADING(curr_node) - 1,
+                              &uint32_t_ll_leading_cache_handler);
+            
+            k = leading_i;
+            if (ld->B->len > 0) {
+                struct uint32_t_ll_node *curr = ld->B->head;
+                while (curr != NULL) {
+                    (*lf)->leading[k] = curr->val;
+                    k += 1;
+                    curr = curr->next;
+                }
+                qsort((*lf)->leading + leading_i,
+                      ld->B->len,
+                      sizeof(uint32_t),
+                      uint32_t_cmp);
+            }
+            leading_i = k;
+        }
+
+        for (j = 0; j <= BPT_NUM_KEYS(curr_node) - 1; ++j) {
+            struct uint32_t_ll_bpt_non_leading_data *nld = 
+                    cache.get(domain,
+                              BPT_POINTERS(curr_node)[j] - 1,
+                              &uint32_t_ll_non_leading_cache_handler);
+
+            k = starts_i;
+            if ((nld->SA != NULL) && (nld->SA->len > 0)) {
+                struct uint32_t_ll_node *curr = nld->SA->head;
+                while (curr != NULL) {
+                    (*lf)->starts[k] = curr->val;
+                    k += 1;
+                    curr = curr->next;
+                }
+                qsort((*lf)->starts + starts_i,
+                      nld->SA->len,
+                      sizeof(uint32_t),
+                      uint32_t_cmp);
+
+                (*starts_ends_offsets)[j*2] = 
+                    (( j == 0) ? 0 : (*starts_ends_offsets)[j*2-2]) +
+                    nld->SA->len;
+            } else {
+                (*starts_ends_offsets)[j*2] = 
+                    ( j == 0) ? 0 : (*starts_ends_offsets)[j*2-2];
+            }
+
+            starts_i = k;
+
+            k = ends_i;
+            if ((nld->SE != NULL) && (nld->SE->len > 0)) {
+                struct uint32_t_ll_node *curr = nld->SE->head;
+                while (curr != NULL) {
+                    (*lf)->ends[k] = curr->val;
+                    k += 1;
+                    curr = curr->next;
+                }
+                qsort((*lf)->ends + ends_i,
+                      nld->SE->len,
+                      sizeof(uint32_t),
+                      uint32_t_cmp);
+
+                (*starts_ends_offsets)[j*2+1] = 
+                    (( j == 0) ? 0 : (*starts_ends_offsets)[j*2+1-2]) +
+                    nld->SE->len;
+            }else {
+                (*starts_ends_offsets)[j*2+1] = 
+                    ( j == 0) ? 0 : (*starts_ends_offsets)[j*2+1-2];
+            }
+
+            ends_i = k;
+        }
+        return (*lf)->num_leading + (*lf)->num_starts + (*lf)->num_ends;
+    } else {
+        return 0;
+    }
+}
+//}}}
+
+//{{{void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
+void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
+                                            struct gigle_query_result *gqr,
+                                            void *_R)
+{
+#ifdef DEBUG
+    fprintf(stderr,
+            "leaf_data_map_intersection_to_offset_list\n");
+#endif
+    struct leaf_data_result *R = (struct leaf_data_result *)_R;
+    /*
+    struct leaf_data_result {
+        uint32_t len;
+        uint32_t *data;
+        struct leaf_data_result *next;
+    };
+    */
+
+    if (R != NULL) {
+
+#ifdef DEBUG
+        fprintf(stderr, "R->len:%u\n", R->len);
+#endif
+
+        uint32_t i;
+        for (i = 0; i < R->len; ++i) {
+            struct file_id_offset_pair fid_off = 
+                    gi->offset_index->vals[R->data[i]];
+            long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+        }
+
+        struct leaf_data_result *tmp_R = R->next;
+        free(R->data);
+        free(R);
+        R = tmp_R;
+    } 
 }
 //}}}

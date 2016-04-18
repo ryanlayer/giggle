@@ -11,6 +11,7 @@
 
 #include "wah.h"
 #include "util.h"
+#include "ll.h"
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -321,6 +322,10 @@ uint32_t wah_nand(uint8_t *X, uint8_t *Y, uint8_t **R, uint32_t *R_size)
 //{{{ uint32_t wah_get_ints(uint8_t *X, uint32_t **R)
 uint32_t wah_get_ints(uint8_t *X, uint32_t **R)
 {
+    /*
+    if (X == NULL)
+        return 0;
+    */
     //uint8_t x;
     uint32_t x;
     uint32_t x_i_size, x_size = 0;
@@ -530,6 +535,13 @@ void wah_giggle_set_data_handler()
         wah_non_leading_union_with_SA;
     wah_giggle_data_handler.non_leading_union_with_SA_subtract_SE = 
         wah_non_leading_union_with_SA_subtract_SE;
+    wah_giggle_data_handler.write_tree = NULL;
+
+   wah_giggle_data_handler.giggle_collect_intersection =
+        giggle_collect_intersection_data_in_pointers;
+
+    wah_giggle_data_handler.map_intersection_to_offset_list =
+        uint32_t_ll_map_intersection_to_offset_list;
 
     giggle_data_handler = wah_giggle_data_handler;
 }

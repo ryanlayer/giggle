@@ -8,6 +8,7 @@
 #include "giggle_index.h"
 #include "wah.h"
 
+//{{{void uint32_t_ll_wah_giggle_set_data_handler()
 void uint32_t_ll_wah_giggle_set_data_handler()
 {
     bpt_node_repair = uint32_t_ll_leading_repair;
@@ -33,13 +34,25 @@ void uint32_t_ll_wah_giggle_set_data_handler()
     uint32_t_ll_giggle_data_handler.non_leading_union_with_SA_subtract_SE = 
         uint32_t_ll_non_leading_union_with_SA_subtract_SE;
 
+    uint32_t_ll_giggle_data_handler.write_tree = 
+        giggle_write_tree_cache_dump;
+
+    uint32_t_ll_giggle_data_handler.giggle_collect_intersection =
+        giggle_collect_intersection_data_in_pointers;
+
+    uint32_t_ll_giggle_data_handler.map_intersection_to_offset_list =
+        uint32_t_ll_map_intersection_to_offset_list;
+
     giggle_data_handler = uint32_t_ll_giggle_data_handler;
 }
+//}}}
+
 struct cache_handler uint32_t_ll_wah_leading_cache_handler = {
         uint32_t_ll_leading_serialize_to_wah,
         uint32_t_ll_leading_deserialize,
         uint32_t_ll_leading_free
 };
+
 //{{{uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
 uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
                                               void **serialized)
@@ -105,6 +118,39 @@ struct cache_handler uint32_t_ll_wah_non_leading_cache_handler = {
         uint32_t_ll_non_leading_free
 };
 
+//{{{void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
+void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
+                                                 struct gigle_query_result *gqr,
+                                                 void *_R)
+{
+#ifdef DEBUG
+    fprintf(stderr,
+            "uint32_t_map_intersection_to_offset_list\n");
+#endif
+
+    struct uint32_t_ll *R  = (struct uint32_t_ll *)_R;
+
+    if (R != NULL) {
+        struct uint32_t_ll_node *curr = R->head;
+
+#ifdef DEBUG
+        fprintf(stderr,
+                "giggle_query R->len:%u\n",
+                R->len);
+#endif
+
+        while (curr != NULL) {
+            struct file_id_offset_pair fid_off = 
+                    gi->offset_index->vals[curr->val];
+            long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+            curr = curr->next;
+        }
+
+        uint32_t_ll_free((void **)&R);
+        R=NULL;
+    } 
+}
+//}}}
 
 //{{{uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
 uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
@@ -449,6 +495,15 @@ void uint32_t_ll_giggle_set_data_handler()
         uint32_t_ll_non_leading_union_with_SA;
     uint32_t_ll_giggle_data_handler.non_leading_union_with_SA_subtract_SE = 
         uint32_t_ll_non_leading_union_with_SA_subtract_SE;
+
+    uint32_t_ll_giggle_data_handler.write_tree = 
+        giggle_write_tree_cache_dump;
+
+    uint32_t_ll_giggle_data_handler.giggle_collect_intersection =
+        giggle_collect_intersection_data_in_pointers;
+
+    uint32_t_ll_giggle_data_handler.map_intersection_to_offset_list =
+        uint32_t_ll_map_intersection_to_offset_list;
 
     giggle_data_handler = uint32_t_ll_giggle_data_handler;
 }
@@ -967,6 +1022,3 @@ void long_ll_free(void **_ll)
     }
 }
 //}}}
-
-
-

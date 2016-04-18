@@ -43,7 +43,7 @@ struct cache_def {
 
 struct cache_def cache;
 
-static void *_cache;
+void *_cache;
 
 struct value_cache_handler_pair
 {
