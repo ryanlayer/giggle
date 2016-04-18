@@ -72,15 +72,17 @@ void test_b_search(void)
 //{{{void test_bpt_node_macros(void)
 void test_bpt_node_macros(void)
 {
+    ORDER = 4;
     struct bpt_node *node = (struct bpt_node *)malloc(sizeof(struct bpt_node));
 
-    uint32_t data[17] = {1,  // id
+    uint32_t data[18] = {1,  // id
                          0,  // parent
                          0,  // is_leaf
                          0,  // leading
                          0,  // next
                          2,  // num_keys
                          2, 3, 0, 0, 0,  // keys (ORDER = 4)
+                         0, // pointer head
                          5, 6, 7, 0, 0, 0}; //pointers (ORDER = 4)
     node->data = data;
 
@@ -91,7 +93,7 @@ void test_bpt_node_macros(void)
     TEST_ASSERT_EQUAL(node->data[4], BPT_NEXT(node));
     TEST_ASSERT_EQUAL(node->data[5], BPT_NUM_KEYS(node));
     TEST_ASSERT_EQUAL(node->data + 6, BPT_KEYS(node));
-    TEST_ASSERT_EQUAL(node->data + 6 + ORDER + 1, BPT_POINTERS(node));
+    TEST_ASSERT_EQUAL(node->data + 6 + ORDER + 1 + 1, BPT_POINTERS(node));
 
     TEST_ASSERT_EQUAL(2, BPT_KEYS(node)[0]);
     TEST_ASSERT_EQUAL(3, BPT_KEYS(node)[1]);
@@ -114,13 +116,14 @@ void test_bpt_node_macros(void)
 
     ORDER=5;
 
-    uint32_t data2[19] = {1,
+    uint32_t data2[20] = {1,
                           0,  // parent
                           0,  // is_leaf
                           0,  // leading
                           0,  // next
                           2,  // num_keys
                           2, 3, 0, 0, 0, 0,  // keys (ORDER = 4)
+                          0, 
                           5, 6, 7, 0, 0, 0, 0}; //pointers (ORDER = 4)
 
     node->data = data2;
@@ -132,7 +135,7 @@ void test_bpt_node_macros(void)
     TEST_ASSERT_EQUAL(node->data[4], BPT_NEXT(node));
     TEST_ASSERT_EQUAL(node->data[5], BPT_NUM_KEYS(node));
     TEST_ASSERT_EQUAL(node->data + 6, BPT_KEYS(node));
-    TEST_ASSERT_EQUAL(node->data + 6 + ORDER + 1, BPT_POINTERS(node));
+    TEST_ASSERT_EQUAL(node->data + 6 + ORDER + 2, BPT_POINTERS(node));
 
     TEST_ASSERT_EQUAL(2, BPT_KEYS(node)[0]);
     TEST_ASSERT_EQUAL(3, BPT_KEYS(node)[1]);

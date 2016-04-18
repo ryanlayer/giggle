@@ -12,7 +12,7 @@
 #include "util.h"
 #include "lists.h"
 
-static void *_cache = NULL;
+void *_cache = NULL;
 struct cache_def cache;
 
 
@@ -271,7 +271,7 @@ void simple_cache_destroy()
     free(sc->seens);
     if ( sc->dss != NULL) {
         for (i = 0; i < sc->num_domains; ++i)
-            if ( sc->dss[i] != NULL)
+            if ( sc->dss[i] != NULL) 
                 disk_store_destroy(&(sc->dss[i]));
         free(sc->dss);
     }

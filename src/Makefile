@@ -4,10 +4,10 @@ HTS_ROOT=../../htslib
 LIBMHD_INCLUDES=$(HOME)/usr/local/include
 LIBMHD_LIBS=$(HOME)/usr/local/lib
 CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+CFLAGS+=-DBLOCK_STORE
 INCLUDES=-I$(HTS_ROOT)
 LIBS=-ldl -lz -lm -pthread 
-#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
-#CFLAGS=-Wall -O0 -g -fno-inline -fkeep-inline-functions -D_FILE_OFFSET_BITS=64 -fPIC -DDEBUG -D_DEBUG
 CC=gcc
 
 
@@ -24,7 +24,8 @@ LIB=bpt.o \
     wah.o \
     kfunc.o \
     index.o \
-    search.o
+    search.o \
+    fastlz.o
 
 
 .SUFFIXES:

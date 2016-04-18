@@ -8,6 +8,8 @@ STOP_ON_FAIL=0
 
 BEDTOOLS=`which bedtools`
 
+echo $BEDTOOLS
+
 
 # Make the index
 ../../bin/giggle index \

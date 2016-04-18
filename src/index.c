@@ -7,6 +7,7 @@
 #include "giggle_index.h"
 #include "wah.h"
 #include "cache.h"
+#include "ll.h"
 
 int index_help(int exit_code);
 int index_main(int argc, char **argv, char *full_cmd);
@@ -98,6 +99,10 @@ int index_main(int argc, char **argv, char *full_cmd)
     uint32_t r = giggle_index_directory(gi, input_dir_name, 0);
     
     fprintf(stderr, "Indexed %u intervals.\n", r);
+
+#if BLOCK_STORE
+    giggle_data_handler.write_tree = giggle_write_tree_leaf_data;
+#endif
 
     r = giggle_store(gi);
 

@@ -17,7 +17,9 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 timer.c \
 		 file_read.c \
 		 bpt.c \
-		 wah.c 
+		 wah.c \
+		 fastlz.c
+
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))
 
