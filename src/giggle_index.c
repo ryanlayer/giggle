@@ -1198,12 +1198,12 @@ struct giggle_index *giggle_load(char *data_dir,
 }
 //}}}
 
-//{{{struct gigle_query_result *giggle_query(struct giggle_index *gi,
-struct gigle_query_result *giggle_query(struct giggle_index *gi,
+//{{{struct giggle_query_result *giggle_query(struct giggle_index *gi,
+struct giggle_query_result *giggle_query(struct giggle_index *gi,
                                         char *chrm,
                                         uint32_t start,
                                         uint32_t end,
-                                        struct gigle_query_result *_gqr)
+                                        struct giggle_query_result *_gqr)
 {
 #if DEBUG_GIGGLE_QUERY
     fprintf(stderr, "giggle_query\t%s\t%u\t%u\n", chrm, start, end);
@@ -1223,10 +1223,10 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
 
 
     uint32_t i,j;
-    struct gigle_query_result *gqr;
+    struct giggle_query_result *gqr;
     if (_gqr == NULL) {
-        gqr = (struct gigle_query_result *) 
-                malloc(sizeof(struct gigle_query_result));
+        gqr = (struct giggle_query_result *) 
+                malloc(sizeof(struct giggle_query_result));
 
         gqr->gi = gi;
         gqr->num_files = gi->file_index->num;
@@ -1245,8 +1245,8 @@ struct gigle_query_result *giggle_query(struct giggle_index *gi,
 }
 //}}}
 
-//{{{void gigle_query_result_destroy(struct gigle_query_result **gqr)
-void gigle_query_result_destroy(struct gigle_query_result **gqr)
+//{{{void giggle_query_result_destroy(struct giggle_query_result **gqr)
+void giggle_query_result_destroy(struct giggle_query_result **gqr)
 {
     uint32_t i;
     for (i = 0; i < (*gqr)->gi->file_index->num; ++i) {
@@ -1258,8 +1258,8 @@ void gigle_query_result_destroy(struct gigle_query_result **gqr)
 }
 //}}}
 
-//{{{uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
-uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
+//{{{uint32_t giggle_get_query_len(struct giggle_query_result *gqr,
+uint32_t giggle_get_query_len(struct giggle_query_result *gqr,
                               uint32_t file_id)
 {
     if (gqr->offsets[file_id] == NULL)
@@ -1269,8 +1269,8 @@ uint32_t giggle_get_query_len(struct gigle_query_result *gqr,
 }
 //}}}
                       
-//{{{struct giggle_query_iter *giggle_get_query_itr(struct gigle_query_result
-struct giggle_query_iter *giggle_get_query_itr(struct gigle_query_result *gqr,
+//{{{struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result
+struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
                                                uint32_t file_id)
 {
 #ifdef DEBUG
@@ -1892,7 +1892,7 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
 
 //{{{void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
 void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
-                                            struct gigle_query_result *gqr,
+                                            struct giggle_query_result *gqr,
                                             void *_R)
 {
 #ifdef DEBUG

@@ -80,7 +80,7 @@ int answer_to_connection(void *cls,
         struct giggle_index *gi = ((struct args*)cls)->gi;
         char **track_names = ((struct args*)cls)->track_names;
 
-        struct gigle_query_result *gqr = giggle_query(gi,
+        struct giggle_query_result *gqr = giggle_query(gi,
                                                       r.chrm,
                                                       r.start,
                                                       r.end,
@@ -118,7 +118,7 @@ int answer_to_connection(void *cls,
 
         ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
         MHD_destroy_response (response);
-        gigle_query_result_destroy(&gqr);
+        giggle_query_result_destroy(&gqr);
         free(r.chrm);
         r.chrm = NULL;
     }

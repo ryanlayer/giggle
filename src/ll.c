@@ -120,7 +120,7 @@ struct cache_handler uint32_t_ll_wah_non_leading_cache_handler = {
 
 //{{{void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
 void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
-                                                 struct gigle_query_result *gqr,
+                                                 struct giggle_query_result *gqr,
                                                  void *_R)
 {
 #ifdef DEBUG
