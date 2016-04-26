@@ -45,7 +45,7 @@ endif
 	    $(SRC_FILES) \
 	    $@.c $@_Runner.c \
 	    $(HTS_ROOT)/libhts.a \
-	    -lz -lm
+	    -lz -lm -lcurl -lcrypto -lssl
 	rm $@_Runner.c
 
 test:

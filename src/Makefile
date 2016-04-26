@@ -7,7 +7,7 @@ CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 CFLAGS+=-DBLOCK_STORE
 INCLUDES=-I$(HTS_ROOT)
-LIBS=-ldl -lz -lm -pthread 
+LIBS=-ldl -lz -lm -pthread -lcurl -lcrypto -lssl
 CC=gcc
 
 
@@ -49,7 +49,7 @@ LIST=$(addprefix $(BIN)/, $(PROG))
 all: check-env $(LIST)
 
 server: INCLUDES+=-I$(LIBMHD_INCLUDES) -L$(LIBMHD_LIBS)
-server: LIBS+=-lmicrohttpd
+server: LIBS+=-lmicrohttpd 
 server: $(BIN)/server_overlap
 
 $(OBJ)/%.o: %.c 
