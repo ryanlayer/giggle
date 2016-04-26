@@ -238,7 +238,7 @@ int search_main(int argc, char **argv, char *full_cmd)
             leaf_data_map_intersection_to_offset_list;
 #endif
 
-    struct gigle_query_result *gqr = NULL;
+    struct giggle_query_result *gqr = NULL;
 
     uint32_t num_intervals = 0;
     double mean_interval_size = 0.0;
@@ -353,7 +353,7 @@ int search_main(int argc, char **argv, char *full_cmd)
             }
         }
     }
-    gigle_query_result_destroy(&gqr);
+    giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
     free(full_cmd);

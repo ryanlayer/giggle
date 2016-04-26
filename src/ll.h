@@ -110,7 +110,7 @@ uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
                                                   void **serialized);
 
 void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
-                                                 struct gigle_query_result *gqr,
+                                                 struct giggle_query_result *gqr,
                                                  void *_R);
 
 #endif

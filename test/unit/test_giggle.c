@@ -1800,7 +1800,7 @@ void test_giggle_index_search_store_search_block(void)
     ends = (uint32_t *)malloc(num_tests * sizeof(uint32_t));
     hits = (uint32_t *)malloc(num_tests * sizeof(uint32_t));
 
-    struct gigle_query_result *gqr;
+    struct giggle_query_result *gqr;
     uint32_t count, i;
     for(i = 0; i < num_tests; i++) {
         chrs[i] = (rand() % 20) + 1;
@@ -1824,7 +1824,7 @@ void test_giggle_index_search_store_search_block(void)
         for(j = 0; j < gqr->num_files; j++) 
             count += giggle_get_query_len(gqr, j);
         hits[i] = count;
-        gigle_query_result_destroy(&gqr);
+        giggle_query_result_destroy(&gqr);
     }
    
     TEST_ASSERT_EQUAL(0, giggle_store(gi));
@@ -1856,7 +1856,7 @@ void test_giggle_index_search_store_search_block(void)
         for(j = 0; j < gqr->num_files; j++) 
             count += giggle_get_query_len(gqr, j);
         TEST_ASSERT_EQUAL(hits[i], count);
-        gigle_query_result_destroy(&gqr);
+        giggle_query_result_destroy(&gqr);
         free(c);
     }
 
@@ -1886,7 +1886,7 @@ void test_giggle_query_bug_0(void)
 
     valid_giggle_index(gi);
 
-    struct gigle_query_result *gqr;
+    struct giggle_query_result *gqr;
 
     gqr = giggle_query(gi,
                        "18",
@@ -1900,7 +1900,7 @@ void test_giggle_query_bug_0(void)
         o_count += giggle_get_query_len(gqr, j);
 
 
-    gigle_query_result_destroy(&gqr);
+    giggle_query_result_destroy(&gqr);
 
     TEST_ASSERT_EQUAL(0, giggle_store(gi));
     giggle_index_destroy(&gi);
@@ -1927,7 +1927,7 @@ void test_giggle_query_bug_0(void)
 
     TEST_ASSERT_EQUAL(o_count, u_count);
 
-    gigle_query_result_destroy(&gqr);
+    giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
 }
@@ -1949,7 +1949,7 @@ void test_giggle_query_bug_1(void)
 
     valid_giggle_index(gi);
 
-    struct gigle_query_result *gqr;
+    struct giggle_query_result *gqr;
 
     gqr = giggle_query(gi,
                        "1",
@@ -1963,7 +1963,7 @@ void test_giggle_query_bug_1(void)
         o_count += giggle_get_query_len(gqr, j);
 
 
-    gigle_query_result_destroy(&gqr);
+    giggle_query_result_destroy(&gqr);
 
     TEST_ASSERT_EQUAL(0, giggle_store(gi));
     giggle_index_destroy(&gi);
@@ -1990,7 +1990,7 @@ void test_giggle_query_bug_1(void)
 
     TEST_ASSERT_EQUAL(o_count, u_count);
 
-    gigle_query_result_destroy(&gqr);
+    giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
 }
