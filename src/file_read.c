@@ -251,7 +251,8 @@ int input_file_get_next_line_bgzf(struct input_file *i,
 //{{{void input_file_seek_bgzf(struct input_file *i, long offset)
 void input_file_seek_bgzf(struct input_file *i, long offset)
 {
-    bgzf_seek(i->bed_fp, offset, SEEK_SET);
+    if (bgzf_seek(i->bed_fp, offset, SEEK_SET) != 0)
+        err(EX_DATAERR, "Error seeking in bgzf file.");
     i->last_offset = offset;
 }
 //}}}
