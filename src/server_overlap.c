@@ -159,6 +159,14 @@ int main(int argc, char **argv)
     arg->gi = giggle_load(index_dir_name,
                           uint32_t_ll_giggle_set_data_handler);
 
+#if BLOCK_STORE
+    giggle_data_handler.giggle_collect_intersection =
+            giggle_collect_intersection_data_in_block;
+
+    giggle_data_handler.map_intersection_to_offset_list =
+            leaf_data_map_intersection_to_offset_list;
+#endif
+
     arg->track_names = (char **)calloc(arg->gi->file_index->num, sizeof(char*));
     arg->header = header;
     size_t linecap = 0;

@@ -15,7 +15,7 @@
     make
 
 ## Web server (optional)
-    This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
+This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
     wget http://ftpmirror.gnu.org/libmicrohttpd/libmicrohttpd-0.9.46.tar.gz
     tar zxvf libmicrohttpd-0.9.46.tar.gz
@@ -30,6 +30,10 @@
     ./configure --prefix=$HOME/usr/local/
     make
     make install
+
+    cd giggle
+    make
+    make server
 
 # [Dev Docs](http://ryanlayer.github.io/giggle/)
 
@@ -127,4 +131,12 @@
     user    0m2.280s
     sys 0m0.822s
 
+## Epigenomics Roadmap Server
 
+    ~/src/giggle/bin/server_overlap \
+        1 \
+        split_i \
+        ~/src/giggle/examples/rme/web/track_names.txt \
+        ~/src/giggle/examples/rme/web/header.txt
+
+Then open `~src/giggle/scripts/get_overlaps.html`
