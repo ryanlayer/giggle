@@ -164,7 +164,6 @@ int input_file_get_next_interval_bed(struct input_file *i,
                     errx(1, "Realloc error.\n");
             }
 
-
             if( strncmp("chr", i->kstr->s + s, 3) == 0) {
                 memcpy(*chrm, i->kstr->s + s + 3, e - s - 3);
                 (*chrm)[e - s - 3] = '\0';
@@ -245,6 +244,20 @@ int input_file_get_next_line_bgzf(struct input_file *i,
     i->last_offset = bgzf_tell(i->bed_fp);
     *str = i->kstr->s;
     return ret;
+}
+//}}}
+
+//{{{void input_file_get_curr_line_bgzf(struct input_file *i,
+void input_file_get_curr_line_bgzf(struct input_file *i,
+                                  char **str)
+{
+    //fprintf(stdout, "****%zu\n", i->kstr->l);
+
+    if (i->type == VCF) {
+        i->kstr->l = 0;
+        vcf_format1(i->hdr, i->line, i->kstr);
+    }
+    *str = i->kstr->s;
 }
 //}}}
 

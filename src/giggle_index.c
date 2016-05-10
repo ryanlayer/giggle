@@ -1230,6 +1230,7 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
 
         gqr->gi = gi;
         gqr->num_files = gi->file_index->num;
+        gqr->num_hits = 0;
         gqr->offsets = (struct long_ll **)
             calloc(gi->file_index->num, sizeof(struct long_ll *));
 
@@ -1248,6 +1249,8 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
 //{{{void giggle_query_result_destroy(struct giggle_query_result **gqr)
 void giggle_query_result_destroy(struct giggle_query_result **gqr)
 {
+    if (*gqr == NULL)
+        return;
     uint32_t i;
     for (i = 0; i < (*gqr)->gi->file_index->num; ++i) {
         long_ll_free((void **)&((*gqr)->offsets[i]));
@@ -1909,6 +1912,7 @@ void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
     */
 
     if (R != NULL) {
+        gqr->num_hits += R->len;
 
 #ifdef DEBUG
         fprintf(stderr, "R->len:%u\n", R->len);

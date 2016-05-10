@@ -25,6 +25,20 @@ int test_pattern_match(struct giggle_index *gi,
                        uint32_t file_id,
                        uint32_t f_is_set);
 
+int print_giggle_query_result(struct giggle_query_result *gqr,
+                              struct giggle_index *gi,
+                              regex_t *regexs,
+                              char **file_patterns,
+                              uint32_t num_file_patterns,
+                              uint32_t num_intervals,
+                              double mean_interval_size,
+                              long long genome_size,
+                              uint32_t f_is_set,
+                              uint32_t v_is_set,
+                              uint32_t c_is_set,
+                              uint32_t s_is_set,
+                              uint32_t o_is_set);
+
 //{{{ int search_help(int exit_code)
 int search_help(int exit_code)
 {
@@ -35,6 +49,7 @@ int search_help(int exit_code)
 "             -i giggle index directory\n"
 "             -r <regions (CSV)>\n"
 "             -q <query file>\n"
+"             -o give reuslts per record in the query file (omits empty results)\n"
 "             -c give counts by indexed file\n"
 "             -s give significance by indexed file (requires query file)\n"
 "             -v give full record results\n"
@@ -79,6 +94,91 @@ int test_pattern_match(struct giggle_index *gi,
 }
 //}}}
 
+
+int print_giggle_query_result(struct giggle_query_result *gqr,
+                              struct giggle_index *gi,
+                              regex_t *regexs,
+                              char **file_patterns,
+                              uint32_t num_file_patterns,
+                              uint32_t num_intervals,
+                              double mean_interval_size,
+                              long long genome_size,
+                              uint32_t f_is_set,
+                              uint32_t v_is_set,
+                              uint32_t c_is_set,
+                              uint32_t s_is_set,
+                              uint32_t o_is_set)
+{
+    if (gqr == NULL)
+        return EX_OK;
+
+    uint32_t i,j;
+
+    for(i = 0; i < gqr->num_files; i++) {
+        struct file_data *fd = 
+            (struct file_data *)unordered_list_get(gi->file_index, i); 
+        if (test_pattern_match(gi,
+                               regexs,
+                               file_patterns,
+                               num_file_patterns,
+                               i,
+                               f_is_set)) {
+            if ( (v_is_set == 1) && (giggle_get_query_len(gqr, i) > 0 )){
+                printf("#%s\n", fd->file_name);
+                char *result;
+                struct giggle_query_iter *gqi =
+                    giggle_get_query_itr(gqr, i);
+                while (giggle_query_next(gqi, &result) == 0)
+                    printf("%s\n", result);
+                giggle_iter_destroy(&gqi);
+            } else if (c_is_set == 1) {
+                printf("#%s\t"
+                       "size:%u\t"
+                       "overlaps:%u\n",
+                       fd->file_name,
+                       fd->num_intervals,
+                       giggle_get_query_len(gqr, i));
+            } else if (s_is_set == 1) {
+                uint32_t file_counts = giggle_get_query_len(gqr, i);
+                long long n11 = (long long)(file_counts);
+                long long n12 = (long long)(MAX(0,num_intervals-file_counts));
+                long long n21 = (long long)
+                        (MAX(0,fd->num_intervals-file_counts));
+                double comp_mean = 
+                        ((fd->mean_interval_size+mean_interval_size));
+                long long n22_full = (long long)
+                        MAX(n11 + n12 + n21, genome_size/comp_mean);
+                long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
+                double left, right, two;
+                double r = kt_fisher_exact(n11,
+                                           n12,
+                                           n21,
+                                           n22,
+                                           &left,
+                                           &right,
+                                           &two);
+
+                double ratio = 
+                        (((double)n11/(double)n12) / ((double)n21/(double)n22));
+
+                printf("#%s\t"
+                       "size:%u\t"
+                       "overlaps:%u\t"
+                       "ratio:%f\t"
+                       "sig:%f"
+                       "\n",
+                       fd->file_name,
+                       fd->num_intervals,
+                       file_counts,
+                       ratio,
+                       right);
+            }
+        }
+    }
+
+    return EX_OK;
+}
+
 int search_main(int argc, char **argv, char *full_cmd)
 {
     if (argc < 2) return search_help(EX_OK);
@@ -99,13 +199,14 @@ int search_main(int argc, char **argv, char *full_cmd)
         c_is_set = 0,
         s_is_set = 0,
         v_is_set = 0,
-        f_is_set = 0;
+        f_is_set = 0,
+        o_is_set = 0;
 
     double genome_size =  3095677412.0;
 
     //{{{ cmd line param parsing
     //{{{ while((c = getopt (argc, argv, "i:r:q:cvf:h")) != -1) {
-    while((c = getopt (argc, argv, "i:r:q:csvf:g:h")) != -1) {
+    while((c = getopt (argc, argv, "i:r:q:csvof:g:h")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -127,6 +228,9 @@ int search_main(int argc, char **argv, char *full_cmd)
                 break;
             case 'v':
                 v_is_set = 1;
+                break;
+            case 'o':
+                o_is_set = 1;
                 break;
             case 'f':
                 f_is_set = 1;
@@ -280,6 +384,28 @@ int search_main(int argc, char **argv, char *full_cmd)
                                                   &end,
                                                   &offset) >= 0 ) {
             gqr = giggle_query(gi, chrm, start, end, gqr);
+            if ( (o_is_set == 1) && (gqr->num_hits > 0) ) {
+                char *str;
+                input_file_get_curr_line_bgzf(q_f, &str);
+                printf("##%s",str);
+                // Ugh
+                if (q_f->type == BED)
+                    printf("\n");
+                int r = print_giggle_query_result(gqr,
+                                                  gi,
+                                                  regexs,
+                                                  file_patterns,
+                                                  num_file_patterns,
+                                                  num_intervals,
+                                                  mean_interval_size,
+                                                  genome_size,
+                                                  f_is_set,
+                                                  v_is_set,
+                                                  c_is_set,
+                                                  s_is_set,
+                                                  o_is_set);
+                giggle_query_result_destroy(&gqr);
+            }
             num_intervals += 1;
             mean_interval_size += end - start;
         }
@@ -287,6 +413,22 @@ int search_main(int argc, char **argv, char *full_cmd)
         mean_interval_size = mean_interval_size/num_intervals;
     }
 
+
+    int r = print_giggle_query_result(gqr,
+                                      gi,
+                                      regexs,
+                                      file_patterns,
+                                      num_file_patterns,
+                                      num_intervals,
+                                      mean_interval_size,
+                                      genome_size,
+                                      f_is_set,
+                                      v_is_set,
+                                      c_is_set,
+                                      s_is_set,
+                                      o_is_set);
+
+#if 0
     if (gqr == NULL)
         return EX_OK;
 
@@ -353,9 +495,10 @@ int search_main(int argc, char **argv, char *full_cmd)
             }
         }
     }
+#endif
     giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
     free(full_cmd);
-    return EX_OK;
+    return r;
 }
