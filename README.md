@@ -38,6 +38,40 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 # [Dev Docs](http://ryanlayer.github.io/giggle/)
 
 # Example analysis
+## GTEx (in examples/gtex)
+
+    mkdir data
+    cd data
+
+    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6/annotations/GTEx_Data_V6_Annotations_SampleAttributesDS.txt
+
+    tail -n+2 GTEx_Data_V6_Annotations_SampleAttributesDS.txt \
+    | cut -f 1,6 \
+    | sed -e "s/ /_/" \
+    > SAMPID_to_SMTS.txt
+
+    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6/reference/gencode.v19.genes.patched_contigs.gtf.gz
+    
+    gunzip -c gencode.v19.genes.patched_contigs.gtf.gz \
+    | awk '$3=="transcript"' \
+    | cut -f1,4,5,9 \
+    | sed -e "s/gene_id \"//" \
+    | sed -e "s/\".*gene_name \"/\t/" \
+    | sed -e "s/\".*$//" \
+    > genes.bed
+
+    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6/rna_seq_data/GTEx_Analysis_v6_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz
+
+    gunzip -c GTEx_Analysis_v6_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz \
+    | python one_per_tissue.py
+
+    mv *.bed gtex/.
+    cd gtex
+    ls | xargs -P 20 -I {} sh -c "bgzip {}"
+    cd ..
+    ~/src/giggle/bin/giggle index -i "gtex/*gz" -o gtex_b -f
+
+
 ## Epigenomics Roadmap (in examples/rme)
 
     mkdir data
@@ -50,7 +84,8 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     cd split
     ls *.bed | xargs -I {} -P 10 sh -c "bgzip {}"
     ls *.bed.gz | xargs -I {} -P 10 sh -c "tabix {}"
-    
+
+## Timings
 
 ###bedtools
 ####unsorted
