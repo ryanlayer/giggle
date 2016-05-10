@@ -251,6 +251,12 @@ int input_file_get_next_line_bgzf(struct input_file *i,
 void input_file_get_curr_line_bgzf(struct input_file *i,
                                   char **str)
 {
+    //fprintf(stdout, "****%zu\n", i->kstr->l);
+
+    if (i->type == VCF) {
+        i->kstr->l = 0;
+        vcf_format1(i->hdr, i->line, i->kstr);
+    }
     *str = i->kstr->s;
 }
 //}}}

@@ -73,6 +73,7 @@ struct giggle_query_result
     struct giggle_index *gi;
     uint32_t num_files;
     struct long_ll **offsets;
+    uint32_t num_hits;
 };
 
 struct giggle_query_result *giggle_query(struct giggle_index *gi,

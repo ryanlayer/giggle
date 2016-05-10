@@ -36,7 +36,8 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                               uint32_t f_is_set,
                               uint32_t v_is_set,
                               uint32_t c_is_set,
-                              uint32_t s_is_set);
+                              uint32_t s_is_set,
+                              uint32_t o_is_set);
 
 //{{{ int search_help(int exit_code)
 int search_help(int exit_code)
@@ -48,6 +49,7 @@ int search_help(int exit_code)
 "             -i giggle index directory\n"
 "             -r <regions (CSV)>\n"
 "             -q <query file>\n"
+"             -o give reuslts per record in the query file (omits empty results)\n"
 "             -c give counts by indexed file\n"
 "             -s give significance by indexed file (requires query file)\n"
 "             -v give full record results\n"
@@ -104,7 +106,8 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                               uint32_t f_is_set,
                               uint32_t v_is_set,
                               uint32_t c_is_set,
-                              uint32_t s_is_set)
+                              uint32_t s_is_set,
+                              uint32_t o_is_set)
 {
     if (gqr == NULL)
         return EX_OK;
@@ -120,7 +123,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                                num_file_patterns,
                                i,
                                f_is_set)) {
-            if (v_is_set == 1) {
+            if ( (v_is_set == 1) && (giggle_get_query_len(gqr, i) > 0 )){
                 printf("#%s\n", fd->file_name);
                 char *result;
                 struct giggle_query_iter *gqi =
@@ -381,10 +384,13 @@ int search_main(int argc, char **argv, char *full_cmd)
                                                   &end,
                                                   &offset) >= 0 ) {
             gqr = giggle_query(gi, chrm, start, end, gqr);
-            if (o_is_set == 1) {
+            if ( (o_is_set == 1) && (gqr->num_hits > 0) ) {
                 char *str;
                 input_file_get_curr_line_bgzf(q_f, &str);
-                printf("##%s\n",str);
+                printf("##%s",str);
+                // Ugh
+                if (q_f->type == BED)
+                    printf("\n");
                 int r = print_giggle_query_result(gqr,
                                                   gi,
                                                   regexs,
@@ -396,7 +402,8 @@ int search_main(int argc, char **argv, char *full_cmd)
                                                   f_is_set,
                                                   v_is_set,
                                                   c_is_set,
-                                                  s_is_set);
+                                                  s_is_set,
+                                                  o_is_set);
                 giggle_query_result_destroy(&gqr);
             }
             num_intervals += 1;
@@ -418,7 +425,8 @@ int search_main(int argc, char **argv, char *full_cmd)
                                       f_is_set,
                                       v_is_set,
                                       c_is_set,
-                                      s_is_set);
+                                      s_is_set,
+                                      o_is_set);
 
 #if 0
     if (gqr == NULL)
