@@ -55,4 +55,7 @@ int input_file_get_next_interval_vcf(struct input_file *i,
                                      long *offset);
 int input_file_get_next_line_bgzf(struct input_file *i,
                                   char **str);
+
+void input_file_get_curr_line_bgzf(struct input_file *i,
+                                   char **str);
 #endif

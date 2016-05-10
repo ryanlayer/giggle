@@ -1248,6 +1248,8 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
 //{{{void giggle_query_result_destroy(struct giggle_query_result **gqr)
 void giggle_query_result_destroy(struct giggle_query_result **gqr)
 {
+    if (*gqr == NULL)
+        return;
     uint32_t i;
     for (i = 0; i < (*gqr)->gi->file_index->num; ++i) {
         long_ll_free((void **)&((*gqr)->offsets[i]));
