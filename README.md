@@ -71,6 +71,10 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     cd ..
     ~/src/giggle/bin/giggle index -i "gtex/*gz" -o gtex_b -f
 
+    giggle search -i gtex_b/ \
+        -q affected.snps.vcf.gz -o -v \
+    | python gtex_to_bp.py 10
+    | python bp.py -o affected_box_plot.png
 
 ## Epigenomics Roadmap (in examples/rme)
 
