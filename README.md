@@ -1,6 +1,8 @@
 [![Build Status](https://travis-ci.org/ryanlayer/giggle.svg?branch=master)](https://travis-ci.org/ryanlayer/giggle)
 
-# GIGGLE
+# GIGGLE: Genomic Inquiry
+
+A multi-file genomic index for fast genomic inquiries.
 
 # Build
     
