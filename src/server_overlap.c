@@ -288,6 +288,11 @@ int answer_to_connection(void *cls,
                 }
             }
 
+	    if (page == NULL) {
+	        page = (char *)malloc(sizeof (char));
+                page[0] = '\0';
+	    }
+
             response = MHD_create_response_from_buffer(strlen (page),
                                                        (void*) page,
                                                        MHD_RESPMEM_MUST_FREE);
