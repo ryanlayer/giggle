@@ -7,7 +7,8 @@ CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 #CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
 CFLAGS+=-DBLOCK_STORE
 INCLUDES=-I$(HTS_ROOT)
-LIBS=-ldl -lz -lm -pthread -lcurl -lcrypto -lssl
+LIBS=-ldl -lz -lm -pthread
+#LIBS+=-lcurl -lcrypto -lssl
 CC=gcc
 
 
