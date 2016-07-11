@@ -7,6 +7,11 @@
 #include <sys/stat.h>
 #include <ftw.h>
 #include <stdint.h>
+#include <regex.h>
+#include <stdint.h>
+
+#include "giggle_index.h"
+#include "file_read.h"
 
 struct doubles_uint32_t_tuple
 {
@@ -26,4 +31,12 @@ int uint32_t_cmp(const void *_a, const void *_b);
 uint32_t bin_char_to_int(char *bin);
 int long_cmp(const void *_a, const void *_b);
 int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end);
+int test_pattern_match(struct giggle_index *gi,
+                       regex_t *regexs,
+                       char **file_patterns,
+                       uint32_t num_file_patterns,
+                       uint32_t file_id,
+                       uint32_t f_is_set);
+
+
 #endif

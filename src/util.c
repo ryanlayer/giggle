@@ -130,3 +130,37 @@ int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end)
     return 1;
 }
 //}}}
+
+//{{{int test_pattern_match(struct giggle_index *gi,
+int test_pattern_match(struct giggle_index *gi,
+                       regex_t *regexs,
+                       char **file_patterns,
+                       uint32_t num_file_patterns,
+                       uint32_t file_id,
+                       uint32_t f_is_set) {
+    if (f_is_set == 0)
+        return 1;
+
+    struct file_data *fd = 
+        (struct file_data *)unordered_list_get(gi->file_index, file_id); 
+
+    int match = 0;
+    uint32_t j;
+    for(j = 0; j < num_file_patterns; j++) {
+        int r = regexec(&(regexs[j]), fd->file_name, 0, NULL, 0);
+        if (r == 0) {
+            match = 1;
+            break;
+        } else if (r != REG_NOMATCH) {
+            char msgbuf[100];
+            regerror(r, &regexs[j], msgbuf, sizeof(msgbuf));
+            errx(EX_USAGE,
+                 "Regex '%s' match failed: %s\n",
+                 file_patterns[file_id],
+                 msgbuf);
+        }
+    }
+
+    return match;
+}
+//}}}
