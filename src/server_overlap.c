@@ -296,6 +296,9 @@ int answer_to_connection(void *cls,
             response = MHD_create_response_from_buffer(strlen (page),
                                                        (void*) page,
                                                        MHD_RESPMEM_MUST_FREE);
+	    MHD_add_response_header(response,
+                                    MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                    "*");
 
             ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
             MHD_destroy_response (response);
