@@ -241,7 +241,7 @@ int answer_to_connection(void *cls,
                                        file_patterns_set_is_set)) {
                     if (printed_i == 0) {
                         asprintf(&tmp_page,
-                                 "%s\t"
+                                 "#%s\t"
                                  "%u\t"
                                  "%u\n",
                                  fd->file_name,
@@ -250,7 +250,7 @@ int answer_to_connection(void *cls,
                     } else {
                         asprintf(&tmp_page,
                                  "%s"
-                                 "%s\t"
+                                 "#%s\t"
                                  "%u\t"
                                  "%u\n",
                                  page,
