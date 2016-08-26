@@ -51,7 +51,9 @@ all: check-env $(LIST)
 
 server: INCLUDES+=-I$(LIBMHD_INCLUDES) -L$(LIBMHD_LIBS)
 server: LIBS+=-lmicrohttpd 
-server: $(BIN)/server_overlap
+server: $(BIN)/server_overlap \
+	$(BIN)/server_enrichment
+
 
 $(OBJ)/%.o: %.c 
 	$(CC) -c $(CFLAGS) -o $@ $< \

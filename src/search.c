@@ -103,11 +103,13 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                 long long n12 = (long long)(MAX(0,num_intervals-file_counts));
                 long long n21 = (long long)
                         (MAX(0,fd->num_intervals-file_counts));
-                double comp_mean = 
-                        ((fd->mean_interval_size+mean_interval_size));
+
+                double comp_mean = fd->mean_interval_size+mean_interval_size;
+
                 long long n22_full = (long long)
                         MAX(n11 + n12 + n21, genome_size/comp_mean);
                 long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
+
                 double left, right, two;
                 double r = kt_fisher_exact(n11,
                                            n12,
@@ -131,6 +133,34 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        file_counts,
                        ratio,
                        right);
+                /*
+                printf("#%s\t"
+                       "size:%u\t"
+                       "overlaps:%u\t"
+                       "ratio:%f\t"
+                       "sig:%f\t"
+                       "n11:%lld\t"
+                       "n12:%lld\t"
+                       "n21:%lld\t"
+                       "n22:%lld\t"
+                       "fd->mean_interval_size:%f\t"
+                       "mean_interval_size:%f\t"
+                       "comp_mean:%f"
+                       "\n",
+                       fd->file_name,
+                       fd->num_intervals,
+                       file_counts,
+                       ratio,
+                       right,
+                       n11,
+                       n12,
+                       n21,
+                       n22,
+                       fd->mean_interval_size,
+                       mean_interval_size,
+                       comp_mean);
+                */
+
             }
         }
     }

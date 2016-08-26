@@ -52,20 +52,30 @@ struct file_id_offset_pairs
 void c_str_store(void *v, FILE *f, char *file_name);
 void *c_str_load(FILE *f, char *file_name);
 
+/**
+ * @brief The core GIGGLE data structure.
+ *
+ * Each chrom has its own tree and this struct contains the root node id within
+ * each tree. The mapping between chrom strings (e.g., chr1, 1, etc.) is
+ * managed by chrm_index. Details about the files contained within the index
+ * are stored in file_index. The source file index (within file_index) and
+ * relative position of each indexed interval are in offset_index.
+ */
 struct giggle_index
 {
-    uint32_t *root_ids;
-    uint32_t len, num;
-    struct ordered_set *chrm_index;
-    struct unordered_list *file_index;
+    uint32_t *root_ids; //!< list of root index for each chrom
+    uint32_t len; //<! allocated size of root_ids
+    uint32_t num; //<! number elements in root_ids
+    struct ordered_set *chrm_index; //<! chrom string/root_id index pairs
+    struct unordered_list *file_index; //<! database file_data elements list
     //struct unordered_list *offset_index;
-    struct file_id_offset_pairs *offset_index;
+    struct file_id_offset_pairs *offset_index; //<! file_index/offse pair list
 
-    char *data_dir,
-         *chrm_index_file_name,
-         *file_index_file_name,
-         *offset_index_file_name,
-         *root_ids_file_name;
+    char *data_dir; //<! database directory
+    char *chrm_index_file_name; //<! chrm_index file name
+    char *file_index_file_name; //<! file_index file name
+    char *offset_index_file_name; //<! offset_index file name
+    char *root_ids_file_name; //<! root_ids file name
 };
 
 struct giggle_query_result
@@ -103,6 +113,18 @@ int giggle_query_next(struct giggle_query_iter *gqi,
 
 void giggle_iter_destroy(struct giggle_query_iter **gqi);
 
+/**
+ * @brief
+ *
+ * @param domain specifies which cache domain (i.e. which tree) to use,
+ * typically chrom id
+ * @param root_id index of the root node within the tree
+ * @param start interval start
+ * @param end interval end
+ * @param id interval id, typically an index into the offset_index
+ *
+ * @retval
+ */
 uint32_t giggle_insert(uint32_t domain,
                        uint32_t *root_id,
                        uint32_t start,
@@ -156,8 +178,48 @@ struct giggle_index *giggle_init_index(uint32_t init_size);
 void giggle_index_destroy(struct giggle_index **gi);
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm);
 uint32_t giggle_get_file_id(struct giggle_index *gi, char *path);
+
+/**
+ * @brief Add the intervals from a file to a GIGGLE index
+ *
+ * The file will be added to the GIGGLE index file_index, all of the
+ * intervals to the offset_index, and giggle_insert will add the interval to
+ * the tree where the starnd and end are keys and the value is that interval's
+ * index into the offset_index. Stats about the file (mean interval size,
+ * number of intervals) are collected for statistical analysis on query
+ * results.
+ *
+ * @param gi an initialized GIGGLE index
+ * @param file_name the file to be indexed
+ *
+ * @retval the total number of intervals indexed
+ */
 uint32_t giggle_index_file(struct giggle_index *gi,
                            char *file_name); 
+/**
+ * @brief A wrapper around giggle_index_file, that loops over files in a
+ * directory.
+ *
+ * @param gi the GIGGLE index struct to be populated
+ * @param path_name path to a set of interval files to be indexed
+ * stored.
+ * @param verbose give extra output in the indexing process
+ *
+ * @retval the total number of intervals indexed
+ *
+ * Example Usage:
+ * @code
+ *      struct giggle_index *gi = g
+ *              giggle_init(23,
+ *                          NULL,
+ *                          0,
+ *                          uint32_t_ll_giggle_set_data_handler);
+ *      char *path_name = "../data/many/\*bed.gz";
+ *      uint32_t r = giggle_index_directory(gi, path_name, 0); 
+ *      giggle_index_destroy(&gi);
+ *      cache.destroy();
+ * @endcode
+ */ 
 uint32_t giggle_index_directory(struct giggle_index *gi,
                                 char *path_name,
                                 int verbose);
@@ -165,12 +227,50 @@ void *giggle_query_region(struct giggle_index *gi,
                           char *chrm,
                           uint32_t start,
                           uint32_t end);
+
+/**
+ * @brief Initialize a new GIGGLE index.
+ *
+ * @param num_chrms an estimate of how many chroms will be considered
+ * @param output_dir the directory to store files, can be NULL if the database
+ * will not be saved
+ * @param force 1 to overwrite any existing index in output_dir, 0 to not
+ * @param giggle_set_data_handler defines how to organize the data.
+ * uint32_t_ll_giggle_set_data_handler is good for building the index from
+ * scratch.
+ *
+ * @retval an initialize GIGGLE index
+ * Example Usage:
+ * @code
+ *      struct giggle_index *gi = g
+ *              giggle_init(23,
+ *                          "giggle_i",
+ *                          0,
+ *                          uint32_t_ll_giggle_set_data_handler);
+ *
+ *      giggle_index_destroy(&gi);
+ *      cache.destroy();
+ * @endcode
+ */
 struct giggle_index *giggle_init(uint32_t num_chrms,
                                  char *output_dir,
                                  uint32_t force,
                                  void (*giggle_set_data_handler)());
 uint32_t giggle_store(struct giggle_index *gi);
 
+/**
+ * @brief Load a previously stored GIGGLE index.
+ *
+ * @param data_dir the directory containing all database files
+ * @param giggle_set_data_handler defines how data is stored
+ *
+ * @retval the GIGGLE index
+ *
+ * Example Usage:
+ * @code
+ *      
+ * @endcode
+ */
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void));
 

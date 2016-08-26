@@ -107,6 +107,18 @@ int b_search(uint32_t key, uint32_t *D, uint32_t D_size);
 
 int bpt_find_insert_pos(struct bpt_node *leaf, uint32_t key);
 
+/**
+ * @brief Search for a posistion within a bplus tree
+ *
+ * @param domain cache domain, chrom id for GIGGLE
+ * @param root_id id of the tree root
+ * @param leaf_id set to the id of leaf that does (or should) contain the key
+ * @param pos set to possition of the key if found
+ * @param key search key
+ *
+ * @retval 0 if the key was not found, the id to the pointer if found
+ *
+ */
 uint32_t bpt_find(uint32_t domain,
                   uint32_t root_id,
                   uint32_t *leaf_id,
