@@ -528,6 +528,8 @@ static int answer_to_connection (void *cls,
     if (0 == strcmp (method, "POST")) {
         struct connection_info_struct *con_info = *con_cls;
 
+	fprintf(stderr, "upload_data_size: %u\n", *upload_data_size);
+
         if (0 != *upload_data_size) {
             MHD_post_process(con_info->postprocessor,
                              upload_data,
@@ -536,8 +538,12 @@ static int answer_to_connection (void *cls,
 
             return MHD_YES;
         } else {
-            if (NULL != con_info->fp)
+		
+            fprintf(stderr, "1\n");
+            if (NULL != con_info->fp) {
                 fclose (con_info->fp);
+		con_info->fp = NULL;
+	    }
           /* Now it is safe to open and inspect the file before calling
            * send_page with a response */
 
@@ -552,6 +558,7 @@ static int answer_to_connection (void *cls,
             //uint32_t num_file_patterns = 0;
             //regex_t *regexs = NULL;
             //char **file_patterns = NULL;
+
 
             struct input_file *q_f = input_file_init(con_info->file_name);
 
@@ -641,6 +648,9 @@ static int answer_to_connection (void *cls,
                                 con_info->answercode,
                                 "text/txt");
             free(page);
+	    //void input_file_destroy(struct input_file **i);/
+            fprintf(stderr, "2\n");
+
             return ret;
         }
     }
