@@ -35,5 +35,7 @@ do
     
     sqlite3 $OUTPUT_DB < $SQL_FILE
 
+    sqlite3 $OUTPUT_DB  "CREATE INDEX idx1 on INTERVALS(BIN,CHRM,START,END);"
+
     rm $SQL_FILE
 done
