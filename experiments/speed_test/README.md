@@ -41,14 +41,30 @@ Roadmap database with subsets for testing
         }'\
     > batches_sizes.txt
 
+    # 0 -> 1/4 the data, 1 -> 1/2, 2 -> 3/4, 3 full data set
+
+    mkdir split_s0
+    cd split_s0
+    cat ../batches_sizes.txt \
+        | awk '$1<=0' \
+        | cut -f3 \
+        | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
+    cd ..
+
     mkdir split_s1
     cd split_s1
-
     cat ../batches_sizes.txt \
         | awk '$1<=1' \
         | cut -f3 \
         | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
+    cd ..
 
+    mkdir split_s2
+    cd split_s2
+    cat ../batches_sizes.txt \
+        | awk '$1<=2' \
+        | cut -f3 \
+        | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
     cd ..
 
     ln -s split split_s3
@@ -102,7 +118,10 @@ SQLITE / UCSC
     cd sqlite
 
     gcc -o ucsc_idx ucsc_idx.c
+    gcc -o reg2query reg2query.c
+    ./ucsc_build.sh ../data/split_s0 ucsc_s0.db
     ./ucsc_build.sh ../data/split_s1 ucsc_s1.db
+    ./ucsc_build.sh ../data/split_s2 ucsc_s2.db
     ./ucsc_build.sh ../data/split_s3 ucsc_s3.db
 
     cd ..
@@ -111,10 +130,17 @@ GIGGLE
 
     cd data 
 
+    giggle index -i "split_s0/*gz" -o split_s0_b
     giggle index -i "split_s1/*gz" -o split_s1_b
+    giggle index -i "split_s2/*gz" -o split_s2_b
     giggle index -i "split_s3/*gz" -o split_s3_b
 
     cd ..
 
 Speed tests
-
+    
+    for database in 0 1 2 3; do
+        for query in 10 100 1000 10000 100000 1000000; do
+            ./speed_test.sh $query $database
+        done
+    done
