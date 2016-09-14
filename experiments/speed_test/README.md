@@ -3,15 +3,20 @@ Roadmap database with subsets for testing
     mkdir data
     cd data
     wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.mnemonics.bedFiles.tgz
-    tar zxvf all.mnemonics.bedFiles.tgz
-    cd ..
+    mkdir orig
+    tar zxvf all.mnemonics.bedFiles.tgz -C orig/
     mkdir split
+
+    pip install toolshed
+
     python ../../../examples/rme/rename.py \
         ../../../examples/rme/states.txt \
         ../../../examples/rme/EDACC_NAME.txt \
-        "data/*gz" \
+        "orig/*gz" \
         "split/"
+
     cd split
+
     ls *.bed | xargs -I {} -P 10 sh -c "bgzip {}"
     ls *.bed.gz | xargs -I {} -P 10 sh -c "tabix {}"
     cd ..
@@ -72,7 +77,7 @@ Random query sets
     
     
     #wget -O gsort https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_darwin_amd64
-    #wget -O https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_linux_amd64
+    #wget -O gsort https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_linux_amd64
 
     chmod +x gsort
 
