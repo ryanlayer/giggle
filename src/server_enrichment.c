@@ -29,8 +29,11 @@ struct region
 {
     char *chrm;
     uint32_t start, end;
-    char *file_patterns_to_be_printed;
-    uint32_t full;
+};
+
+struct query_file
+{
+    char *file_name;
 };
 
 struct request
@@ -38,12 +41,72 @@ struct request
     int success;
     union {
         struct region *reg;
+        struct query_file *query;
     } data;
     enum {
+        REQUEST_QUERY_FILE,
         REQUEST_REGION,
         REQUEST_DATA
     } type;
+    uint32_t full;
+    char *file_patterns_to_be_printed;
 };
+
+int print_giggle_query_result(struct giggle_query_result *gqr,
+                              struct giggle_index *gi,
+                              regex_t *regexs,
+                              char **file_patterns,
+                              uint32_t num_file_patterns,
+                              uint32_t num_intervals,
+                              double mean_interval_size,
+                              long long genome_size,
+                              uint32_t f_is_set,
+                              uint32_t v_is_set,
+                              uint32_t c_is_set,
+                              uint32_t s_is_set,
+                              uint32_t o_is_set);
+
+struct args {
+    struct giggle_index *gi;
+    char *data_def;
+    char *upload_dir;
+};
+
+static unsigned int nr_of_uploading_clients = 0;
+
+struct connection_info_struct
+{
+  int connectiontype;
+  struct MHD_PostProcessor *postprocessor;
+  FILE *fp;
+  char *file_name;
+  const char *answerstring;
+  int answercode;
+  struct args *arg;
+};
+
+//{{{ static page data
+const char *askpage = "<html><body>\n\
+                       Upload a file, please!<br>\n\
+                       There are %u clients uploading at the moment.<br>\n\
+                       <form action=\"/filepost\" method=\"post\" enctype=\"multipart/form-data\">\n\
+                       <input name=\"file\" type=\"file\">\n\
+                       <input type=\"submit\" value=\" Send \"></form>\n\
+                       </body></html>";
+
+const char *busypage =
+  "<html><body>This server is busy, please try again later.</body></html>";
+
+const char *completepage =
+  "<html><body>The upload has been completed.</body></html>";
+
+const char *errorpage =
+  "<html><body>This doesn't seem to be right.</body></html>";
+const char *servererrorpage =
+  "<html><body>An internal server error has occured.</body></html>";
+const char *fileexistspage =
+  "<html><body>This file already exists.</body></html>";
+//}}}
 
 //{{{ uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
 uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
@@ -97,14 +160,21 @@ uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
 }
 //}}}
 
+//{{{ struct query_file *init_query_file()
+struct query_file *init_query_file()
+{
+
+    struct query_file *q = (struct query_file *)malloc(sizeof(struct query_file));
+    q->file_name = NULL;
+    return q;
+}
+//}}}
+
 //{{{ struct region *init_region()
 struct region *init_region()
 {
     struct region *r = (struct region *)malloc(sizeof(struct region));
     r->chrm = NULL;
-    r->file_patterns_to_be_printed = NULL;
-    r->full = 0;
-
     return r;
 }
 //}}}
@@ -135,8 +205,22 @@ int scan_url_vals(void *cls,
                     r->success = 1;
                 }
             } 
+        } else if (strncmp("query", key, 6) == 0) {
+            fprintf(stderr, "scan_url_vals: query\n");
+            r->type = REQUEST_QUERY_FILE;
+            if (value != NULL) {
+                if (r->data.query == NULL)
+                    r->data.query = init_query_file();
+
+		r->data.query->file_name = strdup(value);
+                r->success = 1;
+            } 
         } else if (strncmp("files", key, 5) == 0) {
             fprintf(stderr, "scan_url_vals: file\n");
+            r->file_patterns_to_be_printed  =
+                    (char *)malloc((strlen(value)+1) * sizeof(char));
+            strcpy(r->file_patterns_to_be_printed, value);
+#if 0
             if (r->data.reg == NULL)
                 r->data.reg = init_region();
             if (value != NULL) {
@@ -146,72 +230,16 @@ int scan_url_vals(void *cls,
                     (char *)malloc((strlen(value)+1) * sizeof(char));
                 strcpy(r->data.reg->file_patterns_to_be_printed, value);
             }
+#endif
         } else if (strncmp("full", key, 5) == 0) {
             fprintf(stderr, "scan_url_vals: full\n");
-            if (r->data.reg == NULL)
-                r->data.reg = init_region();
-            r->data.reg->full = 1;
+            r->full = 1;
         }
     }
 
     return MHD_YES;
 }
 //}}}
-
-int print_giggle_query_result(struct giggle_query_result *gqr,
-                              struct giggle_index *gi,
-                              regex_t *regexs,
-                              char **file_patterns,
-                              uint32_t num_file_patterns,
-                              uint32_t num_intervals,
-                              double mean_interval_size,
-                              long long genome_size,
-                              uint32_t f_is_set,
-                              uint32_t v_is_set,
-                              uint32_t c_is_set,
-                              uint32_t s_is_set,
-                              uint32_t o_is_set);
-
-struct args {
-    struct giggle_index *gi;
-    char *data_def;
-    char *upload_dir;
-};
-
-static unsigned int nr_of_uploading_clients = 0;
-
-struct connection_info_struct
-{
-  int connectiontype;
-  struct MHD_PostProcessor *postprocessor;
-  FILE *fp;
-  char *file_name;
-  const char *answerstring;
-  int answercode;
-  struct args *arg;
-};
-
-const char *askpage = "<html><body>\n\
-                       Upload a file, please!<br>\n\
-                       There are %u clients uploading at the moment.<br>\n\
-                       <form action=\"/filepost\" method=\"post\" enctype=\"multipart/form-data\">\n\
-                       <input name=\"file\" type=\"file\">\n\
-                       <input type=\"submit\" value=\" Send \"></form>\n\
-                       </body></html>";
-
-const char *busypage =
-  "<html><body>This server is busy, please try again later.</body></html>";
-
-const char *completepage =
-  "<html><body>The upload has been completed.</body></html>";
-
-const char *errorpage =
-  "<html><body>This doesn't seem to be right.</body></html>";
-const char *servererrorpage =
-  "<html><body>An internal server error has occured.</body></html>";
-const char *fileexistspage =
-  "<html><body>This file already exists.</body></html>";
-
 
 //{{{ static int send_page (struct MHD_Connection *connection,
 static int send_page (struct MHD_Connection *connection,
@@ -333,6 +361,8 @@ static int answer_to_connection (void *cls,
 {
     struct args *arg = (struct args*) cls;
 
+    
+    //{{{ set up the connection info if it is null
     if (NULL == *con_cls) {
         struct connection_info_struct *con_info;
 
@@ -374,7 +404,9 @@ static int answer_to_connection (void *cls,
 
         return MHD_YES;
     }
+    //}}}
 
+    //{{{GET
     if (strcmp(method, "GET") == 0) {
         struct request r;
         r.success = 0;
@@ -394,54 +426,109 @@ static int answer_to_connection (void *cls,
                                                  &r);
 
         if (num_vals == 0) {
+            //{{{ empty request
             char buffer[1024];
             snprintf(buffer,
                      sizeof (buffer),
                      askpage,
                      nr_of_uploading_clients);
             return send_page (connection, buffer, MHD_HTTP_OK,"text/html");
+            //}}}
         } else if (r.success == 1) {
             if (r.type == REQUEST_DATA) {
+                //{{{ asking for data def
                 size_t l = strlen(arg->data_def);
 
                 return send_page(connection,
                                  arg->data_def,
                                  MHD_HTTP_OK,
                                  "text/json");
-            } else if (r.type == REQUEST_REGION) {
-                struct region *reg = r.data.reg;
-                fprintf(stderr,
-                        "c:%s s:%u e:%u\n",
-                        reg->chrm,
-                        reg->start,
-                        reg->end);
+                //}}}
+            } else if ( (r.type == REQUEST_REGION) || 
+			(r.type == REQUEST_QUERY_FILE)) {
 
-                if (reg->file_patterns_to_be_printed != NULL) {
+                // check/get file patterns to print
+                //char *file_patterns_to_be_printed = NULL;
+                uint32_t full = r.full;
+
+                if (r.file_patterns_to_be_printed != NULL) {
                     fprintf(stderr,
                             "files:%s\n",
-                            reg->file_patterns_to_be_printed);
+                            r.file_patterns_to_be_printed);
 
                     file_patterns_set_is_set = 
-                            parse_file_patterns(
-                                    reg->file_patterns_to_be_printed,
-                                    &num_file_patterns,
-                                    &regexs,
-                                    &file_patterns);
-                }
+                            parse_file_patterns(r.file_patterns_to_be_printed,
+                                                &num_file_patterns,
+                                                &regexs,
+                                                &file_patterns);
 
-                char *page = NULL, *tmp_page = NULL;;
-                struct giggle_index *gi = arg->gi;
-                struct giggle_query_result *gqr = giggle_query(gi,
-                                                               reg->chrm,
-                                                               reg->start,
-                                                               reg->end,
-                                                               NULL);
+                }
 
                 fprintf(stderr,
                         "file_patterns_set_is_set:%u\n",
                         file_patterns_set_is_set);
 
+                struct giggle_index *gi = arg->gi;
+                struct giggle_query_result *gqr = NULL;
+
+                // used with query file
+                uint32_t num_intervals = 0;
+                double mean_interval_size = 0.0;
+                double genome_size =  3095677412.0;
+
+                if (r.type == REQUEST_REGION) {
+                    struct region *reg = r.data.reg;
+
+                    fprintf(stderr,
+                            "c:%s s:%u e:%u\n",
+                            reg->chrm,
+                            reg->start,
+                            reg->end);
+
+                    gqr = giggle_query(gi,
+                                       reg->chrm,
+                                       reg->start,
+                                       reg->end,
+                                       NULL);
+                } else {
+                    struct query_file *q = r.data.query;
+
+                    int chrm_len = 50;
+                    char *chrm = (char *)malloc(chrm_len*sizeof(char));
+                    uint32_t start, end;
+                    long offset;
+
+                    char *full_path = NULL;
+                    int r = asprintf(&full_path,
+                                     "%s/%s",
+                                     arg->upload_dir,
+                                     q->file_name);
+
+                    struct input_file *q_f = input_file_init(full_path);
+
+                    free(full_path);
+
+                    while ( q_f->input_file_get_next_interval(q_f, 
+                                                              &chrm,
+                                                              &chrm_len,
+                                                              &start,
+                                                              &end,
+                                                              &offset) >= 0 ) {
+                        gqr = giggle_query(gi,
+                                           chrm,
+                                           start,
+                                           end,
+                                           gqr);
+                        num_intervals += 1;
+                        mean_interval_size += end - start;
+                    }
+
+                    input_file_destroy(&q_f);
+                    mean_interval_size = mean_interval_size/num_intervals;
+                }
+
                 uint32_t i, printed_i = 0;
+                char *page = NULL, *tmp_page = NULL;;
                 for(i = 0; i < gqr->num_files; i++) {
                     struct file_data *fd = 
                         (struct file_data *)
@@ -476,7 +563,7 @@ static int answer_to_connection (void *cls,
                         free(page);
                         page = tmp_page;
 
-                        if ( (reg->full == 1) && 
+                        if ( (full == 1) && 
                              (giggle_get_query_len(gqr, i) > 0 )){
 
                             char *result = NULL;
@@ -484,24 +571,13 @@ static int answer_to_connection (void *cls,
                             struct giggle_query_iter *gqi =
                                     giggle_get_query_itr(gqr, i);
                             while (giggle_query_next(gqi, &result) == 0) {
-                                //printf("%s\n", result);
                                 asprintf(&tmp_page, "%s%s\n", page, result);
                                 free(page);
                                 page = tmp_page;
                             }
-
                             giggle_iter_destroy(&gqi);
-
-                            /*
-                            if (result != NULL) {
-                                free(result);
-                                result = NULL;
-                            }
-                            */
                         }
-
                         printed_i += 1;
-
                     }
                 }
 
@@ -511,20 +587,37 @@ static int answer_to_connection (void *cls,
                 }
 
                 giggle_query_result_destroy(&gqr);
-                free(reg->chrm);
-                reg->chrm = NULL;
+
+                if (r.type == REQUEST_REGION) {
+                    free(r.data.reg->chrm);
+                    free(r.data.reg);
+                    r.data.reg = NULL;
+                } else {
+                    free(r.data.query->file_name);
+                    free(r.data.query);
+                    r.data.query = NULL;
+                }
+
+                if (r.file_patterns_to_be_printed != NULL) {
+                    free(r.file_patterns_to_be_printed);
+                    r.file_patterns_to_be_printed = NULL;
+                }
+                r.full = 0;
+
 
                 int ret = send_page(connection,
-                                 page,
-                                 MHD_HTTP_OK,
-                                 "text/txt");
+                                    page,
+                                    MHD_HTTP_OK,
+                                    "text/txt");
                 free(page);
                 return ret;
             }
         }
         return 0;
     }
+    //}}}
 
+    //{{{ POST 
     if (0 == strcmp (method, "POST")) {
         struct connection_info_struct *con_info = *con_cls;
 
@@ -574,6 +667,8 @@ static int answer_to_connection (void *cls,
                 num_intervals += 1;
                 mean_interval_size += end - start;
             }
+
+            input_file_destroy(&q_f);
 
             mean_interval_size = mean_interval_size/num_intervals;
 
@@ -654,11 +749,13 @@ static int answer_to_connection (void *cls,
             return ret;
         }
     }
+    //}}}
+    
     return send_page (connection, errorpage, MHD_HTTP_BAD_REQUEST, "text/html");
 }
 //}}}
 
-
+//{{{int main(int argc, char **argv)
 int main(int argc, char **argv)
 {
     if (argc != 5) {
@@ -726,3 +823,4 @@ int main(int argc, char **argv)
     MHD_stop_daemon (daemon);
     return 0;
 }
+//}}}
