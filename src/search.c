@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <err.h>
@@ -341,11 +342,12 @@ int search_main(int argc, char **argv, char *full_cmd)
         uint32_t i, last = 0, len = strlen(regions);
         char *chrm;
         uint32_t start, end;
+        int ret;
         for (i = 0; i <= len; ++i) {
             if ((regions[i] == ',') || (regions[i] == '\0') ) {
                 regions[i] = '\0';
                 char *region;
-                asprintf(&region, "%s", regions + last);
+                ret = asprintf(&region, "%s", regions + last);
                 if (parse_region(region, &chrm, &start, &end) == 0) {
                     gqr = giggle_query(gi, chrm, start, end, gqr);
                     free(region);

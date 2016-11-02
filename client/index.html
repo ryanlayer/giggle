@@ -2,67 +2,88 @@
 <meta charset="utf-8">
 <html>
   <head>
+
     <link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <link href="assets/css/bootstrap-material-design.min.css" rel='stylesheet' type='text/css'>
     <link href="assets/css/ripples.min.css" rel='stylesheet' type='text/css'>
-    <style>      
-      body {
-        font-family: 'Open Sans';
-        background-color: white;
-        color:  #757474;
-        font-size: 13px;
-      }
-      .rowLabel, .colLabel, .legendLabel {
-        font-size:11px;
-        fill: #757474;
-      }
-      rect.bordered {
-        stroke: #E6E6E6;
-        stroke-width:2px;   
-      }
-      .checkbox label, .radio label, label {
-        color: #757474;
-        font-size: 13px;
-      }
-      .radio-value-field.radio label span {
-        left: 25px;
-      }
-      #go-button {
-        font-size: 13px;
-        padding-bottom: 5px;
-        padding-top: 5px;
-        margin-top: 0px;        
-      }
-      #control-panel {
-        margin-top:10px;
-      }
-    </style>
+    <link href="assets/css/tetronimos.css" rel='stylesheet' type='text/css'>
+    <link href="assets/css/site.css" rel='stylesheet' type='text/css'>
+
   </head>
   <body>
     <div class="container">
+      <h3>Giggle</h3>
+
       <div id="control-panel">
-        <div style="margin-top:5px;float:left;inline-block">
-          <label>Overlaps</label>
-          <input id="overlaps" value="chr1:1-5000000"></input>
-          <button id="go-button" onclick="loadHeatmap()" class="btn btn-default btn-raised">Go</button>
+        <div style="display:inline-block">
+          <div id="region-panel" class="input-panel">
+            <label>Enter Region</label>
+            <input id="overlaps" value="chr1:1-5000000"></input>
+            <button id="go-button" onclick="loadHeatmapForRegion()" style="margin-left:32px;" class="btn btn-default btn-raised">Run</button>
+            <div id="no-region-warning" class="hide alert alert-dismissible alert-info">
+              <button type="button" class="close" data-dismiss="alert">×</button>
+              <strong></strong>
+               Enter a region first
+            </div>          
+
+          </div>
+          <div ><label>OR</label></div>
+          <div id="upload-panel" class="input-panel" style="margin-top:0px;clear:both">
+            <label>Upload file</label>
+            <form id="bed-upload-form" style="display:inline-block"  method="post" enctype="multipart/form-data">
+              <div class="form-group" style="padding:0px;display:inline-block;width:230px;margin-top:0px">
+                 <input style="display:inline-block;"  name="file" type="file">
+                 <input type="text" style="display:inline-block" readonly="" class="form-control" placeholder="choose file...">
+              </div>
+             <input id="upload-button" style="clear:both;display:inline-block;" class="btn btn-default btn-raised" type="submit" value="Run">
+            </form>
+          </div>
+
+          <div id="no-file-warning" class="hide alert alert-dismissible alert-info">
+            <button type="button" class="close" data-dismiss="alert">×</button>
+            <strong></strong>
+             Choose a .bed.gz or vcf.gz file to upload.
+          </div>
         </div>
-        <div class="hide" style="float:left;inline-block;margin-left:50px;">
-          <span style="display:inline-block" class="radio-value-field radio radio-primary">
+
+        <div class="" style="vertical-align:top;display:inline-block;margin-left:40px;width:120px;">
+          <span  class="radio-value-field radio radio-primary">
             <label>
-              <input type="radio" name="radio-value-field" id="radio-value-overlaps" onclick="loadHeatmap();" checked="true" value="overlaps">
+              <input type="radio" class="radio-value-field" name="radio-value-field" id="radio-value-overlaps" onclick="loadHeatmapChart()" checked="true" value="overlaps">
              Overlaps
             </label>
           </span>
-          <span style="display:inline-block" class="radio-value-field radio radio-primary">
+          <span id="radio-value-ratio-span" class="radio-value-field radio radio-primary">
             <label>
-              <input type="radio" name="radio-value-field" onclick="loadHeatmap();" id="radio-value-size" value="size" >
-              Size
+              <input type="radio" class="radio-value-field" name="radio-value-field" onclick="loadHeatmapChart()" id="radio-value-ratio" value="ratio" >
+              Odds Ratio
             </label>
           </span>
         </div>
-      </div>
+
+        <div class="" style="vertical-align:top;display:inline-block;margin-left:40px;">
+          <div>
+            <label style="width:100px !important" >Giggle</label>
+            <input id="giggle-url"/>
+          </div>
+          <div style="margin-top:10px;">
+            <label style="width:100px !important;">Visualize tracks</label>
+            <input id="giggle-tracks-url"/>
+          </div>
+        </div>
     </div>
+
+
+    <div class="loader hide"  style="margin-top:160px;text-align:center;">                   
+        <div class="cssload-tetrominos">
+          <div class="cssload-tetromino cssload-box1"></div>
+          <div class="cssload-tetromino cssload-box2"></div>
+          <div class="cssload-tetromino cssload-box3"></div>
+          <div class="cssload-tetromino cssload-box4"></div>
+        </div>
+    </div>    
+
     <div id="chart"></div>
     </div>
 

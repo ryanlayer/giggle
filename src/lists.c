@@ -368,10 +368,12 @@ void *ordered_set_add(struct ordered_set *os,
 
         os->data[os->num] = data;
         os->num = os->num + 1;
-
-        qsort(os->data, os->num, sizeof(void *), os->sort_element_cmp);
-
-        return data;
+       // only qsort if we have to.
+       if ((os->num > 1) && (((*(os->sort_element_cmp))(&(os->data[os->num-2]),
+                                                        &data))) != -1) {
+                       qsort(os->data, os->num, sizeof(void *), os->sort_element_cmp);
+       }
+       return data;
     }
 }
 //}}}
