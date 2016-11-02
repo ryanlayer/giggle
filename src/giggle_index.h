@@ -6,6 +6,8 @@
 #include "bpt.h"
 //#include "ll.h"
 #include "cache.h"
+#include "leaf.h"
+#include "jsw_avltree.h"
 
 #define PROGRAM_NAME  "giggle"
 #define MAJOR_VERSION "0"
@@ -13,27 +15,6 @@
 #define REVISION_VERSION "1"
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
-
-#define LEAF_DATA_STARTS_START(node, i) \
-    ( i >= BPT_NUM_KEYS(node) \
-      ? BPT_POINTERS(node)[BPT_NUM_KEYS(node)-1] >> 16 \
-      : i == 0 ? 0 : BPT_POINTERS(node)[i-1] >> 16)
-
-#define LEAF_DATA_STARTS_END(node, i) \
-    ( i == BPT_NUM_KEYS(node) ? BPT_POINTERS(node)[i-1] >> 16 : \
-        i == -1 ? 0 : BPT_POINTERS(node)[i] >> 16)
-
-#define LEAF_DATA_ENDS_START(node, i) \
-    (i >= BPT_NUM_KEYS(node) \
-      ? BPT_POINTERS(node)[BPT_NUM_KEYS(node)-1] & 65535 \
-      : i == 0 ? 0:BPT_POINTERS(node)[i-1] & 65535)
-
-#define LEAF_DATA_ENDS_END(node, i) \
-    ( i == BPT_NUM_KEYS(node) ? BPT_POINTERS(node)[i-1] & 65535 : \
-    i == -1 ? 0 : BPT_POINTERS(node)[i] & 65535)
-
-#define LEAF_DATA_LEADING_START(node) (0)
-#define LEAF_DATA_LEADING_END(node) (node->num_leading)
 
 struct file_id_offset_pair
 {
@@ -274,25 +255,7 @@ uint32_t giggle_store(struct giggle_index *gi);
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void));
 
-// LEAF DATA
-struct leaf_data {
-    uint32_t num_leading, num_starts, num_ends;
-    uint32_t *leading, *starts, *ends, *data;
-};
-
-struct leaf_data_result {
-    uint32_t len;
-    uint32_t *data;
-    struct leaf_data_result *next;
-};
-
 struct cache_handler leaf_data_cache_handler;
-void leaf_data_free_mem(void **deserialized);
-uint64_t leaf_data_deserialize(void *serialized,
-                               uint64_t serialized_size,
-                               void **deserialized);
-uint64_t leaf_data_serialize(void *deserialized, void **serialized);
-
 uint32_t giggle_get_leaf_data(struct giggle_index *gi,
                               uint32_t domain,
                               uint32_t leaf_id,
@@ -335,5 +298,38 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
                                                 int pos_end_id,
                                                 uint32_t domain,
                                                 void **r);
+
+void giggle_merge_leaf_key(struct bpt_node *node,
+                           struct leaf_data *data,
+                           uint32_t key_i,
+                           jsw_avltree_t *context_tree,
+                           struct indexed_list *offset_id_map,
+                           struct indexed_list *file_index_id_map,
+                           struct file_id_offset_pairs *offset_index,
+                           struct file_id_offset_pairs **merged_offset_index,
+                           uint32_t **merged_starts, 
+                           uint32_t *merged_starts_size, 
+                           uint32_t *merged_starts_num, 
+                           uint32_t **merged_ends,
+                           uint32_t *merged_ends_size,
+                           uint32_t *merged_ends_num);
+
+uint32_t giggle_merge_chrom(char *chrm_string,
+                            struct giggle_index *gi_0,
+                            struct indexed_list *file_index_id_map_0,
+                            uint32_t gi_0_cache_name_space,
+                            struct giggle_index *gi_1,
+                            struct indexed_list *file_index_id_map_1,
+                            uint32_t gi_1_cache_name_space,
+                            struct disk_store *ds,
+                            struct file_id_offset_pairs **merged_offset_index);
+
+uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
+                                 struct giggle_index *gi_1,
+                                 char ***merged_chrm_set);
+
+uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
+                                     struct indexed_list *file_index_id_map,
+                                     struct unordered_list *merged_file_index);
 
 #endif

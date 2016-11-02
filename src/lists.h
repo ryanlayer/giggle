@@ -7,31 +7,33 @@
 // BITMAP
 struct bit_map
 {
-    uint32_t num_bits, num_ints;
+    uint64_t num_bits;
+    uint32_t num_ints;
     uint32_t *bm;
 };
 
-struct bit_map *bit_map_init(uint32_t bits);
+struct bit_map *bit_map_init(uint64_t bits);
 struct bit_map *bit_map_load(FILE *f, char *file_name);
 void bit_map_store(struct bit_map *b, FILE *f, char *file_name);
 void bit_map_destroy(struct bit_map **b);
-void bit_map_set(struct bit_map *b, uint32_t i);
-uint32_t bit_map_get(struct bit_map *b, uint32_t q);
+void bit_map_set(struct bit_map *b, uint64_t i);
+uint32_t bit_map_get(struct bit_map *b, uint64_t q);
 
 // INDEXED LIST
 struct indexed_list
 {
     char *data;
-    uint32_t size, element_size;
+    uint64_t size;
+    uint32_t element_size;
     struct bit_map *bm;
 };
-struct indexed_list *indexed_list_init(uint32_t init_size,
+struct indexed_list *indexed_list_init(uint64_t init_size,
                                        uint32_t element_size);
 void indexed_list_destroy(struct indexed_list **il);
 uint32_t indexed_list_add(struct indexed_list *il,
-                          uint32_t index,
+                          uint64_t index,
                           void *data);
-void *indexed_list_get(struct indexed_list *il, uint32_t index);
+void *indexed_list_get(struct indexed_list *il, uint64_t index);
 void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name);
 struct indexed_list *indexed_list_load(FILE *f, char *file_name);
 

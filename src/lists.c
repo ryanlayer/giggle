@@ -12,7 +12,7 @@
 
 //{{{ bit_map
 
-struct bit_map *bit_map_init(uint32_t bits)
+struct bit_map *bit_map_init(uint64_t bits)
 {
     struct bit_map *b = (struct bit_map *) malloc(sizeof(struct bit_map));
     b->num_bits = bits;
@@ -25,7 +25,7 @@ struct bit_map *bit_map_load(FILE *f, char *file_name)
 {
     struct bit_map *b = (struct bit_map *) malloc(sizeof(struct bit_map));
 
-    size_t fr = fread(&(b->num_bits), sizeof(uint32_t), 1, f);
+    size_t fr = fread(&(b->num_bits), sizeof(uint64_t), 1, f);
     check_file_read(file_name, f, 1, fr);
     fr = fread(&(b->num_ints), sizeof(uint32_t), 1, f);
     check_file_read(file_name, f, 1, fr);
@@ -38,7 +38,7 @@ struct bit_map *bit_map_load(FILE *f, char *file_name)
 
 void bit_map_store(struct bit_map *b, FILE *f, char *file_name)
 {
-    if (fwrite(&(b->num_bits), sizeof(uint32_t), 1, f) != 1)
+    if (fwrite(&(b->num_bits), sizeof(uint64_t), 1, f) != 1)
         err(EX_IOERR,
             "Error writing number of bits to '%s'.",
             file_name);
@@ -61,10 +61,10 @@ void bit_map_destroy(struct bit_map **b)
     *b = NULL;
 }
 
-void bit_map_set(struct bit_map *b, uint32_t i)
+void bit_map_set(struct bit_map *b, uint64_t i)
 {
     while (i >= b->num_bits) {
-        uint32_t new_bits = (b->num_bits)*2;
+        uint64_t new_bits = (b->num_bits)*2;
         uint32_t new_ints = (new_bits + 32 - 1) / 32;
         uint32_t *new_bm = (uint32_t *)calloc(new_ints, sizeof(uint32_t));
         memcpy(new_bm, b->bm, (b->num_ints)*sizeof(uint32_t));
@@ -79,7 +79,7 @@ void bit_map_set(struct bit_map *b, uint32_t i)
     b->bm[i/32] |= 1 << (31 - (i%32));
 }
 
-uint32_t bit_map_get(struct bit_map *b, uint32_t q)
+uint32_t bit_map_get(struct bit_map *b, uint64_t q)
 {
     if (q > b->num_bits)
         return 0;
@@ -91,7 +91,7 @@ uint32_t bit_map_get(struct bit_map *b, uint32_t q)
 
 //{{{ indexed_list
 //{{{ struct indexed_list *indexed_list_init(uint32_t init_size,
-struct indexed_list *indexed_list_init(uint32_t init_size,
+struct indexed_list *indexed_list_init(uint64_t init_size,
                                        uint32_t element_size)
 {
     struct indexed_list *il = (struct indexed_list *)
@@ -118,7 +118,7 @@ void indexed_list_destroy(struct indexed_list **il)
 
 //{{{uint32_t indexed_list_add(struct indexed_list *il,
 uint32_t indexed_list_add(struct indexed_list *il,
-                          uint32_t index,
+                          uint64_t index,
                           void *data)
 {
     uint32_t r = 0;
@@ -141,7 +141,7 @@ uint32_t indexed_list_add(struct indexed_list *il,
 //}}}
 
 //{{{void *indexed_list_get(struct indexed_list *il, uint32_t index)
-void *indexed_list_get(struct indexed_list *il, uint32_t index)
+void *indexed_list_get(struct indexed_list *il, uint64_t index)
 {
     //fprintf(stderr, "%d\n", bit_map_get(il->bm, index));
     if (bit_map_get(il->bm, index) != 0)
@@ -154,9 +154,7 @@ void *indexed_list_get(struct indexed_list *il, uint32_t index)
 //{{{void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
 void indexed_list_write(struct indexed_list *il, FILE *f, char *file_name)
 {
-
-
-    if (fwrite(&(il->size), sizeof(uint32_t), 1, f) != 1)
+    if (fwrite(&(il->size), sizeof(uint64_t), 1, f) != 1)
         err(EX_IOERR,
             "Error writing indexed list size to '%s'.",
             file_name);
@@ -181,7 +179,7 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
     struct indexed_list *il = (struct indexed_list *)
             malloc(sizeof(struct indexed_list));
 
-    size_t fr = fread(&(il->size), sizeof(uint32_t), 1, f);
+    size_t fr = fread(&(il->size), sizeof(uint64_t), 1, f);
     check_file_read(file_name, f, 1, fr);
 
     fr = fread(&(il->element_size), sizeof(uint32_t), 1, f);

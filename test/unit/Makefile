@@ -18,6 +18,8 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 file_read.c \
 		 bpt.c \
 		 wah.c \
+		 leaf.c \
+		 jsw_avltree.c \
 		 fastlz.c
 
 
