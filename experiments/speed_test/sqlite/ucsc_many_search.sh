@@ -13,7 +13,14 @@ DB=$1
 BED_FILE=$2
 
 BASE=`basename $BED_FILE`
-MD5=`md5 -q $BED_FILE`
+
+MD5=''
+
+if [ "$(uname)" == "Darwin" ]; then
+    MD5=`md5 -q $BED_FILE`
+else
+    MD5=`md5sum $BED_FILE | awk '{print $1;}'`
+fi
 
 SQL_FILE=$BASE.$MD5
 
@@ -41,5 +48,8 @@ for Q in `cat $BED_FILE | cut -f1,2,3`;do
 done
 fi
 
-/usr/bin/time sqlite3 $DB  < $SQL_FILE > /dev/null
-#rm $SQL_FILE
+if [ "$(uname)" == "Darwin" ]; then
+        /usr/bin/time sqlite3 $DB  < $SQL_FILE > /dev/null
+else
+        /usr/bin/time -f "%e real\t%U user\t%S sys" sqlite3 $DB  < $SQL_FILE > /dev/null
+fi
