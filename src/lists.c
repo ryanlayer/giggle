@@ -357,7 +357,7 @@ void *ordered_set_add(struct ordered_set *os,
                     os->data,
                     os->num,
                     sizeof(void *),
-                    os->search_element_cmp); 
+                    os->search_element_cmp);
 
     if (p != NULL) {
         return *p;
@@ -367,14 +367,18 @@ void *ordered_set_add(struct ordered_set *os,
             os->size = os->size * 2;
             os->data = realloc(os->data, os->size * sizeof(void *));
         }
-
-        os->data[os->num] = data;
-        os->num = os->num + 1;
-       // only qsort if we have to.
-       if ((os->num > 1) && (((*(os->sort_element_cmp))(&(os->data[os->num-2]),
-                                                        &data))) != -1) {
-                       qsort(os->data, os->num, sizeof(void *), os->sort_element_cmp);
-       }
+        int i;
+        // insert we move elements to the right until we find a spot for
+        // the incoming interval.
+        for(i=os->num;i>0;i--){
+           void *p = os->data[i-1];
+           if (((*(os->sort_element_cmp))(&data, &p)) >= 0) {
+               break;
+           }
+           os->data[i] = p;
+        }
+        os->data[i] = data;
+        os->num++;
        return data;
     }
 }
