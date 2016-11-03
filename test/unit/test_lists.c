@@ -648,12 +648,12 @@ void test_indexed_list(void)
 {
     struct offset_size_pair p, *r;
 
-    uint32_t max_size = 50;
+    uint64_t max_size = 50;
 
     struct indexed_list *il =
             indexed_list_init(5,
                               sizeof(struct offset_size_pair));
-    uint32_t i;
+    uint64_t i;
     for (i = 0; i < 5; ++i) {
         p.offset = i;
         p.size = i*2;

@@ -18,6 +18,7 @@
 #include "util.h"
 #include "timer.h"
 #include "fastlz.h"
+#include "jsw_avltree.h"
 
 //{{{ void *file_id_offset_pair_load(FILE *f, char *file_name)
 void *file_id_offset_pair_load(FILE *f, char *file_name)
@@ -1388,7 +1389,7 @@ void giggle_write_tree_leaf_data(void *giggle_index)
 #endif
 
     struct giggle_index *gi = (struct giggle_index *)giggle_index;
-    struct simple_cache *sc = (struct simple_cache *)_cache;
+    struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
 
     // we will use this node to fill in the new values for all the nodes that
     // are in cache
@@ -1655,96 +1656,6 @@ struct cache_handler leaf_data_cache_handler = {leaf_data_serialize,
                                                 leaf_data_free_mem};
 
 
-
-//{{{uint64_t leaf_data_serialize(void *deserialized, void **serialized)
-uint64_t leaf_data_serialize(void *deserialized, void **serialized)
-{
-#if 0
-    struct leaf_data *de = (struct leaf_data *)deserialized;
-
-    uint32_t *data = (uint32_t *)malloc(
-            3*sizeof(uint32_t) +
-            ((de->num_leading + de->num_starts + de->num_ends)
-             * sizeof(uint32_t))*2);
-    
-    data[0] = de->num_leading;
-    data[1] = de->num_starts;
-    data[2] = de->num_ends;
-
-    uint8_t *output = (uint8_t *)(data + 3);
-    int cs = fastlz_compress(de->data,
-                             (de->num_leading + 
-                             de->num_starts + 
-                             de->num_ends) * sizeof(uint32_t),
-                             output);
-    //realloc(data, 3*sizeof(uint32_t) + cs*sizeof(int));
-    *serialized = (void *)data;
-    return 3*sizeof(uint32_t) + cs*sizeof(int);
-
-#endif
-#if 1
-    struct leaf_data *de = (struct leaf_data *)deserialized;
-    uint32_t *data = (uint32_t *)calloc((3 +
-                                        de->num_leading +
-                                        de->num_starts +
-                                        de->num_ends),
-                                        sizeof(uint32_t));
-
-    data[0] = de->num_leading;
-    data[1] = de->num_starts;
-    data[2] = de->num_ends;
-    memcpy(data + 3,
-           de->data,
-           (de->num_leading + 
-            de->num_starts + 
-            de->num_ends)*sizeof(uint32_t));
-
-    *serialized = (void *)data;
-    return ((3 + de->num_leading + de->num_starts + de->num_ends) *
-        sizeof(uint32_t));
-#endif
-}
-//}}}
-
-//{{{ uint64_t leaf_data_deserialize(void *serialized,
-uint64_t leaf_data_deserialize(void *serialized,
-                               uint64_t serialized_size,
-                               void **deserialized)
-{
-    uint32_t *data = (uint32_t *)serialized;
-    
-    struct leaf_data *lf = (struct leaf_data *) 
-            calloc(1, sizeof(struct leaf_data));
-    lf->num_leading = data[0];
-    lf->num_starts = data[1];
-    lf->num_ends = data[2];
-    lf->data = (uint32_t *)calloc(lf->num_leading +
-                                    lf->num_starts +
-                                    lf->num_ends,
-                                  sizeof(uint32_t));
-
-    lf->leading = lf->data;
-    lf->starts = lf->data + lf->num_leading;
-    lf->ends = lf->data + lf->num_leading + lf->num_starts;
-    memcpy(lf->data,
-           data + 3,
-           (lf->num_leading + lf->num_starts + lf->num_ends)*sizeof(uint32_t));
-
-    *deserialized = (void *)lf;
-
-    return sizeof(struct leaf_data);
-}
-//}}}
-
-//{{{void leaf_data_free_mem(void **deserialized)
-void leaf_data_free_mem(void **deserialized)
-{
-    struct leaf_data **de = (struct leaf_data **)deserialized;
-    free((*de)->data);
-    free(*de);
-    *de = NULL;
-}
-//}}}
 //}}}
 
 //{{{ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
@@ -1930,5 +1841,648 @@ void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
         free(R);
         R = tmp_R;
     } 
+}
+//}}}
+
+//{{{ uint32_t giggle_merge_chrom(char *chrm_string,
+uint32_t giggle_merge_chrom(char *chrm_string,
+                            struct giggle_index *gi_0,
+                            struct indexed_list *file_index_id_map_0,
+                            uint32_t gi_0_cache_name_space,
+                            struct giggle_index *gi_1,
+                            struct indexed_list *file_index_id_map_1,
+                            uint32_t gi_1_cache_name_space,
+                            struct disk_store *ds,
+                            struct file_id_offset_pairs **merged_offset_index)
+{
+    // Initialize values for tree 0
+    CACHE_NAME_SPACE = gi_0_cache_name_space;
+    uint32_t chr_id_0 = giggle_get_chrm_id(gi_0, chrm_string);
+    uint32_t curr_leaf_id_0;
+    int pos_start_id_0;
+
+    // find the left-most leaf node for tree 0
+    uint32_t nld_start_id_0 = bpt_find(chr_id_0,
+                                       gi_0->root_ids[chr_id_0],
+                                       &curr_leaf_id_0, 
+                                       &pos_start_id_0,
+                                       0);
+    struct bpt_node *curr_leaf_0 = cache.get(chr_id_0,
+                                             curr_leaf_id_0 - 1,
+                                             &bpt_node_cache_handler);
+    struct leaf_data *curr_leaf_data_0 = 
+            cache.get(chr_id_0,
+                      BPT_POINTERS_BLOCK(curr_leaf_0) - 1,
+                      &leaf_data_cache_handler);
+
+    // Initialize values for tree 1
+    CACHE_NAME_SPACE = gi_1_cache_name_space;
+    uint32_t chr_id_1 = giggle_get_chrm_id(gi_1, chrm_string);
+    uint32_t curr_leaf_id_1;
+    int pos_start_id_1;
+
+    // find the left-most leaf node for tree 1
+    uint32_t nld_start_id_1 = bpt_find(chr_id_1,
+                                       gi_1->root_ids[chr_id_1],
+                                       &curr_leaf_id_1, 
+                                       &pos_start_id_1,
+                                       0);
+    struct bpt_node *curr_leaf_1 = cache.get(chr_id_1,
+                                              curr_leaf_id_1 - 1,
+                                              &bpt_node_cache_handler);
+    struct leaf_data *curr_leaf_data_1 = 
+            cache.get(chr_id_1,
+                      BPT_POINTERS_BLOCK(curr_leaf_1) - 1,
+                      &leaf_data_cache_handler);
+
+    uint32_t i_0 = 0, i_1 = 0;
+
+    // These trees will track the intervals that are currently in context
+    jsw_avltree_t *context_tree_0 = jsw_avlnew(int_cmp_f, int_dup_f, int_rel_f);
+    jsw_avltree_t *context_tree_1 = jsw_avlnew(int_cmp_f, int_dup_f, int_rel_f);
+
+    /*
+     * As the keys/pointers are scanned in each leaf node a new leaf node is
+     * built with the merged data. At the same time a new leaf data is built
+     * and any spanning nodes must be tracked for the leading data
+     *
+     * Must keep a list of in context interval ids
+     *
+     * Interval ids from each tree must be mapped to new ids for the new tree
+     *
+     * At each start we need to add all of those nodes to context
+     *
+     * At each end we must remove those from context
+     *
+     * Anything that is in context when a leaf node is full must be placed into
+     * the leading node of the next leaf node
+     *
+     *
+     *
+     */
+
+    // offset ids must be mapped from the values in the distisct trees
+    // to merged values, offset_id_map_0 tracks the values from tree 0 and 
+    // offset_id_map_1 from tree 1
+    // the key will be the original id and value will be the merged id
+    struct indexed_list *offset_id_map_0 = indexed_list_init(1000,
+                                                             sizeof(uint64_t));
+    struct indexed_list *offset_id_map_1 = indexed_list_init(1000,
+                                                             sizeof(uint64_t));
+
+    // These lists will become the leaf data for the merged node
+    uint32_t merged_starts_size = 1000, merged_starts_num = 0;
+    uint32_t merged_ends_size = 1000, merged_ends_num = 0;
+
+    uint32_t *merged_starts =
+            (uint32_t *)malloc(merged_starts_size * sizeof(uint32_t));
+    uint32_t *merged_ends = 
+            (uint32_t *)malloc(merged_ends_size * sizeof(uint32_t));
+
+    // Collect the values into this node, then write it and clear 
+    struct bpt_node *to_write_node = (struct bpt_node *)
+            malloc(sizeof(struct bpt_node));
+    to_write_node->data = (uint32_t *)
+            malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+
+    memset(to_write_node->data, 0, BPT_NODE_SIZE);
+
+    BPT_ID(to_write_node) =  ds->num;
+    BPT_PARENT(to_write_node) = 0;
+    BPT_IS_LEAF(to_write_node) = 1;
+    BPT_LEADING(to_write_node) = 0;
+    BPT_NEXT(to_write_node) = 0;
+    BPT_NUM_KEYS(to_write_node) = 0;
+    BPT_POINTERS_BLOCK(to_write_node) = 0;
+
+
+    uint32_t node_key_i = 0;
+
+    // loop over all the elments in the chrom tree and merge into a single tree
+    while (true) {
+
+        if ( (curr_leaf_id_1 == 0 ) && (curr_leaf_id_0 == 0) ) 
+            break;
+
+        uint32_t bpt_key_value = 0, bpt_pointer_value = 0;
+
+        // Choose the next lowest value to merge in hhhhhhhh 
+        if ((curr_leaf_id_1 == 0 ) ||
+            (BPT_KEYS(curr_leaf_0)[i_0]) < (BPT_KEYS(curr_leaf_1)[i_1])) {
+            //{{{pick the value from 0 if it is the only one left, or it is
+            //less
+
+            bpt_key_value = BPT_KEYS(curr_leaf_0)[i_0];
+            
+            uint32_t orig_merged_starts_num = merged_starts_num;
+            uint32_t orig_merged_ends_num = merged_ends_num;
+
+            //fprintf(stderr,"0: ");
+            giggle_merge_leaf_key(curr_leaf_0,
+                                  curr_leaf_data_0,
+                                  i_0,
+                                  context_tree_0,
+                                  offset_id_map_0,
+                                  file_index_id_map_0,
+                                  gi_0->offset_index,
+                                  merged_offset_index,
+                                  &merged_starts, 
+                                  &merged_starts_size, 
+                                  &merged_starts_num, 
+                                  &merged_ends,
+                                  &merged_ends_size,
+                                  &merged_ends_num);
+
+            bpt_pointer_value = (merged_starts_num << 16) + merged_ends_num;
+
+            /*
+            fprintf(stderr,
+                    "merged s:%u-%u,%u e:%u-%u,%u\n",
+                    orig_merged_starts_num,
+                    merged_starts_num,
+                    (orig_merged_starts_num << 16) + merged_starts_num,
+                    orig_merged_ends_num,
+                    merged_ends_num,
+                    (orig_merged_ends_num << 16) + merged_ends_num);
+            */
+            i_0+=1;
+            //}}}
+        } else if ((curr_leaf_id_0 == 0 ) ||
+                   (BPT_KEYS(curr_leaf_0)[i_0] > BPT_KEYS(curr_leaf_1)[i_1])) {
+            //{{{ pick the value from 1 if it is the only one left, or it is
+            //less
+            bpt_key_value = BPT_KEYS(curr_leaf_1)[i_1];
+
+            uint32_t orig_merged_starts_num = merged_starts_num;
+            uint32_t orig_merged_ends_num = merged_ends_num;
+
+            //fprintf(stderr,"1: ");
+            giggle_merge_leaf_key(curr_leaf_1,
+                                  curr_leaf_data_1,
+                                  i_1,
+                                  context_tree_1,
+                                  offset_id_map_1,
+                                  file_index_id_map_1,
+                                  gi_1->offset_index,
+                                  merged_offset_index,
+                                  &merged_starts, 
+                                  &merged_starts_size, 
+                                  &merged_starts_num, 
+                                  &merged_ends,
+                                  &merged_ends_size,
+                                  &merged_ends_num);
+
+            bpt_pointer_value = (merged_starts_num << 16) + merged_ends_num;
+
+            /*
+            fprintf(stderr,
+                    "merged s:%u-%u,%u e:%u-%u,%u\n",
+                    orig_merged_starts_num,
+                    merged_starts_num,
+                    (orig_merged_starts_num << 16) + merged_starts_num,
+                    orig_merged_ends_num,
+                    merged_ends_num,
+                    (orig_merged_ends_num << 16) + merged_ends_num);
+            */
+
+            i_1+=1;
+            //}}}
+        } else if ((BPT_KEYS(curr_leaf_0)[i_0]) == 
+                   (BPT_KEYS(curr_leaf_1)[i_1])) {
+            // {{{ they are equal
+
+            uint32_t orig_merged_starts_num = merged_starts_num;
+            uint32_t orig_merged_ends_num = merged_ends_num;
+
+            bpt_key_value = BPT_KEYS(curr_leaf_0)[i_0];
+
+            //fprintf(stderr,"0 1: ");
+            giggle_merge_leaf_key(curr_leaf_0,
+                                  curr_leaf_data_0,
+                                  i_0,
+                                  context_tree_0,
+                                  offset_id_map_0,
+                                  file_index_id_map_0,
+                                  gi_0->offset_index,
+                                  merged_offset_index,
+                                  &merged_starts, 
+                                  &merged_starts_size, 
+                                  &merged_starts_num, 
+                                  &merged_ends,
+                                  &merged_ends_size,
+                                  &merged_ends_num);
+
+
+            giggle_merge_leaf_key(curr_leaf_1,
+                                  curr_leaf_data_1,
+                                  i_1,
+                                  context_tree_1,
+                                  offset_id_map_1,
+                                  file_index_id_map_1,
+                                  gi_1->offset_index,
+                                  merged_offset_index,
+                                  &merged_starts, 
+                                  &merged_starts_size, 
+                                  &merged_starts_num, 
+                                  &merged_ends,
+                                  &merged_ends_size,
+                                  &merged_ends_num);
+
+            bpt_pointer_value = (merged_starts_num << 16) + merged_ends_num;
+
+            /*
+            fprintf(stderr,
+                    "merged s:%u-%u,%u e:%u-%u,%u\n",
+                    orig_merged_starts_num,
+                    merged_starts_num,
+                    (orig_merged_starts_num << 16) + merged_starts_num,
+                    orig_merged_ends_num,
+                    merged_ends_num,
+                    (orig_merged_ends_num << 16) + merged_ends_num);
+            */
+
+            i_0+=1;
+            i_1+=1;
+            //}}}
+        } else {
+            errx(1, "Not > < or ==");
+        }
+
+        //{{{ see if we are moving to the next leaf node on tree 0
+        if ( (curr_leaf_id_0 > 0) &&
+             (i_0 == BPT_NUM_KEYS(curr_leaf_0)) ) {
+
+            curr_leaf_id_0 = BPT_NEXT(curr_leaf_0);
+
+            if (curr_leaf_id_0 != 0) {
+                CACHE_NAME_SPACE = gi_0_cache_name_space;
+                curr_leaf_0 = cache.get(chr_id_0,
+                                        curr_leaf_id_0 - 1,
+                                        &bpt_node_cache_handler);
+                i_0 = 0;
+
+                curr_leaf_data_0 = 
+                    cache.get(chr_id_0,
+                              BPT_POINTERS_BLOCK(curr_leaf_0) - 1,
+                              &leaf_data_cache_handler);
+                /*
+                fprintf(stderr,
+                        "node_0: #:%u\n",
+                        BPT_NUM_KEYS(curr_leaf_0));
+                fprintf(stderr,
+                        "leaf_0: l:%u s:%u e:%u\n",
+                        curr_leaf_data_0->num_leading,
+                        curr_leaf_data_0->num_starts,
+                        curr_leaf_data_0->num_ends);
+                */
+
+            }
+        }
+        //}}}
+
+        //{{{ see if we are moving to the next leaf node on tree 1
+        if ( (curr_leaf_id_1 > 0) &&
+             (i_1 == BPT_NUM_KEYS(curr_leaf_1)) ) {
+
+            curr_leaf_id_1 = BPT_NEXT(curr_leaf_1);
+
+            if (curr_leaf_id_1 != 0) {
+                CACHE_NAME_SPACE = gi_1_cache_name_space;
+                curr_leaf_1 = cache.get(chr_id_1,
+                                        curr_leaf_id_1 - 1,
+                                        &bpt_node_cache_handler);
+                i_1 = 0;
+
+                curr_leaf_data_1 = 
+                    cache.get(chr_id_1,
+                              BPT_POINTERS_BLOCK(curr_leaf_1) - 1,
+                              &leaf_data_cache_handler);
+            }
+        }
+        //}}}
+
+        /*
+        fprintf(stderr,
+                "i:%u key:%u\tpointer:%u\t%u\t%u\n",
+                node_key_i,
+                bpt_key_value,
+                bpt_pointer_value,
+                bpt_pointer_value >> 16,
+                bpt_pointer_value & 65535);
+        */
+
+        //BPT_ID(to_write_node) =  ds->num;
+        //BPT_PARENT(to_write_node) = 0;
+        //BPT_IS_LEAF(to_write_node) = 1;
+        //BPT_LEADING(to_write_node) = 0;
+        //BPT_NEXT(to_write_node) = 0;
+        //BPT_NUM_KEYS(to_write_node) = 0;
+        //BPT_POINTERS_BLOCK(to_write_node) = ds->num + 1;
+        
+        BPT_KEYS(to_write_node)[node_key_i] = bpt_pointer_value;
+        BPT_POINTERS(to_write_node)[node_key_i] = bpt_pointer_value;
+
+        node_key_i += 1;
+
+        // The current node is full
+        if (node_key_i == ORDER - 1) {
+
+            uint32_t j;
+            for (j = 0; j < node_key_i; ++j) {
+                fprintf(stderr,
+                        "%u\t%u %u %u %u\n",
+                        j,
+                        BPT_ID(to_write_node),
+                        BPT_KEYS(to_write_node)[j],
+                        (BPT_POINTERS(to_write_node)[j]) >> 16,
+                        (BPT_POINTERS(to_write_node)[j])  & 65535);
+            }
+
+            // Add a leading node
+            if ( ( jsw_avlsize(context_tree_0) > 0 ) || 
+                 ( jsw_avlsize(context_tree_0) > 0 ) ) {
+                BPT_LEADING(to_write_node) = 1;
+                BPT_POINTERS_BLOCK(to_write_node) = ds->num + 1;
+            }
+
+            // Everything is stored through the disk_store struct ds
+            // write the current node and the leaf node 
+            // set up the next node
+
+            fprintf(stderr, "tree_0 size:%zu\n", jsw_avlsize(context_tree_0));
+            fprintf(stderr, "tree_1 size:%zu\n", jsw_avlsize(context_tree_1));
+
+            //jsw_avltrav_t *trav = jsw_avltnew ( void );
+            //void *jsw_avltfirst ( jsw_avltrav_t *trav, jsw_avltree_t *tree );
+            //void *jsw_avltnext ( jsw_avltrav_t *trav )
+            //void jsw_avltdelete ( jsw_avltrav_t *trav );
+
+            // if void           jsw_avltdelete ( jsw_avltrav_t *trav );
+        //if ( (curr_leaf_id_1 == 0 ) && (curr_leaf_id_0 == 0) ) 
+        //Not going to be a next node
+
+            node_key_i = 0;
+        }
+    }
+
+    if (node_key_i > 0) {
+        uint32_t j;
+        for (j = 0; j < node_key_i; ++j) {
+            fprintf(stderr,
+                    "%u\t%u %u %u\n",
+                    j,
+                    BPT_KEYS(to_write_node)[j],
+                    (BPT_POINTERS(to_write_node)[j]) >> 16,
+                    (BPT_POINTERS(to_write_node)[j])  & 65535);
+        }
+    }
+
+
+
+    jsw_avldelete(context_tree_0);
+    jsw_avldelete(context_tree_1);
+
+    indexed_list_destroy(&offset_id_map_0);
+    indexed_list_destroy(&offset_id_map_1);
+    return 0;
+}
+//}}}
+
+//{{{ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
+uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
+                                     struct indexed_list *file_index_id_map,
+                                     struct unordered_list *merged_file_index)
+{
+    uint32_t i;
+    for (i = 0 ; i < gi->file_index->num; ++i) {
+        struct file_data *fd = (struct file_data *)
+                unordered_list_get(gi->file_index, i);
+
+        struct file_data *merged_fd = (struct file_data *)
+                malloc(sizeof(struct file_data));
+        merged_fd->num_intervals = fd->num_intervals;
+        merged_fd->mean_interval_size = fd->mean_interval_size;
+        merged_fd->file_name = strdup(fd->file_name);
+
+        uint32_t merged_id = merged_file_index->num;
+
+        uint32_t r = unordered_list_add(merged_file_index, merged_fd);
+
+        r = indexed_list_add(file_index_id_map, i, &merged_id);
+    }
+
+    return gi->file_index->num;
+}
+//}}}
+
+//{{{ uint32_t giggle_merge_get_chrm_index(struct giggle_index *gi_0,
+uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
+                                 struct giggle_index *gi_1,
+                                 char ***merged_chrm_set)
+{
+    // Find the union of the two chrom sets
+    char **full_chrm_set = 
+            (char **)malloc(
+            (gi_0->chrm_index->num + gi_0->chrm_index->num) * sizeof (char *));
+
+    uint32_t i;
+    for (i = 0; i < gi_0->chrm_index->num; ++i) {
+        struct str_uint_pair *p = 
+                (struct str_uint_pair *)gi_0->chrm_index->data[i];
+        full_chrm_set[i] = strdup(p->str);
+    }
+    for (i = 0; i < gi_1->chrm_index->num; ++i) {
+        struct str_uint_pair *p = 
+                (struct str_uint_pair *)gi_1->chrm_index->data[i];
+        full_chrm_set[i + gi_0->chrm_index->num] = strdup(p->str);
+    }
+
+    qsort(full_chrm_set,
+          gi_0->chrm_index->num + gi_1->chrm_index->num,
+          sizeof(char *),
+          char_p_cmp);
+
+    uint32_t j, num_uniq = 0;
+
+    for (i = 0; i < gi_0->chrm_index->num + gi_1->chrm_index->num; ) {
+        num_uniq += 1;
+        j = i + 1;
+        while ((j < gi_0->chrm_index->num + gi_1->chrm_index->num) &&
+               (strcmp(full_chrm_set[i], full_chrm_set[j]) == 0)) {
+            j += 1;
+        }
+        i = j;
+    }
+
+    *merged_chrm_set = (char **)malloc(num_uniq * sizeof (char *));
+    uint32_t merged_chrm_set_i = 0;
+    for (i = 0; i < gi_0->chrm_index->num + gi_1->chrm_index->num; ) {
+        (*merged_chrm_set)[merged_chrm_set_i] = strdup(full_chrm_set[i]);
+        merged_chrm_set_i += 1;
+        j = i + 1;
+        while ((j < gi_0->chrm_index->num + gi_1->chrm_index->num) &&
+               (strcmp(full_chrm_set[i], full_chrm_set[j]) == 0)) {
+            j += 1;
+        }
+        i = j;
+    }
+
+    for (i = 0; i < gi_0->chrm_index->num + gi_1->chrm_index->num; ++i)
+        free(full_chrm_set[i]);
+    free(full_chrm_set);
+
+    return num_uniq;
+}
+//}}}
+
+//{{{void giggle_merge_leaf_key(struct bpt_node *node,
+void giggle_merge_leaf_key(struct bpt_node *node,
+                           struct leaf_data *data,
+                           uint32_t key_i,
+                           jsw_avltree_t *context_tree,
+                           struct indexed_list *offset_id_map,
+                           struct indexed_list *file_index_id_map,
+                           struct file_id_offset_pairs *offset_index,
+                           struct file_id_offset_pairs **merged_offset_index,
+                           uint32_t **merged_starts, 
+                           uint32_t *merged_starts_size, 
+                           uint32_t *merged_starts_num, 
+                           uint32_t **merged_ends,
+                           uint32_t *merged_ends_size,
+                           uint32_t *merged_ends_num)
+{
+    // put all of the offset ids in starts into the tree
+    // get merged offset ids for each start
+    // add the merged ids to the start for this position
+    // take all of the offset ids out of the tree
+    fprintf(stderr,
+            "%u\t%u\t%u\ts:%u-%u\te:%u-%u"
+            "\t",
+            key_i,
+            BPT_POINTERS(node)[key_i],
+            BPT_KEYS(node)[key_i],
+            LEAF_DATA_STARTS_START(node,key_i),
+            LEAF_DATA_STARTS_END(node,key_i),
+            LEAF_DATA_ENDS_START(node,key_i),
+            LEAF_DATA_ENDS_END(node,key_i)
+            );
+
+    uint32_t *starts = NULL, *ends = NULL;
+    uint32_t starts_size = 0, ends_size = 0;
+    // get the list of starts and ends at this key
+    uint32_t buff_size = leaf_data_get_starts_ends(node,
+                                                   data,
+                                                   key_i,
+                                                   key_i,
+                                                   &starts,
+                                                   &starts_size,
+                                                   &ends,
+                                                   &ends_size);
+
+    //grow the merged offset if we need to
+    while ((*merged_offset_index)->size < 
+           (*merged_offset_index)->num + starts_size) {
+
+        (*merged_offset_index)->size = (*merged_offset_index)->size * 2;
+
+        fprintf(stderr,
+                "merged_offset_index size: %llu\n",
+                (*merged_offset_index)->size);
+
+
+        (*merged_offset_index)->vals = (struct file_id_offset_pair *)
+            realloc((*merged_offset_index)->vals,
+                    (*merged_offset_index)->size * 
+                    sizeof(struct file_id_offset_pair));
+
+        memset((*merged_offset_index)->vals + (*merged_offset_index)->num,
+               0,
+               ((*merged_offset_index)->size - (*merged_offset_index)->num) *
+               sizeof(struct file_id_offset_pair));
+    }
+
+    //grow the merged starts if we need to
+    while (*merged_starts_size < *merged_starts_num + starts_size) {
+        *merged_starts_size =  *merged_starts_size * 2;
+
+        fprintf(stderr, "merged_starts: %u\n", *merged_starts_size);
+
+        *merged_starts = (uint32_t *)
+            realloc(*merged_starts, *merged_starts_size * sizeof(uint32_t)); 
+    }
+  
+    //grow the merged ends if we need to
+    while (*merged_ends_size < *merged_ends_num + ends_size) {
+        *merged_ends_size =  *merged_ends_size * 2;
+
+        fprintf(stderr, "merged_ends: %u\n", *merged_ends_size);
+
+        *merged_ends = (uint32_t *)
+            realloc(*merged_ends, *merged_ends_size * sizeof(uint32_t)); 
+    }
+
+    // loop over the starts
+    // get the merged id
+    // add to context tree
+    // - add to new offset_index
+    // - add to new starts list at this position
+    uint32_t j;
+    fprintf(stderr, "starts:\t");
+    for (j = 0; j < starts_size; ++j) {
+        int r = indexed_list_add(offset_id_map,
+                                 starts[j],
+                                 &((*merged_offset_index)->num));
+
+        fprintf(stderr,
+                "oid:%u,mid:%llu ",
+                starts[j],
+                (*merged_offset_index)->num);
+
+        r = jsw_avlinsert(context_tree, starts + j);
+
+
+        uint32_t *merged_file_id = 
+                indexed_list_get(file_index_id_map, 
+                                 offset_index->vals[starts[j]].file_id);
+        //(*merged_offset_index)->vals[(*merged_offset_index)->num].file_id =
+            //offset_index->vals[starts[j]].file_id;
+            
+        (*merged_offset_index)->vals[(*merged_offset_index)->num].file_id =
+            *merged_file_id;
+
+        (*merged_offset_index)->vals[(*merged_offset_index)->num].offset =
+            offset_index->vals[starts[j]].offset;
+
+        (*merged_starts)[*merged_starts_num] = (*merged_offset_index)->num;
+        *merged_starts_num = *merged_starts_num + 1;
+
+        (*merged_offset_index)->num = (*merged_offset_index)->num + 1;
+    }
+    fprintf(stderr, "\t");
+
+    // loop over ends
+    // remove from context tree
+    // get merged id
+    // - add to new ends list at this position
+    fprintf(stderr, "ends:\t");
+    for (j = 0; j < ends_size; ++j) {
+        uint32_t *merged_id = (uint32_t *)
+                indexed_list_get(offset_id_map, ends[j]);
+        fprintf(stderr,
+                "oid:%u,mid:%u ",
+                ends[j], 
+                *merged_id);
+
+        (*merged_ends)[*merged_ends_num] = *merged_id;
+        *merged_ends_num = *merged_ends_num + 1;
+
+        int r = jsw_avlerase(context_tree, ends + j);
+    }
+    fprintf(stderr, "\n");
+
+    if (starts != NULL)
+        free(starts);
+    if (ends != NULL)
+        free(ends);
 }
 //}}}

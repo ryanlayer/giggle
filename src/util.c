@@ -75,6 +75,11 @@ int uint32_t_cmp(const void *_a, const void *_b)
         return 0;
 }
 
+int char_p_cmp(const void *_a, const void *_b)
+{
+    return strcmp(*(char **)_a, *(char **)_b);
+}
+
 uint32_t bin_char_to_int(char *bin)
 {
     uint32_t i = 0;

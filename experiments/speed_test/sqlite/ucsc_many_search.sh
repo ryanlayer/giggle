@@ -14,6 +14,7 @@ BED_FILE=$2
 
 BASE=`basename $BED_FILE`
 
+
 MD5=''
 
 if [ "$(uname)" == "Darwin" ]; then

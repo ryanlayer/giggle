@@ -12,7 +12,9 @@
 #include "util.h"
 #include "lists.h"
 
-void *_cache = NULL;
+uint32_t CACHE_NAME_SPACE = 0;
+void *_cache[10] =
+    {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 struct cache_def cache;
 
 
@@ -82,7 +84,7 @@ void *simple_cache_init(uint32_t size,
     struct simple_cache *sc = (struct simple_cache *)
             malloc(sizeof(struct simple_cache));
 
-    _cache = sc;
+    _cache[CACHE_NAME_SPACE] = sc;
     cache = simple_cache_def;
 
     (void) pthread_mutex_init (&(sc->mutex), NULL);
@@ -160,10 +162,10 @@ void *simple_cache_init(uint32_t size,
 //{{{uint32_t simple_cache_seen(void *_sc)
 uint32_t simple_cache_seen(uint32_t domain)
 {
-    if (_cache == NULL)
+    if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
 
-    struct simple_cache *sc = (struct simple_cache *)_cache;
+    struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
     return sc->seens[domain];
 }
 //}}}
@@ -174,9 +176,9 @@ void simple_cache_add(uint32_t domain,
                       void *value,
                       struct cache_handler *handler)
 {
-    if (_cache == NULL)
+    if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
-    struct simple_cache *sc = (struct simple_cache *)_cache;
+    struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
 
     struct value_cache_handler_pair vh;
     vh.value = value;
@@ -192,9 +194,9 @@ void *simple_cache_get(uint32_t domain,
                        uint32_t key,
                        struct cache_handler *handler)
 {
-    if (_cache == NULL)
+    if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
-    struct simple_cache *sc = (struct simple_cache *)_cache;
+    struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
     struct value_cache_handler_pair *vh = indexed_list_get(sc->ils[domain],
                                                            key);
 
@@ -235,9 +237,9 @@ void *simple_cache_get(uint32_t domain,
 //{{{void simple_cache_destroy(void **_sc)
 void simple_cache_destroy()
 {
-    if (_cache == NULL)
+    if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
-    struct simple_cache *sc = (struct simple_cache *)_cache;
+    struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
 
     (void) pthread_mutex_destroy (&(sc->mutex));
 
@@ -277,7 +279,7 @@ void simple_cache_destroy()
     }
     free(sc->sizes);
     free(sc);
-    _cache = NULL;
+    _cache[CACHE_NAME_SPACE] = NULL;
 }
 //}}}
 
@@ -285,9 +287,9 @@ void simple_cache_destroy()
 void simple_cache_store(uint32_t domain,
                         uint32_t *disk_id_order)
 {
-    if (_cache == NULL)
+    if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
-    struct simple_cache *sc = (struct simple_cache *)_cache;
+    struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
 
     if (sc->dss[domain] != NULL)
         errx(1, "Modifying and existing bpt is not currently supported.");

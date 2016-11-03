@@ -43,7 +43,9 @@ struct cache_def {
 
 struct cache_def cache;
 
-void *_cache;
+//void *_cache;
+void *_cache[10];
+uint32_t CACHE_NAME_SPACE;
 
 struct value_cache_handler_pair
 {

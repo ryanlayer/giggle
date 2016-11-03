@@ -138,6 +138,7 @@ GIGGLE
     cd ..
 
 Speed tests
+    
     for database in 0 1 2 3; do
         for query in 10 100 1000 10000 100000 1000000; do
             ./speed_test.sh $query $database

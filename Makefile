@@ -1,9 +1,11 @@
 BIN=bin
 OBJ=obj
+LIBD=lib
 
 all: 
 	@mkdir -p $(OBJ)
 	@mkdir -p $(BIN)
+	@mkdir -p $(LIBD)
 	cd src; $(MAKE)
 
 server:
@@ -14,3 +16,4 @@ server:
 clean:
 	rm -rf $(BIN)/*
 	rm -rf $(OBJ)/*
+	rm -rf $(LIBD)/*
