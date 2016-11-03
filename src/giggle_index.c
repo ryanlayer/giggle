@@ -705,10 +705,14 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
     gi->len = init_size;
     gi->num = 0;
     gi->root_ids = (uint32_t *)calloc(sizeof(uint32_t), gi->len);
+
+    gi->chrm_idx = chrm_index_init(init_size, NULL);
+    /*
     gi->chrm_index = ordered_set_init(init_size,
                                       str_uint_pair_sort_element_cmp,
                                       str_uint_pair_search_element_cmp,
                                       str_uint_pair_search_key_cmp);
+    */
 
     gi->file_index = unordered_list_init(3);
 
@@ -721,7 +725,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
             calloc(gi->offset_index->size,
                    sizeof(struct file_id_offset_pair));
 
-    gi->chrm_index_file_name = NULL;
+    //gi->chrm_index_file_name = NULL;
     gi->file_index_file_name = NULL;
     gi->offset_index_file_name = NULL;
     gi->root_ids_file_name = NULL;
@@ -733,28 +737,23 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 //{{{int giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 {
-
-    struct str_uint_pair *r = (struct str_uint_pair *)
-            ordered_set_get(gi->chrm_index, chrm);
+    struct str_uint_pair *r = chrm_index_get(gi->chrm_idx, chrm);
 
     if (r == NULL) {
-        struct str_uint_pair *p = (struct str_uint_pair *)
-                malloc(sizeof(struct str_uint_pair));
-        p->uint = gi->chrm_index->num;
-        p->str = strdup(chrm);
-
-        r = (struct str_uint_pair *) ordered_set_add(gi->chrm_index, p);
+        uint32_t id = chrm_index_add(gi->chrm_idx, chrm);
+        uint32_t size = gi->chrm_idx->index->num;
 
         gi->num += 1;
 
-        if (gi->len < gi->chrm_index->size) {
-            gi->root_ids = realloc(gi->root_ids,
-                                   gi->chrm_index->size*sizeof(uint32_t));
-            gi->len = gi->chrm_index->size;
+        if (gi->len < size) {
+            gi->root_ids = realloc(gi->root_ids, (size)*sizeof(uint32_t));
+            gi->len = size;
             uint32_t i;
             for (i = gi->num; i < gi->len; ++i)
                 gi->root_ids[i] = 0;
         }
+
+        return id;
     }
 
     return r->uint;
@@ -764,8 +763,8 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 //{{{void giggle_index_destroy(struct giggle_index **gi)
 void giggle_index_destroy(struct giggle_index **gi)
 {
-    if ((*gi)->chrm_index_file_name != NULL)
-        free((*gi)->chrm_index_file_name);
+    //if ((*gi)->chrm_index_file_name != NULL)
+        //free((*gi)->chrm_index_file_name);
     if ((*gi)->file_index_file_name != NULL)
         free((*gi)->file_index_file_name);
     if ((*gi)->offset_index_file_name != NULL)
@@ -781,7 +780,10 @@ void giggle_index_destroy(struct giggle_index **gi)
     //unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
     free((*gi)->offset_index->vals);
     free((*gi)->offset_index);
-    ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
+
+    //ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
+    chrm_index_destroy(&((*gi)->chrm_idx));
+
     free(*gi);
     *gi = NULL;
 }
@@ -951,7 +953,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
 
 
     if (data_dir != NULL) {
-        int ret = asprintf(&(gi->chrm_index_file_name),
+        int ret = asprintf(&(gi->chrm_idx->file_name),
                            "%s/chrm_index.dat",
                            data_dir);
 
@@ -983,7 +985,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
 //{{{ uint32_t giggle_store(struct giggle_index *gi)
 uint32_t giggle_store(struct giggle_index *gi)
 {
-    if (gi->chrm_index_file_name == NULL)
+    if (gi->chrm_idx->file_name == NULL)
         return 1;
 
     uint32_t i;
@@ -1005,12 +1007,15 @@ uint32_t giggle_store(struct giggle_index *gi)
             gi->root_ids_file_name);
     fclose(f);
 
+    chrm_index_store(gi->chrm_idx);
+    /*
     f = fopen(gi->chrm_index_file_name, "wb");
     ordered_set_store(gi->chrm_index,
                       f,
                       gi->chrm_index_file_name,
                       str_uint_pair_store);
     fclose(f);
+    */
 
     f = fopen(gi->file_index_file_name, "wb");
     unordered_list_store(gi->file_index,
@@ -1095,9 +1100,20 @@ struct giggle_index *giggle_load(char *data_dir,
 #ifdef TIME
     struct timeval read_chrm_index = in();
 #endif
+    char *chrm_index_file_name = NULL;
+
+    ret = asprintf(&chrm_index_file_name,
+                   "%s/chrm_index.dat",
+                   data_dir);
+
+    gi->chrm_idx = chrm_index_load(chrm_index_file_name);
+    free(chrm_index_file_name);
+
+        /*
     ret = asprintf(&(gi->chrm_index_file_name),
                    "%s/chrm_index.dat",
                    data_dir);
+
     f = fopen(gi->chrm_index_file_name, "rb");
     gi->chrm_index = ordered_set_load(f,
                                       gi->chrm_index_file_name,
@@ -1106,6 +1122,7 @@ struct giggle_index *giggle_load(char *data_dir,
                                       str_uint_pair_search_element_cmp,
                                       str_uint_pair_search_key_cmp);
     fclose(f);
+    */
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread chrm_index\t%lu\n",
@@ -2280,34 +2297,32 @@ uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
                                  struct giggle_index *gi_1,
                                  char ***merged_chrm_set)
 {
+    uint32_t gi_0_num = gi_0->chrm_idx->index->num;
+    uint32_t gi_1_num = gi_1->chrm_idx->index->num;
     // Find the union of the two chrom sets
     char **full_chrm_set = 
-            (char **)malloc(
-            (gi_0->chrm_index->num + gi_0->chrm_index->num) * sizeof (char *));
+            (char **)malloc( (gi_0_num + gi_1_num) * sizeof (char *));
 
     uint32_t i;
-    for (i = 0; i < gi_0->chrm_index->num; ++i) {
+    for (i = 0; i < gi_0_num; ++i) {
         struct str_uint_pair *p = 
-                (struct str_uint_pair *)gi_0->chrm_index->data[i];
+                (struct str_uint_pair *)gi_0->chrm_idx->index->data[i];
         full_chrm_set[i] = strdup(p->str);
     }
-    for (i = 0; i < gi_1->chrm_index->num; ++i) {
+    for (i = 0; i < gi_1_num; ++i) {
         struct str_uint_pair *p = 
-                (struct str_uint_pair *)gi_1->chrm_index->data[i];
-        full_chrm_set[i + gi_0->chrm_index->num] = strdup(p->str);
+                (struct str_uint_pair *)gi_1->chrm_idx->index->data[i];
+        full_chrm_set[i + gi_0_num] = strdup(p->str);
     }
 
-    qsort(full_chrm_set,
-          gi_0->chrm_index->num + gi_1->chrm_index->num,
-          sizeof(char *),
-          char_p_cmp);
+    qsort(full_chrm_set, gi_0_num + gi_1_num, sizeof(char *), char_p_cmp);
 
     uint32_t j, num_uniq = 0;
 
-    for (i = 0; i < gi_0->chrm_index->num + gi_1->chrm_index->num; ) {
+    for (i = 0; i < gi_0_num + gi_1_num; ) {
         num_uniq += 1;
         j = i + 1;
-        while ((j < gi_0->chrm_index->num + gi_1->chrm_index->num) &&
+        while ((j < gi_0_num + gi_1_num) &&
                (strcmp(full_chrm_set[i], full_chrm_set[j]) == 0)) {
             j += 1;
         }
@@ -2316,18 +2331,18 @@ uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
 
     *merged_chrm_set = (char **)malloc(num_uniq * sizeof (char *));
     uint32_t merged_chrm_set_i = 0;
-    for (i = 0; i < gi_0->chrm_index->num + gi_1->chrm_index->num; ) {
+    for (i = 0; i < gi_0_num + gi_1_num; ) {
         (*merged_chrm_set)[merged_chrm_set_i] = strdup(full_chrm_set[i]);
         merged_chrm_set_i += 1;
         j = i + 1;
-        while ((j < gi_0->chrm_index->num + gi_1->chrm_index->num) &&
+        while ((j < gi_0_num + gi_1_num) &&
                (strcmp(full_chrm_set[i], full_chrm_set[j]) == 0)) {
             j += 1;
         }
         i = j;
     }
 
-    for (i = 0; i < gi_0->chrm_index->num + gi_1->chrm_index->num; ++i)
+    for (i = 0; i < gi_0_num + gi_1_num; ++i)
         free(full_chrm_set[i]);
     free(full_chrm_set);
 
@@ -2486,3 +2501,88 @@ void giggle_merge_leaf_key(struct bpt_node *node,
         free(ends);
 }
 //}}}
+
+/*
+struct chrm_index
+{
+    char *file_name;
+    struct ordered_set *index;
+
+};
+*/
+
+struct chrm_index *chrm_index_init(uint32_t init_size,
+                                   char *file_name)
+{
+    struct chrm_index *idx = 
+        (struct chrm_index *)malloc(sizeof(struct chrm_index));
+
+    idx->index = ordered_set_init(init_size,
+                                  str_uint_pair_sort_element_cmp,
+                                  str_uint_pair_search_element_cmp,
+                                  str_uint_pair_search_key_cmp);
+    if (file_name != NULL)
+        idx->file_name = strdup(file_name);
+    else
+        idx->file_name = NULL;
+
+    return idx;
+}
+
+struct str_uint_pair *chrm_index_get(struct chrm_index *ci,
+                                    char *chrm)
+{
+    return (struct str_uint_pair *) ordered_set_get(ci->index, chrm);
+}
+
+uint32_t chrm_index_add(struct chrm_index *ci,
+                        char *chrm)
+{
+    struct str_uint_pair *p = (struct str_uint_pair *)
+                malloc(sizeof(struct str_uint_pair));
+    p->uint = ci->index->num;
+    p->str = strdup(chrm);
+
+    struct str_uint_pair *r = (struct str_uint_pair *)
+            ordered_set_add(ci->index, p);
+
+    return r->uint;
+}
+
+void chrm_index_destroy(struct chrm_index **ci)
+{
+    if ((*ci)->file_name != NULL)
+        free((*ci)->file_name);
+    ordered_set_destroy(&((*ci)->index), str_uint_pair_free);
+    free(*ci);
+    *ci = NULL;
+}
+
+struct chrm_index *chrm_index_load(char *file_name)
+{
+    struct chrm_index *idx = 
+        (struct chrm_index *)malloc(sizeof(struct chrm_index));
+
+    idx->file_name = strdup(file_name);
+
+    FILE *f = fopen(idx->file_name, "rb");
+    idx->index = ordered_set_load(f,
+                                  idx->file_name,
+                                  str_uint_pair_load,
+                                  str_uint_pair_sort_element_cmp,
+                                  str_uint_pair_search_element_cmp,
+                                  str_uint_pair_search_key_cmp);
+    fclose(f);
+
+    return idx;
+}
+
+void chrm_index_store(struct chrm_index *ci)
+{
+    FILE *f = fopen(ci->file_name, "wb");
+    ordered_set_store(ci->index,
+                      f,
+                      ci->file_name,
+                      str_uint_pair_store);
+    fclose(f);
+}

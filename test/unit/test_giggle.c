@@ -911,7 +911,8 @@ void test_giggle_index_file(void)
     valid_giggle_index(gi);
 
     TEST_ASSERT_EQUAL(1000, r);
-    TEST_ASSERT_EQUAL(23, gi->chrm_index->num); 
+    //TEST_ASSERT_EQUAL(23, gi->chrm_index->num); 
+    TEST_ASSERT_EQUAL(23, gi->chrm_idx->index->num); 
     TEST_ASSERT_EQUAL(23, gi->num); 
 
     uint32_t sizes[23] = {152,
@@ -1352,7 +1353,7 @@ void test_giggle_index_store(void)
     fclose(f);
 
     f = fopen(chrm_index_file_name, "wb");
-    ordered_set_store(gi->chrm_index,
+    ordered_set_store(gi->chrm_idx->index,
                       f,
                       chrm_index_file_name,
                       str_uint_pair_store);
