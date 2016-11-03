@@ -35,7 +35,7 @@ struct cache_handler bpt_node_cache_handler = {bpt_node_serialize,
 int b_search(uint32_t key, const uint32_t *D, uint32_t D_size)
 {
     // This is a common case when incoming data is sorted.
-    if(key >= D[D_size-1]) {
+    if(key > D[D_size-1]) {
         return D_size;
     }
     int lo = -1, hi = D_size, mid;
