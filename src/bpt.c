@@ -32,8 +32,12 @@ struct cache_handler bpt_node_cache_handler = {bpt_node_serialize,
                                                bpt_node_free_mem};
 
 //{{{int b_search(int key, int *D, int D_size)
-int b_search(uint32_t key, uint32_t *D, uint32_t D_size)
+int b_search(uint32_t key, const uint32_t *D, uint32_t D_size)
 {
+    // This is a common case when incoming data is sorted.
+    if(key >= D[D_size-1]) {
+        return D_size;
+    }
     int lo = -1, hi = D_size, mid;
     while ( hi - lo > 1) {
         mid = (hi + lo) / 2;

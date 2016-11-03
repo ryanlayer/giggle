@@ -103,7 +103,7 @@ uint32_t bpt_insert_new_value(uint32_t domain,
 //void bpt_print_tree(struct bpt_node *curr, int level);
 //void pbt_print_node(struct bpt_node *bpt_node);
 
-int b_search(uint32_t key, uint32_t *D, uint32_t D_size);
+int b_search(uint32_t key, const uint32_t *D, uint32_t D_size);
 
 int bpt_find_insert_pos(struct bpt_node *leaf, uint32_t key);
 
