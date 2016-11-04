@@ -2401,7 +2401,7 @@ void giggle_merge_leaf_key(struct bpt_node *node,
         (*merged_offset_index)->size = (*merged_offset_index)->size * 2;
 
         fprintf(stderr,
-                "merged_offset_index size: %llu\n",
+                "merged_offset_index size: %" PRIu64 "\n",
                 (*merged_offset_index)->size);
 
 
@@ -2449,7 +2449,7 @@ void giggle_merge_leaf_key(struct bpt_node *node,
                                  &((*merged_offset_index)->num));
 
         fprintf(stderr,
-                "oid:%u,mid:%llu ",
+                "oid:%u,mid:%" PRIu64 " ",
                 starts[j],
                 (*merged_offset_index)->num);
 
