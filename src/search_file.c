@@ -44,11 +44,11 @@ int main(int argc, char **argv)
                      uint32_t_ll_giggle_set_data_handler);
 
     struct long_ll **offsets = (struct long_ll **)
-            calloc(gi->file_index->num, sizeof(struct long_ll *));
+            calloc(gi->file_idx->index->num, sizeof(struct long_ll *));
 
     uint32_t i,j;
 
-    for (i = 0; i < gi->file_index->num; ++i)
+    for (i = 0; i < gi->file_idx->index->num; ++i)
         offsets[i] = NULL;
 
 
@@ -84,9 +84,9 @@ int main(int argc, char **argv)
 
     uint32_t sorted_offsets_num = num_intervals * 2;
     long *sorted_offsets = (long *)malloc(sorted_offsets_num*sizeof(long));
-    for (i = 0; i < gi->file_index->num; ++i) {
-        struct file_data *fd = 
-                (struct file_data *)unordered_list_get(gi->file_index, i); 
+    for (i = 0; i < gi->file_idx->index->num; ++i) {
+
+        struct file_data *fd = file_index_get(gi->file_idx, i);
 
         printf("#\t%s\t", fd->file_name);
 

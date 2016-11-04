@@ -49,6 +49,19 @@ uint32_t chrm_index_add(struct chrm_index *ci,
 void chrm_index_store(struct chrm_index *ci);
 void chrm_index_destroy(struct chrm_index **ci);
 
+struct file_index 
+{
+    char *file_name; //<! file_index file name
+    struct unordered_list *index; //<! database file_data elements list
+};
+
+struct file_index *file_index_init(uint32_t init_size, char *file_name);
+void file_index_destroy(struct file_index **fi);
+uint32_t file_index_add(struct file_index *fi, char *file_name);
+void file_index_store(struct file_index *fi);
+struct file_index *file_index_load(char *file_name);
+struct file_data *file_index_get(struct file_index *fi, uint32_t id);
+
 
 /**
  * @brief The core GIGGLE data structure.
@@ -64,15 +77,17 @@ struct giggle_index
     uint32_t *root_ids; //!< list of root index for each chrom
     uint32_t len; //<! allocated size of root_ids
     uint32_t num; //<! number elements in root_ids
-    //struct ordered_set *chrm_index; //<! chrom string/root_id index pairs
     struct chrm_index *chrm_idx; //<! chrom string/root_id index pairs
-    struct unordered_list *file_index; //<! database file_data elements list
+
+    struct file_index *file_idx;
+
+    //struct unordered_list *file_index; //<! database file_data elements list
     //struct unordered_list *offset_index;
     struct file_id_offset_pairs *offset_index; //<! file_index/offse pair list
 
     char *data_dir; //<! database directory
     //char *chrm_index_file_name; //<! chrm_index file name
-    char *file_index_file_name; //<! file_index file name
+    //char *file_index_file_name; //<! file_index file name
     char *offset_index_file_name; //<! offset_index file name
     char *root_ids_file_name; //<! root_ids file name
 };

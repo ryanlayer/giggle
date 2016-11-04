@@ -108,32 +108,32 @@ void test_giggle_index_search_store_search_block(void)
 
     //{{{ Get/test merged file index
     struct indexed_list *file_index_id_map_0 = 
-            indexed_list_init(gi_0->file_index->num,
+            indexed_list_init(gi_0->file_idx->index->num,
                               sizeof(uint64_t));
     struct indexed_list *file_index_id_map_1 = 
-            indexed_list_init(gi_1->file_index->num,
+            indexed_list_init(gi_1->file_idx->index->num,
                               sizeof(uint64_t));
 
     struct unordered_list *merged_file_index =
-            unordered_list_init(gi_0->file_index->num + gi_1->file_index->num);
+            unordered_list_init(gi_0->file_idx->index->num + gi_1->file_idx->index->num);
 
-    TEST_ASSERT_EQUAL(gi_0->file_index->num, 
+    TEST_ASSERT_EQUAL(gi_0->file_idx->index->num, 
                       giggle_merge_add_file_index(gi_0,
                                                   file_index_id_map_0,
                                                   merged_file_index));
 
-    TEST_ASSERT_EQUAL(gi_1->file_index->num, 
+    TEST_ASSERT_EQUAL(gi_1->file_idx->index->num, 
                       giggle_merge_add_file_index(gi_1,
                                                   file_index_id_map_1,
                                                   merged_file_index));
 
 
-    TEST_ASSERT_EQUAL(gi_0->file_index->num + gi_1->file_index->num, 
+    TEST_ASSERT_EQUAL(gi_0->file_idx->index->num + gi_1->file_idx->index->num, 
                       merged_file_index->num);
 
-    for (i = 0 ; i < gi_0->file_index->num; ++i) {
+    for (i = 0 ; i < gi_0->file_idx->index->num; ++i) {
         struct file_data *fd = (struct file_data *)
-                unordered_list_get(gi_0->file_index, i);
+                unordered_list_get(gi_0->file_idx->index, i);
         uint32_t j, times_seen = 0;
         for (j = 0; j < merged_file_index->num; ++j) {
             struct file_data *m_fd = (struct file_data *)
@@ -152,9 +152,9 @@ void test_giggle_index_search_store_search_block(void)
         TEST_ASSERT_EQUAL(1, times_seen);
     }
 
-    for (i = 0 ; i < gi_1->file_index->num; ++i) {
+    for (i = 0 ; i < gi_1->file_idx->index->num; ++i) {
         struct file_data *fd = (struct file_data *)
-                unordered_list_get(gi_1->file_index, i);
+                unordered_list_get(gi_1->file_idx->index, i);
         uint32_t j, times_seen = 0;
         for (j = 0; j < merged_file_index->num; ++j) {
             struct file_data *m_fd = (struct file_data *)

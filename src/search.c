@@ -75,8 +75,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
     uint32_t i,j;
 
     for(i = 0; i < gqr->num_files; i++) {
-        struct file_data *fd = 
-            (struct file_data *)unordered_list_get(gi->file_index, i); 
+        struct file_data *fd = file_index_get(gi->file_idx, i);
         if (test_pattern_match(gi,
                                regexs,
                                file_patterns,

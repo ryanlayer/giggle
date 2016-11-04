@@ -714,7 +714,8 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
                                       str_uint_pair_search_key_cmp);
     */
 
-    gi->file_index = unordered_list_init(3);
+    //gi->file_index = unordered_list_init(3);
+    gi->file_idx = file_index_init(3, NULL);
 
     //gi->offset_index = unordered_list_init(1000);
     gi->offset_index = (struct file_id_offset_pairs *)
@@ -726,7 +727,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
                    sizeof(struct file_id_offset_pair));
 
     //gi->chrm_index_file_name = NULL;
-    gi->file_index_file_name = NULL;
+    //gi->file_index_file_name = NULL;
     gi->offset_index_file_name = NULL;
     gi->root_ids_file_name = NULL;
 
@@ -765,8 +766,8 @@ void giggle_index_destroy(struct giggle_index **gi)
 {
     //if ((*gi)->chrm_index_file_name != NULL)
         //free((*gi)->chrm_index_file_name);
-    if ((*gi)->file_index_file_name != NULL)
-        free((*gi)->file_index_file_name);
+    //if ((*gi)->file_index_file_name != NULL)
+        //free((*gi)->file_index_file_name);
     if ((*gi)->offset_index_file_name != NULL)
         free((*gi)->offset_index_file_name);
     if ((*gi)->root_ids_file_name != NULL)
@@ -775,9 +776,10 @@ void giggle_index_destroy(struct giggle_index **gi)
         free((*gi)->data_dir);
 
     free((*gi)->root_ids);
-    //unordered_list_destroy(&((*gi)->file_index), free_wrapper);
-    unordered_list_destroy(&((*gi)->file_index), file_data_free);
-    //unordered_list_destroy(&((*gi)->offset_index), free_wrapper);
+
+    //unordered_list_destroy(&((*gi)->file_index), file_data_free);
+    file_index_destroy(&((*gi)->file_idx));
+
     free((*gi)->offset_index->vals);
     free((*gi)->offset_index);
 
@@ -800,12 +802,14 @@ uint32_t giggle_index_file(struct giggle_index *gi,
     uint32_t start, end;
     long offset;
 
-    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+    /*
     struct file_data *fd = (struct file_data *)
         calloc(1, sizeof(struct file_data));
     fd->file_name = strdup(file_name);
-    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
     uint32_t file_id = unordered_list_add(gi->file_index, fd);
+    */
+    uint32_t file_id = file_index_add(gi->file_idx, file_name);
+    struct file_data *fd = file_index_get(gi->file_idx, file_id);
 
     uint32_t j = 0;
 
@@ -957,7 +961,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                            "%s/chrm_index.dat",
                            data_dir);
 
-        ret = asprintf(&(gi->file_index_file_name),
+        ret = asprintf(&(gi->file_idx->file_name),
                        "%s/file_index.dat",
                        data_dir);
 
@@ -1017,13 +1021,16 @@ uint32_t giggle_store(struct giggle_index *gi)
     fclose(f);
     */
 
+    //FIX
+    file_index_store(gi->file_idx);
+    /*
     f = fopen(gi->file_index_file_name, "wb");
     unordered_list_store(gi->file_index,
                          f,
                          gi->file_index_file_name,
                          file_data_store);
-                         //c_str_store);
     fclose(f);
+    */
 
     f = fopen(gi->offset_index_file_name, "wb");
     /*
@@ -1132,6 +1139,15 @@ struct giggle_index *giggle_load(char *data_dir,
 #ifdef TIME
     struct timeval read_file_index = in();
 #endif
+
+    char *file_index_file_name = NULL;
+    ret = asprintf(&file_index_file_name,
+                   "%s/file_index.dat",
+                   data_dir);
+    gi->file_idx = file_index_load(file_index_file_name);
+    free(file_index_file_name);
+
+    /*
     ret = asprintf(&(gi->file_index_file_name),
                    "%s/file_index.dat",
                    data_dir);
@@ -1139,8 +1155,8 @@ struct giggle_index *giggle_load(char *data_dir,
     gi->file_index = unordered_list_load(f,
                                        gi->file_index_file_name,
                                        file_data_load);
-                                       //c_str_load);
     fclose(f);
+    */
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread file_index\t%lu\n",
@@ -1247,12 +1263,12 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
                 malloc(sizeof(struct giggle_query_result));
 
         gqr->gi = gi;
-        gqr->num_files = gi->file_index->num;
+        gqr->num_files = gi->file_idx->index->num;
         gqr->num_hits = 0;
         gqr->offsets = (struct long_ll **)
-            calloc(gi->file_index->num, sizeof(struct long_ll *));
+            calloc(gi->file_idx->index->num, sizeof(struct long_ll *));
 
-        for (i = 0; i < gi->file_index->num; ++i)
+        for (i = 0; i < gi->file_idx->index->num; ++i)
             gqr->offsets[i] = NULL;
     } else {
         gqr = _gqr;
@@ -1270,7 +1286,7 @@ void giggle_query_result_destroy(struct giggle_query_result **gqr)
     if (*gqr == NULL)
         return;
     uint32_t i;
-    for (i = 0; i < (*gqr)->gi->file_index->num; ++i) {
+    for (i = 0; i < (*gqr)->gi->file_idx->index->num; ++i) {
         long_ll_free((void **)&((*gqr)->offsets[i]));
     }
     free((*gqr)->offsets);
@@ -1357,9 +1373,8 @@ int giggle_query_next(struct giggle_query_iter *gqi,
     }
 
     if (gqi->ipf == NULL) {
-        struct file_data *fd = 
-                (struct file_data *)unordered_list_get(gqi->gi->file_index,
-                                                       gqi->file_id); 
+        struct file_data *fd = file_index_get(gqi->gi->file_idx,
+                                              gqi->file_id); 
         gqi->ipf = input_file_init(fd->file_name);
     }
 
@@ -2271,9 +2286,8 @@ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
                                      struct unordered_list *merged_file_index)
 {
     uint32_t i;
-    for (i = 0 ; i < gi->file_index->num; ++i) {
-        struct file_data *fd = (struct file_data *)
-                unordered_list_get(gi->file_index, i);
+    for (i = 0 ; i < gi->file_idx->index->num; ++i) {
+        struct file_data *fd = file_index_get(gi->file_idx, i);
 
         struct file_data *merged_fd = (struct file_data *)
                 malloc(sizeof(struct file_data));
@@ -2288,7 +2302,7 @@ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
         r = indexed_list_add(file_index_id_map, i, &merged_id);
     }
 
-    return gi->file_index->num;
+    return gi->file_idx->index->num;
 }
 //}}}
 
@@ -2502,15 +2516,8 @@ void giggle_merge_leaf_key(struct bpt_node *node,
 }
 //}}}
 
-/*
-struct chrm_index
-{
-    char *file_name;
-    struct ordered_set *index;
-
-};
-*/
-
+//{{{ chrm_index
+//{{{struct chrm_index *chrm_index_init(uint32_t init_size,
 struct chrm_index *chrm_index_init(uint32_t init_size,
                                    char *file_name)
 {
@@ -2528,13 +2535,17 @@ struct chrm_index *chrm_index_init(uint32_t init_size,
 
     return idx;
 }
+//}}}
 
+//{{{struct str_uint_pair *chrm_index_get(struct chrm_index *ci,
 struct str_uint_pair *chrm_index_get(struct chrm_index *ci,
                                     char *chrm)
 {
     return (struct str_uint_pair *) ordered_set_get(ci->index, chrm);
 }
+//}}}
 
+//{{{uint32_t chrm_index_add(struct chrm_index *ci,
 uint32_t chrm_index_add(struct chrm_index *ci,
                         char *chrm)
 {
@@ -2548,7 +2559,9 @@ uint32_t chrm_index_add(struct chrm_index *ci,
 
     return r->uint;
 }
+//}}}
 
+//{{{void chrm_index_destroy(struct chrm_index **ci)
 void chrm_index_destroy(struct chrm_index **ci)
 {
     if ((*ci)->file_name != NULL)
@@ -2557,7 +2570,9 @@ void chrm_index_destroy(struct chrm_index **ci)
     free(*ci);
     *ci = NULL;
 }
+//}}}
 
+//{{{struct chrm_index *chrm_index_load(char *file_name)
 struct chrm_index *chrm_index_load(char *file_name)
 {
     struct chrm_index *idx = 
@@ -2576,7 +2591,9 @@ struct chrm_index *chrm_index_load(char *file_name)
 
     return idx;
 }
+//}}}
 
+//{{{void chrm_index_store(struct chrm_index *ci)
 void chrm_index_store(struct chrm_index *ci)
 {
     FILE *f = fopen(ci->file_name, "wb");
@@ -2586,3 +2603,79 @@ void chrm_index_store(struct chrm_index *ci)
                       str_uint_pair_store);
     fclose(f);
 }
+//}}}
+//}}}
+
+// file_index
+
+//{{{struct file_index *file_index_init(uint32_t init_size, char *file_name)
+struct file_index *file_index_init(uint32_t init_size, char *file_name)
+{
+    struct file_index *fi = (struct file_index *)
+            malloc(sizeof(struct file_index));
+    fi->index = unordered_list_init(3);
+    fi->file_name = NULL;
+    if (file_name != NULL)
+        fi->file_name = strdup(file_name);
+    return fi;
+}
+//}
+
+//{{{ void file_index_destroy(struct file_index **fi)
+void file_index_destroy(struct file_index **fi)
+{
+    unordered_list_destroy(&((*fi)->index), file_data_free);
+    if ((*fi)->file_name != NULL) {
+        free((*fi)->file_name);
+        (*fi)->file_name = NULL;
+    }
+    free(*fi);
+    *fi = NULL;
+}
+//}}}
+
+//{{{uint32_t file_index_add(struct file_index *fi, char *file_name)
+uint32_t file_index_add(struct file_index *fi, char *file_name)
+{
+    struct file_data *fd = (struct file_data *)
+            calloc(1, sizeof(struct file_data));
+    fd->file_name = strdup(file_name);
+    return unordered_list_add(fi->index, fd);
+}
+//}}}
+
+//{{{void file_index_store(struct file_index *fi)
+void file_index_store(struct file_index *fi)
+{
+    FILE *f = fopen(fi->file_name, "wb");
+    unordered_list_store(fi->index,
+                         f,
+                         fi->file_name,
+                         file_data_store);
+    fclose(f);
+}
+
+//{{{struct file_index *file_index_load(char *file_name)
+struct file_index *file_index_load(char *file_name)
+{
+    struct file_index *fi = (struct file_index *)
+        malloc(sizeof(struct file_index));
+    fi->file_name = strdup(file_name);
+    FILE *f = fopen(file_name, "rb");
+    fi->index = unordered_list_load(f,
+                                    fi->file_name,
+                                    file_data_load);
+    fclose(f);
+
+    return fi;
+}
+//}}}
+
+//{{{struct file_data *file_index_get(struct file_index *fi, uint32_t id)
+struct file_data *file_index_get(struct file_index *fi, uint32_t id)
+{
+    return (struct file_data *)unordered_list_get(fi->index, id);
+}
+//}}}
+
+//}}}
