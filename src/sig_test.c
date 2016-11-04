@@ -48,7 +48,7 @@ int main(int argc, char **argv)
                      uint32_t_ll_giggle_set_data_handler);
 
     uint32_t *file_counts = (uint32_t *)
-            calloc(gi->file_index->num, sizeof(uint32_t));
+            calloc(gi->file_idx->index->num, sizeof(uint32_t));
 
     uint32_t num_intervals = 0;
     double mean_interval_size = 0.0;
@@ -76,10 +76,10 @@ int main(int argc, char **argv)
                     unordered_list_get(gi->offset_index, curr->val);
                 */
                 struct file_id_offset_pair fid_off = 
-                    gi->offset_index->vals[curr->val];
-                struct file_data *fd = 
-                    (struct file_data *)
-                    unordered_list_get(gi->file_index, fid_off.file_id);
+                        offset_index_get(gi->offset_idx, curr->val);
+                    //gi->offset_idx->index->vals[curr->val];
+                struct file_data *fd = file_index_get(gi->file_idx,
+                                                      fid_off.file_id);
 
                 file_counts[fid_off.file_id] += 1;
 
@@ -92,13 +92,12 @@ int main(int argc, char **argv)
     mean_interval_size = mean_interval_size/num_intervals;
 
     struct doubles_uint32_t_tuple *sig = (struct doubles_uint32_t_tuple *)
-        calloc(gi->file_index->num, sizeof(struct doubles_uint32_t_tuple));
+            calloc(gi->file_idx->index->num,
+                   sizeof(struct doubles_uint32_t_tuple));
 
     uint32_t i;
-    for (i = 0; i < gi->file_index->num; ++i) {
-        struct file_data *fd = 
-            (struct file_data *)
-            unordered_list_get(gi->file_index, i);
+    for (i = 0; i < gi->file_idx->index->num; ++i) {
+        struct file_data *fd = file_index_get(gi->file_idx, i);
 
         long long n11 = (long long)(file_counts[i]);
         long long n12 = (long long)(MAX(0,num_intervals - file_counts[i]));
@@ -120,14 +119,12 @@ int main(int argc, char **argv)
     }
 
     qsort(sig,
-          gi->file_index->num,
+          gi->file_idx->index->num,
           sizeof(struct doubles_uint32_t_tuple), 
           doubles_uint32_t_tuple_cmp);
 
-    for (i = 0; i < gi->file_index->num; ++i) {
-        struct file_data *fd = 
-            (struct file_data *)
-            unordered_list_get(gi->file_index, sig[i].u1);
+    for (i = 0; i < gi->file_idx->index->num; ++i) {
+        struct file_data *fd = file_index_get(gi->file_idx,  sig[i].u1);
         /*
         printf("%s\t"
                "right:%f\t"

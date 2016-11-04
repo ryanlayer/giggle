@@ -911,7 +911,8 @@ void test_giggle_index_file(void)
     valid_giggle_index(gi);
 
     TEST_ASSERT_EQUAL(1000, r);
-    TEST_ASSERT_EQUAL(23, gi->chrm_index->num); 
+    //TEST_ASSERT_EQUAL(23, gi->chrm_index->num); 
+    TEST_ASSERT_EQUAL(23, gi->chrm_idx->index->num); 
     TEST_ASSERT_EQUAL(23, gi->num); 
 
     uint32_t sizes[23] = {152,
@@ -1037,9 +1038,9 @@ void test_uint32_t_ll_giggle_query_region(void)
         unordered_list_get(gi->offset_index, R->head->val);
     */
     struct file_id_offset_pair r = 
-        gi->offset_index->vals[R->head->val];
-    struct file_data *fd = unordered_list_get(gi->file_index,
-                                              r.file_id);
+            offset_index_get(gi->offset_idx, R->head->val);
+        //gi->offset_index->vals[R->head->val];
+    struct file_data *fd = file_index_get(gi->file_idx, r.file_id);
     struct input_file *i = input_file_init(fd->file_name);
 
     i->input_file_seek(i, r.offset);
@@ -1063,7 +1064,8 @@ void test_uint32_t_ll_giggle_query_region(void)
     
     //r = (struct file_id_offset_pair *)
             //unordered_list_get(gi->offset_index, R->head->next->val);
-    r = gi->offset_index->vals[R->head->next->val];
+    //r = gi->offset_index->vals[R->head->next->val];
+    r = offset_index_get(gi->offset_idx, R->head->next->val);
     i->input_file_seek(i, r.offset);
     x = i->input_file_get_next_interval(i,
                                         &chrm,
@@ -1175,8 +1177,8 @@ void test_giggle_index_directory(void)
     valid_giggle_index(gi);
 
     TEST_ASSERT_EQUAL(21000, r);
-    TEST_ASSERT_EQUAL(21, gi->file_index->num);
-    TEST_ASSERT_EQUAL(21000, gi->offset_index->num);
+    TEST_ASSERT_EQUAL(21, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(21000, gi->offset_idx->index->num);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)
         giggle_query_region(gi, "11", 1000, 3000000);
@@ -1221,8 +1223,8 @@ void test_giggle_init_null_dir(void)
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
     TEST_ASSERT_EQUAL(11000, r);
-    TEST_ASSERT_EQUAL(11, gi->file_index->num);
-    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
+    TEST_ASSERT_EQUAL(11, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(11000, gi->offset_idx->index->num);
 
     giggle_query_region(gi, "11", 1000, 3000000);
 
@@ -1258,8 +1260,8 @@ void test_giggle_init_store_load(void)
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
     TEST_ASSERT_EQUAL(21000, r);
-    TEST_ASSERT_EQUAL(21, gi->file_index->num);
-    TEST_ASSERT_EQUAL(21000, gi->offset_index->num);
+    TEST_ASSERT_EQUAL(21, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(21000, gi->offset_idx->index->num);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)
         giggle_query_region(gi, "11", 1000, 3000000);
@@ -1352,25 +1354,28 @@ void test_giggle_index_store(void)
     fclose(f);
 
     f = fopen(chrm_index_file_name, "wb");
-    ordered_set_store(gi->chrm_index,
+    ordered_set_store(gi->chrm_idx->index,
                       f,
                       chrm_index_file_name,
                       str_uint_pair_store);
     fclose(f);
 
+    gi->file_idx->file_name = strdup(file_index_file_name);
+    file_index_store(gi->file_idx);
+
+    /*
     f = fopen(file_index_file_name, "wb");
     unordered_list_store(gi->file_index,
                          f,
                          file_index_file_name,
                          c_str_store);
     fclose(f);
+    */
 
+    gi->offset_idx->file_name = strdup(offset_index_file_name);
+    offset_index_store(gi->offset_idx);
+    /*
     f = fopen(offset_index_file_name, "wb");
-    //unordered_list_store(gi->offset_index,
-                         //f,
-                         //offset_index_file_name,
-                         //file_id_offset_pair_store);
-                         //
     if (fwrite(&(gi->offset_index->num),
                sizeof(uint64_t),1, f) != 1)
         err(EX_IOERR, "Error writing offset_index num to '%s'.",
@@ -1381,6 +1386,7 @@ void test_giggle_index_store(void)
         err(EX_IOERR, "Error writing file_id offset pairs to '%s'.",
             gi->offset_index_file_name);
     fclose(f);
+    */
 
     giggle_index_destroy(&gi);
     cache.destroy();
@@ -1586,11 +1592,15 @@ void test_valid_giggle_index_many(void)
             long offset;
 
         
+            /*
             struct file_data *fd = (struct file_data *)
                 calloc(1, sizeof(struct file_data));
             fd->file_name = strdup(file_name);
        
             uint32_t file_id = unordered_list_add(gi->file_index, fd);
+            */
+            uint32_t file_id = file_index_add(gi->file_idx, file_name);
+            struct file_data *fd = file_index_get(gi->file_idx, file_id);
 
             uint32_t j = 0;
 
@@ -1603,6 +1613,10 @@ void test_valid_giggle_index_many(void)
                                                    &start,
                                                    &end,
                                                    &offset) >= 0) {
+                intrv_id = offset_index_add(gi->offset_idx,
+                                            offset,
+                                            file_id);
+                /*
                 intrv_id = gi->offset_index->num;
                 gi->offset_index->num = gi->offset_index->num + 1;
                 if (gi->offset_index->num == gi->offset_index->size) {
@@ -1618,6 +1632,7 @@ void test_valid_giggle_index_many(void)
                 }
                 gi->offset_index->vals[intrv_id].offset = offset;
                 gi->offset_index->vals[intrv_id].file_id = file_id;
+                */
 
 
                 uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
@@ -1681,12 +1696,17 @@ void test_valid_giggle_index(void)
     uint32_t start, end;
     long offset;
 
-    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
+
+    /*
     struct file_data *fd = (struct file_data *)
         calloc(1, sizeof(struct file_data));
     fd->file_name = strdup(files[1]);
-    //uint32_t file_id = unordered_list_add(gi->file_index, strdup(file_name));
     uint32_t file_id = unordered_list_add(gi->file_index, fd);
+    */
+
+    uint32_t file_id = file_index_add(gi->file_idx, files[1]);
+    struct file_data *fd = file_index_get(gi->file_idx, file_id);
+
 
     uint32_t j = 0;
 
@@ -1706,6 +1726,12 @@ void test_valid_giggle_index(void)
         //p->file_id = file_id;
 
         //intrv_id = unordered_list_add(gi->offset_index, p);
+
+        intrv_id = offset_index_add(gi->offset_idx,
+                                    offset,
+                                    file_id);
+
+        /*
         intrv_id = gi->offset_index->num;
         gi->offset_index->num = gi->offset_index->num + 1;
         if (gi->offset_index->num == gi->offset_index->size) {
@@ -1717,6 +1743,7 @@ void test_valid_giggle_index(void)
         }
         gi->offset_index->vals[intrv_id].offset = offset;
         gi->offset_index->vals[intrv_id].file_id = file_id;
+        */
 
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
         uint32_t r = giggle_insert(chrm_id,

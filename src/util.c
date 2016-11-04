@@ -146,8 +146,7 @@ int test_pattern_match(struct giggle_index *gi,
     if (f_is_set == 0)
         return 1;
 
-    struct file_data *fd = 
-        (struct file_data *)unordered_list_get(gi->file_index, file_id); 
+    struct file_data *fd = file_index_get(gi->file_idx, file_id);
 
     int match = 0;
     uint32_t j;
