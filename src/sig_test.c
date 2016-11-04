@@ -76,7 +76,8 @@ int main(int argc, char **argv)
                     unordered_list_get(gi->offset_index, curr->val);
                 */
                 struct file_id_offset_pair fid_off = 
-                    gi->offset_index->vals[curr->val];
+                        offset_index_get(gi->offset_idx, curr->val);
+                    //gi->offset_idx->index->vals[curr->val];
                 struct file_data *fd = file_index_get(gi->file_idx,
                                                       fid_off.file_id);
 

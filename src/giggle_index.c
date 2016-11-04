@@ -707,17 +707,10 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
     gi->root_ids = (uint32_t *)calloc(sizeof(uint32_t), gi->len);
 
     gi->chrm_idx = chrm_index_init(init_size, NULL);
-    /*
-    gi->chrm_index = ordered_set_init(init_size,
-                                      str_uint_pair_sort_element_cmp,
-                                      str_uint_pair_search_element_cmp,
-                                      str_uint_pair_search_key_cmp);
-    */
-
-    //gi->file_index = unordered_list_init(3);
     gi->file_idx = file_index_init(3, NULL);
 
-    //gi->offset_index = unordered_list_init(1000);
+    gi->offset_idx = offset_index_init(1000, NULL);
+    /*
     gi->offset_index = (struct file_id_offset_pairs *)
             malloc(sizeof(struct file_id_offset_pairs));
     gi->offset_index->num = 0;
@@ -726,9 +719,8 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
             calloc(gi->offset_index->size,
                    sizeof(struct file_id_offset_pair));
 
-    //gi->chrm_index_file_name = NULL;
-    //gi->file_index_file_name = NULL;
     gi->offset_index_file_name = NULL;
+    */
     gi->root_ids_file_name = NULL;
 
     return gi;
@@ -764,12 +756,8 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 //{{{void giggle_index_destroy(struct giggle_index **gi)
 void giggle_index_destroy(struct giggle_index **gi)
 {
-    //if ((*gi)->chrm_index_file_name != NULL)
-        //free((*gi)->chrm_index_file_name);
-    //if ((*gi)->file_index_file_name != NULL)
-        //free((*gi)->file_index_file_name);
-    if ((*gi)->offset_index_file_name != NULL)
-        free((*gi)->offset_index_file_name);
+    //if ((*gi)->offset_index_file_name != NULL)
+        //free((*gi)->offset_index_file_name);
     if ((*gi)->root_ids_file_name != NULL)
         free((*gi)->root_ids_file_name);
     if ((*gi)->data_dir != NULL)
@@ -780,8 +768,9 @@ void giggle_index_destroy(struct giggle_index **gi)
     //unordered_list_destroy(&((*gi)->file_index), file_data_free);
     file_index_destroy(&((*gi)->file_idx));
 
-    free((*gi)->offset_index->vals);
-    free((*gi)->offset_index);
+    offset_index_destroy(&((*gi)->offset_idx));
+    //free((*gi)->offset_index->vals);
+    //free((*gi)->offset_index);
 
     //ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
     chrm_index_destroy(&((*gi)->chrm_idx));
@@ -830,6 +819,10 @@ uint32_t giggle_index_file(struct giggle_index *gi,
         p->file_id = file_id;
         intrv_id = unordered_list_add(gi->offset_index, p);
 */
+        intrv_id = offset_index_add(gi->offset_idx,
+                                    offset,
+                                    file_id);
+        /*
         intrv_id = gi->offset_index->num;
         gi->offset_index->num = gi->offset_index->num + 1;
         if (gi->offset_index->num == gi->offset_index->size) {
@@ -845,7 +838,7 @@ uint32_t giggle_index_file(struct giggle_index *gi,
         }
         gi->offset_index->vals[intrv_id].offset = offset;
         gi->offset_index->vals[intrv_id].file_id = file_id;
-
+        */
 
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
         uint32_t r = giggle_insert(chrm_id,
@@ -965,7 +958,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                        "%s/file_index.dat",
                        data_dir);
 
-        ret = asprintf(&(gi->offset_index_file_name),
+        ret = asprintf(&(gi->offset_idx->file_name),
                        "%s/offset_index.dat",
                        data_dir);
 
@@ -1021,7 +1014,6 @@ uint32_t giggle_store(struct giggle_index *gi)
     fclose(f);
     */
 
-    //FIX
     file_index_store(gi->file_idx);
     /*
     f = fopen(gi->file_index_file_name, "wb");
@@ -1032,13 +1024,9 @@ uint32_t giggle_store(struct giggle_index *gi)
     fclose(f);
     */
 
-    f = fopen(gi->offset_index_file_name, "wb");
+    offset_index_store(gi->offset_idx);
     /*
-    unordered_list_store(gi->offset_index,
-                         f,
-                         gi->offset_index_file_name,
-                         file_id_offset_pair_store);
-    */
+    f = fopen(gi->offset_index_file_name, "wb");
     if (fwrite(&(gi->offset_index->num),
                sizeof(uint64_t),1, f) != 1)
         err(EX_IOERR, "Error writing offset_index num to '%s'.",
@@ -1050,6 +1038,7 @@ uint32_t giggle_store(struct giggle_index *gi)
         err(EX_IOERR, "Error writing file_id offset pairs to '%s'.",
             gi->offset_index_file_name);
     fclose(f);
+    */
 
     return 0;
 }
@@ -1166,17 +1155,19 @@ struct giggle_index *giggle_load(char *data_dir,
 #ifdef TIME
     struct timeval read_offset_index = in();
 #endif
+    char *offset_index_file_name = NULL;
+    ret = asprintf(&offset_index_file_name,
+                   "%s/offset_index.dat",
+                   data_dir);
+    gi->offset_idx = offset_index_load(offset_index_file_name);
+    free(offset_index_file_name);
+
+    /*
     ret = asprintf(&(gi->offset_index_file_name),
                    "%s/offset_index.dat",
                    data_dir);
 
     f = fopen(gi->offset_index_file_name, "rb");
-    /*
-    gi->offset_index = unordered_list_load(f,
-                                           gi->offset_index_file_name,
-                                           file_id_offset_pair_load);
-
-    */
     gi->offset_index = (struct file_id_offset_pairs *)
             malloc(sizeof(struct file_id_offset_pairs));
     fr = fread(&(gi->offset_index->num), sizeof(uint64_t), 1, f);
@@ -1192,6 +1183,7 @@ struct giggle_index *giggle_load(char *data_dir,
     check_file_read(gi->offset_index_file_name, f, gi->offset_index->num, fr);
 
     fclose(f);
+    */
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread offset_index\t%lu\n",
@@ -1864,7 +1856,11 @@ void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
         uint32_t i;
         for (i = 0; i < R->len; ++i) {
             struct file_id_offset_pair fid_off = 
-                    gi->offset_index->vals[R->data[i]];
+                    offset_index_get(gi->offset_idx, R->data[i]);
+            /*
+            struct file_id_offset_pair fid_off = 
+                    gi->offset_idx->index->vals[R->data[i]];
+            */
             long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
         }
 
@@ -2016,7 +2012,7 @@ uint32_t giggle_merge_chrom(char *chrm_string,
                                   context_tree_0,
                                   offset_id_map_0,
                                   file_index_id_map_0,
-                                  gi_0->offset_index,
+                                  gi_0->offset_idx->index,
                                   merged_offset_index,
                                   &merged_starts, 
                                   &merged_starts_size, 
@@ -2055,7 +2051,7 @@ uint32_t giggle_merge_chrom(char *chrm_string,
                                   context_tree_1,
                                   offset_id_map_1,
                                   file_index_id_map_1,
-                                  gi_1->offset_index,
+                                  gi_1->offset_idx->index,
                                   merged_offset_index,
                                   &merged_starts, 
                                   &merged_starts_size, 
@@ -2095,7 +2091,7 @@ uint32_t giggle_merge_chrom(char *chrm_string,
                                   context_tree_0,
                                   offset_id_map_0,
                                   file_index_id_map_0,
-                                  gi_0->offset_index,
+                                  gi_0->offset_idx->index,
                                   merged_offset_index,
                                   &merged_starts, 
                                   &merged_starts_size, 
@@ -2111,7 +2107,7 @@ uint32_t giggle_merge_chrom(char *chrm_string,
                                   context_tree_1,
                                   offset_id_map_1,
                                   file_index_id_map_1,
-                                  gi_1->offset_index,
+                                  gi_1->offset_idx->index,
                                   merged_offset_index,
                                   &merged_starts, 
                                   &merged_starts_size, 
@@ -2596,6 +2592,9 @@ struct chrm_index *chrm_index_load(char *file_name)
 //{{{void chrm_index_store(struct chrm_index *ci)
 void chrm_index_store(struct chrm_index *ci)
 {
+    if (ci->file_name == NULL)
+        errx(1,"No output file given for chrm_index.");
+
     FILE *f = fopen(ci->file_name, "wb");
     ordered_set_store(ci->index,
                       f,
@@ -2606,8 +2605,7 @@ void chrm_index_store(struct chrm_index *ci)
 //}}}
 //}}}
 
-// file_index
-
+//{{{ file_index
 //{{{struct file_index *file_index_init(uint32_t init_size, char *file_name)
 struct file_index *file_index_init(uint32_t init_size, char *file_name)
 {
@@ -2619,7 +2617,7 @@ struct file_index *file_index_init(uint32_t init_size, char *file_name)
         fi->file_name = strdup(file_name);
     return fi;
 }
-//}
+//}}}
 
 //{{{ void file_index_destroy(struct file_index **fi)
 void file_index_destroy(struct file_index **fi)
@@ -2647,6 +2645,9 @@ uint32_t file_index_add(struct file_index *fi, char *file_name)
 //{{{void file_index_store(struct file_index *fi)
 void file_index_store(struct file_index *fi)
 {
+    if (fi->file_name == NULL)
+        errx(1,"No output file given for file_index.");
+
     FILE *f = fopen(fi->file_name, "wb");
     unordered_list_store(fi->index,
                          f,
@@ -2654,6 +2655,7 @@ void file_index_store(struct file_index *fi)
                          file_data_store);
     fclose(f);
 }
+//}}}
 
 //{{{struct file_index *file_index_load(char *file_name)
 struct file_index *file_index_load(char *file_name)
@@ -2677,5 +2679,127 @@ struct file_data *file_index_get(struct file_index *fi, uint32_t id)
     return (struct file_data *)unordered_list_get(fi->index, id);
 }
 //}}}
+//}}}
 
+//{{{ offset_index
+
+//{{{struct offset_index *offset_index_init(uint32_t init_size, char
+struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
+{
+    struct offset_index *oi = 
+            (struct offset_index *) malloc(sizeof(struct offset_index));
+    oi->index = (struct file_id_offset_pairs *)
+            malloc(sizeof(struct file_id_offset_pairs));
+    oi->index->num = 0;
+    oi->index->size = 1000;
+    oi->index->vals = (struct file_id_offset_pair *)
+            calloc(oi->index->size, sizeof(struct file_id_offset_pair));
+
+    oi->file_name = NULL;
+    if (file_name != NULL) {
+        oi->file_name = strdup(file_name);
+    }
+
+    return oi;
+}
+//}}}
+
+//{{{void offset_index_destroy(struct offset_index **oi);
+void offset_index_destroy(struct offset_index **oi)
+{
+    free((*oi)->index->vals);
+    free((*oi)->index);
+
+    if ((*oi)->file_name != NULL) {
+        free((*oi)->file_name);
+        (*oi)->file_name = NULL;
+    }
+
+    free(*oi);
+    *oi = NULL;
+}
+//}}}
+
+//{{uint32_t offset_index_add(struct offset_index *oi)
+uint32_t offset_index_add(struct offset_index *oi,
+                          long offset,
+                          uint32_t file_id)
+{
+    uint32_t id = oi->index->num;
+    oi->index->num = oi->index->num + 1;
+    if (oi->index->num == oi->index->size) {
+        oi->index->size = oi->index->size * 2;
+        oi->index->vals = (struct file_id_offset_pair *)
+            realloc(oi->index->vals,
+                    oi->index->size * sizeof(struct file_id_offset_pair));
+        memset(oi->index->vals + oi->index->num,
+               0,
+               (oi->index->size - oi->index->num) *
+                    sizeof(struct file_id_offset_pair));
+    }
+
+    oi->index->vals[id].offset = offset;
+    oi->index->vals[id].file_id = file_id;
+
+    return id;
+}
+//}}}
+
+//{{{void offset_index_store(struct offset_index *oi)
+void offset_index_store(struct offset_index *oi)
+{
+    if (oi->file_name == NULL)
+        errx(1,"No output file given for offset_index.");
+
+    FILE *f = fopen(oi->file_name, "wb");
+    if (fwrite(&(oi->index->num),
+               sizeof(uint64_t),1, f) != 1)
+        err(EX_IOERR, "Error writing offset_index num to '%s'.",
+            oi->file_name);
+
+    if (fwrite(oi->index->vals, 
+               sizeof(struct file_id_offset_pair), 
+               oi->index->num, f) != oi->index->num)
+        err(EX_IOERR, "Error writing file_id offset pairs to '%s'.",
+            oi->file_name);
+    fclose(f);
+}
+//}}}
+
+//{{{struct offset_index *offset_index_load(char *file_name)
+struct offset_index *offset_index_load(char *file_name)
+{
+    struct offset_index *oi = (struct offset_index *)
+            malloc(sizeof(struct offset_index));
+
+    oi->file_name = strdup(file_name);
+
+    FILE *f = fopen(file_name, "rb");
+
+    oi->index = (struct file_id_offset_pairs *)
+            malloc(sizeof(struct file_id_offset_pairs));
+    size_t fr = fread(&(oi->index->num), sizeof(uint64_t), 1, f);
+    check_file_read(oi->file_name, f, 1, fr);
+    oi->index->size = oi->index->num;
+    oi->index->vals = (struct file_id_offset_pair *)
+            malloc(oi->index->size * sizeof(struct file_id_offset_pair));
+    fr = fread(oi->index->vals,
+               sizeof(struct file_id_offset_pair),
+               oi->index->num,
+               f);
+    check_file_read(oi->file_name, f, oi->index->num, fr);
+    fclose(f);
+    
+    return oi;
+}
+//}}}
+
+//{{{struct file_id_offset_pair offset_index_get(struct offset_index *oi,
+struct file_id_offset_pair offset_index_get(struct offset_index *oi,
+                                            uint32_t id)
+{
+    return oi->index->vals[id];
+}
+//}}}
+ 
 //}}}

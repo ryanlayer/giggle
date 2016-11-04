@@ -70,7 +70,8 @@ int main(int argc, char **argv)
             uint32_t count = 0;
             while (curr != NULL) {
                 struct file_id_offset_pair fid_off = 
-                    gi->offset_index->vals[curr->val];
+                    offset_index_get(gi->offset_idx, curr->val);
+                    //gi->offset_idx->index->vals[curr->val];
 
                 long_ll_append(&(offsets[fid_off.file_id]),fid_off.offset);
 

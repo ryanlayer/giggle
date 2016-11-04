@@ -223,7 +223,8 @@ int answer_to_connection(void *cls,
             uint32_t i, printed_i = 0;
             for(i = 0; i < gqr->num_files; i++) {
                 struct file_data *fd = 
-                    (struct file_data *)unordered_list_get(gi->file_index, i); 
+                    file_index_get(gi->file_idx, i);
+                    //(struct file_data *)unordered_list_get(gi->file_index, i); 
 
                 //fprintf(stderr,
                         //"regexs:%p\t"

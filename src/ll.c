@@ -141,7 +141,8 @@ void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
 
         while (curr != NULL) {
             struct file_id_offset_pair fid_off = 
-                    gi->offset_index->vals[curr->val];
+                    offset_index_get(gi->offset_idx, curr->val);
+                    //gi->offset_index->vals[curr->val];
             long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
             curr = curr->next;
         }

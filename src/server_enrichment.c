@@ -531,8 +531,9 @@ static int answer_to_connection (void *cls,
                 char *page = NULL, *tmp_page = NULL;;
                 for(i = 0; i < gqr->num_files; i++) {
                     struct file_data *fd = 
-                        (struct file_data *)
-                        unordered_list_get(gi->file_index, i); 
+                            file_index_get(gi->file_idx, i);
+                        //(struct file_data *)
+                        //unordered_list_get(gi->file_index, i); 
 
                     if (test_pattern_match(gi,
                                            regexs,
@@ -621,7 +622,7 @@ static int answer_to_connection (void *cls,
     if (0 == strcmp (method, "POST")) {
         struct connection_info_struct *con_info = *con_cls;
 
-	fprintf(stderr, "upload_data_size: %u\n", *upload_data_size);
+	fprintf(stderr, "upload_data_size: %zu\n", *upload_data_size);
 
         if (0 != *upload_data_size) {
             MHD_post_process(con_info->postprocessor,
@@ -678,8 +679,9 @@ static int answer_to_connection (void *cls,
 
             for(i = 0; i < gqr->num_files; i++) {
                 struct file_data *fd = 
-                        (struct file_data *)
-                        unordered_list_get(con_info->arg->gi->file_index, i); 
+                        file_index_get(con_info->arg->gi->file_idx, i); 
+                        //(struct file_data *)
+                        //unordered_list_get(con_info->arg->gi->file_index, i); 
 
                 uint32_t file_counts = giggle_get_query_len(gqr, i);
                 long long n11 = (long long)(file_counts);
