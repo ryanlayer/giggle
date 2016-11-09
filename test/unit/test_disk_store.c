@@ -26,7 +26,7 @@ void test_disk_store(void)
     TEST_ASSERT_EQUAL(0, ds->num);
     TEST_ASSERT_EQUAL(10, ds->size);
 
-    uint32_t V[10] = {2,4,6,8,10,12,14,16,18,20}; 
+    uint32_t V[11] = {2,4,6,8,10,12,14,16,18,20,22}; 
 
     uint32_t id = disk_store_append(ds, V, sizeof(uint32_t));
     TEST_ASSERT_EQUAL(0, id);
@@ -64,6 +64,13 @@ void test_disk_store(void)
     id = disk_store_append(ds, V+4, sizeof(uint32_t));
     TEST_ASSERT_EQUAL(4, id);
 
+    id = disk_store_append(ds, V+5, sizeof(uint32_t));
+    id = disk_store_append(ds, V+6, sizeof(uint32_t));
+    id = disk_store_append(ds, V+7, sizeof(uint32_t));
+    id = disk_store_append(ds, V+8, sizeof(uint32_t));
+    id = disk_store_append(ds, V+9, sizeof(uint32_t));
+    id = disk_store_append(ds, V+10, sizeof(uint32_t));
+
     disk_store_destroy(&ds);
 
     index_f = NULL;
@@ -75,8 +82,8 @@ void test_disk_store(void)
                          data_file_name);
 
 
-    TEST_ASSERT_EQUAL(5, ds->num);
-    TEST_ASSERT_EQUAL(10, ds->size);
+    TEST_ASSERT_EQUAL(11, ds->num);
+    TEST_ASSERT_EQUAL(20, ds->size);
 
     free(v);
 
@@ -88,6 +95,10 @@ void test_disk_store(void)
 
     v = disk_store_get(ds, 1, &size);
     TEST_ASSERT_EQUAL(V[1], *v);
+    TEST_ASSERT_EQUAL(sizeof(uint32_t), size);
+
+    v = disk_store_get(ds, 10, &size);
+    TEST_ASSERT_EQUAL(V[10], *v);
     TEST_ASSERT_EQUAL(sizeof(uint32_t), size);
 
     disk_store_destroy(&ds);
