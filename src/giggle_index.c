@@ -2720,7 +2720,7 @@ void offset_index_destroy(struct offset_index **oi)
 }
 //}}}
 
-//{{uint32_t offset_index_add(struct offset_index *oi)
+//{{{uint32_t offset_index_add(struct offset_index *oi)
 uint32_t offset_index_add(struct offset_index *oi,
                           long offset,
                           uint32_t file_id)
@@ -2803,3 +2803,101 @@ struct file_id_offset_pair offset_index_get(struct offset_index *oi,
 //}}}
  
 //}}}
+
+
+//{{{int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
+int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
+                                      uint32_t key_val,
+                                      struct disk_store *ds,
+                                      struct uint32_t_array *leading,
+                                      struct uint32_t_array *starts,
+                                      struct uint32_t_array *ends)
+{
+#if DEBUG
+   fprintf(stderr,
+           "giggle_bulk_insert_append_bpt_key: append %u %u\n",
+           BPT_NUM_KEYS(bpn),
+           key_val);
+#endif
+
+    int ret = 0;
+    if (BPT_NUM_KEYS(bpn) == ORDER) {
+        //fprintf(stderr,
+                //"giggle_bulk_insert_append_bpt_key: store full node\n");
+                
+        BPT_POINTERS_BLOCK(bpn) = ds->num + 1;
+        BPT_NEXT(bpn) = ds->num + 2;
+
+        // Write the node out to disk
+        void *v;
+        uint64_t serialized_size = bpt_node_serialize((void *)bpn, &v);
+        uint32_t ds_id = disk_store_append(ds,
+                                           v,
+                                           serialized_size);         
+        free(v);
+
+        // Write out the leaf data
+        struct leaf_data *ld = (struct leaf_data *)
+                malloc(sizeof(struct leaf_data));
+        ld->num_leading = leading->num;
+        ld->num_starts = starts->num;
+        ld->num_ends = ends->num;
+        fprintf(stderr, 
+                "ld->num_leading:%u\tld->num_starts:%u\tld->num_ends:%u\n",
+                ld->num_leading,
+                ld->num_starts,
+                ld->num_ends);
+        ld->data = (uint32_t *) 
+                malloc((ld->num_leading + ld->num_starts + ld->num_ends) * 
+                        sizeof(uint32_t));
+        ld->leading = ld->data;
+        ld->starts = ld->data + ld->num_leading;
+        ld->ends = ld->data + ld->num_leading + ld->num_starts;
+        memcpy(ld->leading, leading->data, ld->num_leading * sizeof(uint32_t));
+        memcpy(ld->starts, starts->data, ld->num_starts * sizeof(uint32_t));
+        memcpy(ld->ends, ends->data, ld->num_ends * sizeof(uint32_t));
+
+        serialized_size = leaf_data_serialize((void *)ld, &v);
+        ds_id = disk_store_append(ds,
+                                  v,
+                                  serialized_size);         
+        free(v);
+        free(ld->data);
+        free(ld);
+
+        // Reset the bpt node
+        memset(bpn->data, 0, BPT_NODE_SIZE);
+        BPT_ID(bpn) =  ds->num;
+        BPT_PARENT(bpn) = 0;
+        BPT_IS_LEAF(bpn) = 1;
+        BPT_LEADING(bpn) = 0;
+        BPT_NEXT(bpn) = 0;
+        BPT_NUM_KEYS(bpn) = 0;
+        BPT_POINTERS_BLOCK(bpn) = 0;
+
+        // Reset the leaf data
+        leading->num = 0;
+        starts->num = 0;
+        ends->num = 0;
+
+        ret = 1;
+    }
+
+    BPT_KEYS(bpn)[BPT_NUM_KEYS(bpn)] = key_val;
+    BPT_NUM_KEYS(bpn) = BPT_NUM_KEYS(bpn) + 1;
+
+    return ret;
+}
+//}}}
+
+#if 0
+int giggle_bulk_insert_increment_start(struct bpt_node *bpn)
+{
+    // CUMULATIVE
+    uint16_t num_starts =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn)] >> 16;
+}
+
+int giggle_bulk_insert_increment_end(struct bpt_node *bpn)
+{
+}
+#endif

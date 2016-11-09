@@ -20,6 +20,7 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 wah.c \
 		 leaf.c \
 		 jsw_avltree.c \
+		 pq.c \
 		 fastlz.c
 
 

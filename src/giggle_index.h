@@ -370,4 +370,10 @@ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
                                      struct indexed_list *file_index_id_map,
                                      struct unordered_list *merged_file_index);
 
+int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
+                                      uint32_t key_val,
+                                      struct disk_store *ds,
+                                      struct uint32_t_array *leading,
+                                      struct uint32_t_array *starts,
+                                      struct uint32_t_array *ends);
 #endif
