@@ -147,8 +147,17 @@ void disk_store_destroy(struct disk_store **ds)
 uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
 {
     //if (ds->num + 1 >= ds->size)
-    if (ds->num  >= ds->size)
-        errx(1, "Disk store is full.");
+    //if (ds->num  >= ds->size)
+        //errx(1, "Disk store is full.");
+    if (ds->num >= ds->size) {
+        uint32_t old_size = ds->size;
+        ds->size = ds->size * 2;
+        ds->offsets = (uint64_t *)realloc(ds->offsets,
+                                          ds->size * sizeof(uint64_t));
+        memset(ds->offsets + (old_size * sizeof(uint64_t)),
+               0,
+               old_size * sizeof(uint64_t));
+    }
 
     if (fseek(ds->data_fp, 0, SEEK_END) != 0)
         err(1,
