@@ -16,6 +16,12 @@
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
 
+char *CHRM_INDEX_FILE_NAME;
+char *FILE_INDEX_FILE_NAME;
+char *OFFSET_INDEX_FILE_NAME;
+char *ROOT_IDS_FILE_NAME;
+char *CACHE_FILE_NAME_PREFIX;
+
 struct file_id_offset_pair
 {
     uint32_t file_id;
