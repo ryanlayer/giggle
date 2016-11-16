@@ -4,17 +4,11 @@
     > Created (Julienne Walker): June 17, 2003
     > Modified (Julienne Walker): September 24, 2005
 */
-#include "jsw_avltree.h"
-
-#ifdef __cplusplus
-#include <cstdlib>
-
-using std::malloc;
-using std::free;
-using std::size_t;
-#else
 #include <stdlib.h>
-#endif
+#include <stdint.h>
+#include <stdio.h>
+
+#include "jsw_avltree.h"
 
 #ifndef HEIGHT_LIMIT
 #define HEIGHT_LIMIT 64 /* Tallest allowable tree */
@@ -446,3 +440,32 @@ void int_rel_f( void *p )
 {
     free(p);
 }
+
+int uint_cmp_f ( const void *p1, const void *p2 )
+{
+    uint32_t *a = (uint32_t *)p1;
+    uint32_t *b = (uint32_t *)p2;
+
+    if (*a < *b)
+        return -1;
+    else if (*a > *b)
+        return 1;
+    else 
+        return 0;
+}
+
+void *uint_dup_f( void *p )
+{
+    uint32_t *o = (uint32_t *)p;
+    uint32_t *a = (uint32_t *)malloc(sizeof(uint32_t));
+    *a = *o;
+
+    return a;
+}
+
+void uint_rel_f( void *p )
+{
+    free(p);
+}
+
+

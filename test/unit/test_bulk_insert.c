@@ -35,13 +35,11 @@ struct pq_data
 void setUp(void) { }
 void tearDown(void) { }
 
-
-
 //{{{ void test_giggle_bulk_insert(void)
 void test_giggle_bulk_insert(void)
 {
     //{{{ Testing constants
-    uint32_t BPT_keys_0[100] = {50481, 50514, 144527, 144577, 404661, 404708,
+    uint32_t BPT_keys_0[100] = {1, 50481, 50514, 144527, 144577, 404661, 404708,
         422395, 422436, 562161, 562202, 566581, 567102, 585763, 585804, 816018,
         816215, 829181, 829221, 935394, 936147, 936482, 936605, 1004540,
         1004903, 1014910, 1015319, 1243704, 1244171, 1284817, 1284894, 1333543,
@@ -53,21 +51,21 @@ void test_giggle_bulk_insert(void)
         2518312, 2540473, 2540521, 2574446, 2574807, 2741456, 2741507, 3142094,
         3142139, 3190381, 3190416, 3252166, 3252207, 3455260, 3455310, 3578853,
         3579009, 3585079, 3585112, 3612184, 3612525, 3636454, 3636501, 3689319,
-        3691116, 3696692, 3696741, 3774727, 3774986}; 
+        3691116, 3696692, 3696741, 3774727}; 
 
-    uint32_t BPT_keys_1[100] = { 3809712, 3809783, 3825025, 3825065, 4046152,
-        4046215, 4324287, 4324327, 4364646, 4364680, 4413593, 4413626, 4480292,
-        4480341, 4569164, 4569196, 4582988, 4583026, 4643102, 4643134, 4643898,
-        4643933, 4739868, 4739913, 4873368, 4873409, 4992134, 4992166, 5068291,
-        5068337, 5068817, 5068850, 5082558, 5082596, 5309091, 5309133, 5336759,
-        5336798, 5748446, 5748479, 5781921, 5782215, 5866231, 5866265, 5945881,
-        5946136, 5976058, 5976417, 6077466, 6077500, 6087279, 6087335, 6187730,
-        6187938, 6192940, 6192971, 6219287, 6219320, 6289843, 6289885, 6383797,
-        6383831, 6423193, 6423390, 6430517, 6430567, 6453604, 6454441, 6474367,
-        6474735, 6483544, 6483800, 6486473, 6486687, 6769020, 6769062, 6793250,
-        6793281, 6800601, 6800646, 6849663, 6849671, 6850435, 6850470, 6944351,
-        6944397, 6959614, 6959655, 6962099, 6962134, 7134888, 7134899, 7172076,
-        7172248, 7189979, 7190016, 7257688, 7257739, 7278281, 7278678};
+    uint32_t BPT_keys_1[100] = {3774986, 3809712, 3809783, 3825025, 3825065,
+        4046152, 4046215, 4324287, 4324327, 4364646, 4364680, 4413593, 4413626,
+        4480292, 4480341, 4569164, 4569196, 4582988, 4583026, 4643102, 4643134,
+        4643898, 4643933, 4739868, 4739913, 4873368, 4873409, 4992134, 4992166,
+        5068291, 5068337, 5068817, 5068850, 5082558, 5082596, 5309091, 5309133,
+        5336759, 5336798, 5748446, 5748479, 5781921, 5782215, 5866231, 5866265,
+        5945881, 5946136, 5976058, 5976417, 6077466, 6077500, 6087279, 6087335,
+        6187730, 6187938, 6192940, 6192971, 6219287, 6219320, 6289843, 6289885,
+        6383797, 6383831, 6423193, 6423390, 6430517, 6430567, 6453604, 6454441,
+        6474367, 6474735, 6483544, 6483800, 6486473, 6486687, 6769020, 6769062,
+        6793250, 6793281, 6800601, 6800646, 6849663, 6849671, 6850435, 6850470,
+        6944351, 6944397, 6959614, 6959655, 6962099, 6962134, 7134888, 7134899,
+        7172076, 7172248, 7189979, 7190016, 7257688, 7257739, 7278281};
 
     uint32_t bpt_node_tested_0 = 0, bpt_node_tested_1 = 0;
     //}}}
@@ -118,7 +116,7 @@ void test_giggle_bulk_insert(void)
             offset_index_init(1000,
                               "test_bulk_insert.offset.idx");
  
-    struct chrm_index *chrm_idx = chrm_index_init(23,
+    struct chrm_index *chrm_idx = chrm_index_init(24,
                                                   "test_bulk_insert.chrm.idx");
    
     //{{{ add one interval from each file to the priority queue
@@ -167,7 +165,7 @@ void test_giggle_bulk_insert(void)
     globfree(&results);
     //}}}
 
-    TEST_ASSERT_EQUAL(21, file_idx->index->num);
+    TEST_ASSERT_EQUAL(22, file_idx->index->num);
 
     struct pq_data *pqd_start =
             (struct pq_data *)priq_top(pq_start, &pri_start);
@@ -200,7 +198,8 @@ void test_giggle_bulk_insert(void)
     bpn->data = (uint32_t *) malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
     memset(bpn->data, 0, BPT_NODE_SIZE);
 
-    BPT_ID(bpn) =  curr_ds->num;
+    //BPT_ID(bpn) =  curr_ds->num;
+    BPT_ID(bpn) = 1;
     BPT_PARENT(bpn) = 0;
     BPT_IS_LEAF(bpn) = 1;
     BPT_LEADING(bpn) = 0;
@@ -215,19 +214,24 @@ void test_giggle_bulk_insert(void)
     starts = uint32_t_array_init(100);
     ends = uint32_t_array_init(100);
 
+    // This tree will track intervals that have begun and not yet ended and
+    // will be used to populate the leading value of nodes
+    jsw_avltree_t *avl = jsw_avlnew(uint_cmp_f, uint_dup_f, uint_rel_f);
+
     // add the current possition to the node
     ret = giggle_bulk_insert_append_bpt_key(bpn,
                                             curr_pos,
                                             curr_ds,
+                                            avl,
                                             leading,
                                             starts,
                                             ends);
-
 
     // Loop over the start queue until it is empty
     while (priq_top(pq_start, &pri_start) != NULL) {
         // Grab the top element
         pqd_start = (struct pq_data *)priq_pop(pq_start, &pri_start);
+        //fprintf(stderr, "%s s:%u\n", pri_start.chrm, pri_start.pos);
 
         /* The posibilities for this start position are that:
          * 1) it has been seen before, in which case we will need to add the
@@ -251,34 +255,80 @@ void test_giggle_bulk_insert(void)
             // interval id to the end of the leaf data starts
 
             uint32_t idx = uint32_t_array_add(starts, pqd_start->interval_id);
-            //bump starts
-            
-        } else {
+            // bump starts 
+            giggle_bulk_insert_set_starts(bpn, idx);
 
+            // Add interval to tree to track intervals for leading value
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_start.chrm,
+                    pri_start.pos,
+                    pqd_start->interval_id);
+#endif
+
+            jsw_avlinsert(avl, &(pqd_start->interval_id));
+        } else {
             //{{{ #2, we need to go through the ends to catch up
             pqd_end = (struct pq_data *)priq_top(pq_end, &pri_end);
 
             // Since the key changed, flush out the ends to this or new keys
             // up to the value of the next start
             while ( (pqd_end != NULL) && //not empy
-                    ((strcmp(curr_chrm, pri_end.chrm) != 0) || //not a new chr
-                     (pri_end.pos < pri_start.pos)) ) { //< the start we saw
+                    ((strcmp(pri_start.chrm, pri_end.chrm) != 0) || //same chr
+                     (pri_end.pos < pri_start.pos)) ) { // < the start we saw
 
                 pqd_end = (struct pq_data *)priq_pop(pq_end, &pri_end);
+                //fprintf(stderr, "%s e:%u\n", pri_end.chrm, pri_end.pos);
 
                 if (curr_pos == pri_end.pos)  {
                     // The key didnt' change, so append the current
                     // interval id to the end of the leaf data ends
-                    ret = uint32_t_array_add(ends, pqd_end->interval_id);
+                    uint32_t idx = 
+                            uint32_t_array_add(ends,
+                                               pqd_end->interval_id);
+                    // bump ends
+                    giggle_bulk_insert_set_ends(bpn, idx);
+
+                    // remove end from tree tracking leading values
+#if DEBUG
+                    fprintf(stderr,
+                            "<- %s %u %u\n",
+                            pri_end.chrm,
+                            pri_end.pos,
+                            pqd_end->interval_id);
+#endif
+
+                    ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+                    if (ret == 0)
+                        errx(1, "Error removing element from tree.");
                 } else {
                     ret = giggle_bulk_insert_append_bpt_key(bpn,
                                                             pri_end.pos,
                                                             curr_ds,
+                                                            avl,
                                                             leading,
                                                             starts,
                                                             ends);
 
-                    ret = uint32_t_array_add(ends, pqd_end->interval_id);
+                    uint32_t idx =
+                            uint32_t_array_add(ends,
+                                               pqd_end->interval_id);
+                    // bump ends
+                    giggle_bulk_insert_set_ends(bpn, idx);
+
+                    // remove end from tree tracking leading values
+#if DEBUG
+                    fprintf(stderr,
+                            "<- %s %u %u\n",
+                            pri_end.chrm,
+                            pri_end.pos,
+                            pqd_end->interval_id);
+#endif
+                    ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+                    if (ret == 0)
+                        errx(1, "Error removing element from tree.");
+
 
                     curr_pos = pri_end.pos;
 
@@ -309,6 +359,27 @@ void test_giggle_bulk_insert(void)
             // If the chrom did change, we need to sync up the disk store and
             // open up a new one
             if (strcmp(curr_chrm, pri_start.chrm) != 0) {
+
+                if (BPT_NUM_KEYS(bpn) > 0) {
+                    BPT_POINTERS_BLOCK(bpn) = (curr_ds->num + 1) + 1;//1-based
+                    BPT_NEXT(bpn) = 0;
+
+                    giggle_bulk_insert_write_leaf_node(bpn,
+                                                       curr_ds,
+                                                       leading,
+                                                       starts,
+                                                       ends);
+                    // Reset the bpt node
+                    memset(bpn->data, 0, BPT_NODE_SIZE);
+                    BPT_ID(bpn) =  1;
+                    BPT_PARENT(bpn) = 0;
+                    BPT_IS_LEAF(bpn) = 1;
+                    BPT_LEADING(bpn) = 0;
+                    BPT_NEXT(bpn) = 0;
+                    BPT_NUM_KEYS(bpn) = 0;
+                    BPT_POINTERS_BLOCK(bpn) = 0;
+                }
+
                 strcpy(curr_chrm, pri_start.chrm);
                 //register the new chrom
                 curr_chrm_id = chrm_index_add(chrm_idx,
@@ -328,22 +399,30 @@ void test_giggle_bulk_insert(void)
                                           NULL,
                                           ds_curr_data_file_name);
                 //}}}
-            
-                //reset the bp tree ndoe
-                //TODO
             }
 
             curr_pos = pri_start.pos;
             ret = giggle_bulk_insert_append_bpt_key(bpn,
                                                     curr_pos,
                                                     curr_ds,
+                                                    avl,
                                                     leading,
                                                     starts,
                                                     ends);
+            uint32_t idx = uint32_t_array_add(starts, pqd_start->interval_id);
+            // bump starts
+            giggle_bulk_insert_set_starts(bpn, idx);
 
+            // add to tree tracking the leading values
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_start.chrm,
+                    pri_start.pos,
+                    pqd_start->interval_id);
+#endif
 
-            ret = uint32_t_array_add(starts, pqd_start->interval_id);
-
+            jsw_avlinsert(avl, &(pqd_start->interval_id));
             //{{{ bpt node contents test
             if (BPT_NUM_KEYS(bpn) == ORDER) {
                 if (bpt_node_tested_0 == 0) {
@@ -396,19 +475,35 @@ void test_giggle_bulk_insert(void)
             pqd_end->file_id = pqd_start->file_id;
             pqd_end->interval_id = interval_id;
             pri_end.pos = end + 1;
+            strcpy(pri_end.chrm, chrm);
             priq_push(pq_end, pqd_end, pri_end);
         }
         //}}}
     }
 
-    //fprintf(stderr, "\te:");
 
     // Once the start queue is empty we need to drain the end queue
     while (priq_top(pq_end, &pri_end) != NULL) {
         pqd_end = (struct pq_data *)priq_pop(pq_end, &pri_end);
- 
+        //fprintf(stderr, "%s e:%u\n", pri_end.chrm, pri_end.pos);
+
         if (curr_pos == pri_end.pos)  {
-            ret = uint32_t_array_add(ends, pqd_end->interval_id);
+            uint32_t idx = uint32_t_array_add(ends, pqd_end->interval_id);
+            // bump ends
+            giggle_bulk_insert_set_ends(bpn, idx);
+
+            // remove from tree tracking leading values
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_end.chrm,
+                    pri_end.pos,
+                    pqd_end->interval_id);
+#endif
+            ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+
+            if (ret == 0)
+                errx(1, "Error removing element from tree.");
             //{{{debug
             /*
             fprintf(stderr,
@@ -422,10 +517,25 @@ void test_giggle_bulk_insert(void)
             ret = giggle_bulk_insert_append_bpt_key(bpn,
                                                     curr_pos,
                                                     curr_ds,
+                                                    avl,
                                                     leading,
                                                     starts,
                                                     ends);
+            uint32_t idx = uint32_t_array_add(ends, curr_pos); 
+            // bump ends
+            giggle_bulk_insert_set_ends(bpn, idx);
 
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_end.chrm,
+                    pri_end.pos,
+                    pqd_end->interval_id);
+#endif
+            // remove from tree tracking leading values
+            ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+            if (ret == 0)
+                errx(1, "Error removing element from tree.");
 
             //{{{ test
             if (BPT_NUM_KEYS(bpn) == ORDER) {
@@ -456,13 +566,149 @@ void test_giggle_bulk_insert(void)
             //}}}
         }
     }
+    
+    if (BPT_NUM_KEYS(bpn) > 0) {
+        BPT_POINTERS_BLOCK(bpn) = (curr_ds->num + 1) + 1;//1-based
+        BPT_NEXT(bpn) = 0;
 
-    //fprintf(stderr, "\n");
+        giggle_bulk_insert_write_leaf_node(bpn,
+                                           curr_ds,
+                                           leading,
+                                           starts,
+                                           ends);
+    }
 
-    TEST_ASSERT_EQUAL(23, chrm_idx->index->num);
-    TEST_ASSERT_EQUAL(21000, offset_idx->index->num);
+    TEST_ASSERT_EQUAL(0, jsw_avlsize(avl));
+    TEST_ASSERT_EQUAL(24, chrm_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, offset_idx->index->num);
 
     disk_store_sync(curr_ds);
     disk_store_destroy(&curr_ds);
+
+    jsw_avldelete(avl);
+
+    //{{{ tests
+    for (i = 0; i < chrm_idx->index->num; ++i) {
+        ret = asprintf(&ds_curr_index_file_name,
+                       "test_bulk_insert.ds_idx.%u",
+                       i);
+        ret = asprintf(&ds_curr_data_file_name,
+                       "test_bulk_insert.ds_data.%u",
+                       i);
+        curr_ds = disk_store_load(NULL,
+                                  ds_curr_index_file_name,
+                                  NULL,
+                                  ds_curr_data_file_name);
+
+        uint32_t num_starts = 0, num_ends = 0;
+
+        uint32_t j;
+        for (j = 0; j < curr_ds->num; ++j) {
+            uint64_t size;
+            void *v = disk_store_get(curr_ds, j, &size);
+            struct bpt_node *bpn_in;
+            uint64_t deserialized_size =
+                    bpt_node_deserialize(v,
+                                        size,
+                                        (void **)&bpn_in); 
+        
+            TEST_ASSERT_EQUAL(j + 1, BPT_ID(bpn_in));//1-based
+            TEST_ASSERT_EQUAL(1, BPT_IS_LEAF(bpn_in));
+            if (j < curr_ds->num - 2) {
+                TEST_ASSERT_EQUAL(j + 2, BPT_NEXT(bpn_in) - 1);//1-based
+            } else {
+                TEST_ASSERT_EQUAL(0, BPT_NEXT(bpn_in));
+            }
+            TEST_ASSERT_EQUAL(j + 1, BPT_POINTERS_BLOCK(bpn_in) - 1);//1-based
+
+            free(bpn_in);
+            free(v);
+            v = NULL;
+
+            j += 1;
+        
+            v = disk_store_get(curr_ds, j, &size);
+            struct leaf_data *ld_in;
+            deserialized_size = leaf_data_deserialize(v,
+                                                      size,
+                                                      (void **)&ld_in); 
+            num_starts += ld_in->num_starts;
+            num_ends += ld_in->num_ends;
+
+            /*
+            fprintf(stderr,
+                    "%u %u %u\n",
+                    ld_in->num_leading,
+                    ld_in->num_starts,
+                    ld_in->num_ends);
+            */
+
+            free(ld_in->data);
+            free(ld_in);
+            free(v);
+            v = NULL;
+        }
+
+        TEST_ASSERT_EQUAL(num_starts, num_ends);
+
+        disk_store_destroy(&curr_ds);
+    }
+    //}}}
+
+    for (i = 0; i < chrm_idx->index->num; ++i) {
+       
+        ret = asprintf(&ds_curr_index_file_name,
+                       "test_bulk_insert.ds_idx.%u",
+                       i);
+        ret = asprintf(&ds_curr_data_file_name,
+                       "test_bulk_insert.ds_data.%u",
+                       i);
+        curr_ds = disk_store_load(NULL,
+                                  ds_curr_index_file_name,
+                                  NULL,
+                                  ds_curr_data_file_name);
+
+        fprintf(stderr, "chrm:%u\n", i);
+
+        // Here we need to loop over each level of the tree until the current
+        // level has just one element in which case that element is the root
+
+        uint32_t num_leaf_node_leaf_data = curr_ds->num;
+        uint32_t curr_level_num_nodes = num_leaf_node_leaf_data / 2;
+        uint32_t curr_level_first_id = 0;
+        uint32_t curr_level_is_leaf = 1;
+        uint32_t new_level_first_id = 0;
+        uint32_t new_level_len = 
+                giggle_bulk_insert_add_tree_level(curr_ds,
+                                                  curr_level_first_id,
+                                                  curr_level_num_nodes,
+                                                  curr_level_is_leaf,
+                                                  &new_level_first_id);
+
+        if (curr_level_num_nodes > 1)
+            TEST_ASSERT_EQUAL((curr_level_num_nodes + ORDER - 1) / ORDER, 
+                              new_level_len);
+        else
+            TEST_ASSERT_EQUAL(0, new_level_len);
+
+        disk_store_destroy(&curr_ds);
+    }
+    
+    //{{{ remove files
+    for (i = 0; i < chrm_idx->index->num; ++i) {
+        ret = asprintf(&ds_curr_index_file_name,
+                       "test_bulk_insert.ds_idx.%u",
+                       i);
+        ret = asprintf(&ds_curr_data_file_name,
+                       "test_bulk_insert.ds_data.%u",
+                       i);
+        curr_ds = disk_store_load(NULL,
+                                  ds_curr_index_file_name,
+                                  NULL,
+                                  ds_curr_data_file_name);
+        remove(ds_curr_index_file_name);
+        remove(ds_curr_data_file_name);
+    }
+    //}}}
 }
 //}}}

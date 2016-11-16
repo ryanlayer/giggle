@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <htslib/khash.h>
 #include "bpt.h"
-//#include "ll.h"
 #include "cache.h"
 #include "leaf.h"
 #include "jsw_avltree.h"
@@ -373,7 +372,25 @@ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
 int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
                                       uint32_t key_val,
                                       struct disk_store *ds,
+                                      jsw_avltree_t *avl,
                                       struct uint32_t_array *leading,
                                       struct uint32_t_array *starts,
                                       struct uint32_t_array *ends);
+
+void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
+                                        struct disk_store *ds,
+                                        struct uint32_t_array *leading,
+                                        struct uint32_t_array *starts,
+                                        struct uint32_t_array *ends);
+
+void giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+                                   uint32_t new_starts);
+
+void giggle_bulk_insert_set_ends(struct bpt_node *bpn,
+                                 uint32_t new_ends);
+uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
+                                           uint32_t curr_level_first_id,
+                                           uint32_t curr_level_num_nodes,
+                                           uint32_t curr_level_is_leaf,
+                                           uint32_t *new_level_first_id);
 #endif

@@ -2804,11 +2804,12 @@ struct file_id_offset_pair offset_index_get(struct offset_index *oi,
  
 //}}}
 
-
+//{{{ giggle_bulk_insert
 //{{{int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
 int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
                                       uint32_t key_val,
                                       struct disk_store *ds,
+                                      jsw_avltree_t *avl,
                                       struct uint32_t_array *leading,
                                       struct uint32_t_array *starts,
                                       struct uint32_t_array *ends)
@@ -2825,49 +2826,18 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
         //fprintf(stderr,
                 //"giggle_bulk_insert_append_bpt_key: store full node\n");
                 
-        BPT_POINTERS_BLOCK(bpn) = ds->num + 1;
-        BPT_NEXT(bpn) = ds->num + 2;
+        BPT_POINTERS_BLOCK(bpn) = (ds->num + 1) + 1;//1-based
+        BPT_NEXT(bpn) = (ds->num + 2) + 1;//1-based
 
-        // Write the node out to disk
-        void *v;
-        uint64_t serialized_size = bpt_node_serialize((void *)bpn, &v);
-        uint32_t ds_id = disk_store_append(ds,
-                                           v,
-                                           serialized_size);         
-        free(v);
-
-        // Write out the leaf data
-        struct leaf_data *ld = (struct leaf_data *)
-                malloc(sizeof(struct leaf_data));
-        ld->num_leading = leading->num;
-        ld->num_starts = starts->num;
-        ld->num_ends = ends->num;
-        fprintf(stderr, 
-                "ld->num_leading:%u\tld->num_starts:%u\tld->num_ends:%u\n",
-                ld->num_leading,
-                ld->num_starts,
-                ld->num_ends);
-        ld->data = (uint32_t *) 
-                malloc((ld->num_leading + ld->num_starts + ld->num_ends) * 
-                        sizeof(uint32_t));
-        ld->leading = ld->data;
-        ld->starts = ld->data + ld->num_leading;
-        ld->ends = ld->data + ld->num_leading + ld->num_starts;
-        memcpy(ld->leading, leading->data, ld->num_leading * sizeof(uint32_t));
-        memcpy(ld->starts, starts->data, ld->num_starts * sizeof(uint32_t));
-        memcpy(ld->ends, ends->data, ld->num_ends * sizeof(uint32_t));
-
-        serialized_size = leaf_data_serialize((void *)ld, &v);
-        ds_id = disk_store_append(ds,
-                                  v,
-                                  serialized_size);         
-        free(v);
-        free(ld->data);
-        free(ld);
+        giggle_bulk_insert_write_leaf_node(bpn,
+                                           ds,
+                                           leading,
+                                           starts,
+                                           ends);
 
         // Reset the bpt node
         memset(bpn->data, 0, BPT_NODE_SIZE);
-        BPT_ID(bpn) =  ds->num;
+        BPT_ID(bpn) =  ds->num + 1;//1-based
         BPT_PARENT(bpn) = 0;
         BPT_IS_LEAF(bpn) = 1;
         BPT_LEADING(bpn) = 0;
@@ -2875,10 +2845,16 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
         BPT_NUM_KEYS(bpn) = 0;
         BPT_POINTERS_BLOCK(bpn) = 0;
 
-        // Reset the leaf data
-        leading->num = 0;
-        starts->num = 0;
-        ends->num = 0;
+        // populate the leading values for the next leaf node
+        jsw_avltrav_t *avl_t = jsw_avltnew();
+        uint32_t *id = (uint32_t *)jsw_avltfirst( avl_t, avl);
+
+        while (id != NULL) {
+            uint32_t idx = uint32_t_array_add(leading, *id);
+            id = (uint32_t *) jsw_avltnext(avl_t);
+        }
+
+        jsw_avltdelete(avl_t);
 
         ret = 1;
     }
@@ -2890,14 +2866,177 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
 }
 //}}}
 
-#if 0
-int giggle_bulk_insert_increment_start(struct bpt_node *bpn)
+//{{{void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
+void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
+                                        struct disk_store *ds,
+                                        struct uint32_t_array *leading,
+                                        struct uint32_t_array *starts,
+                                        struct uint32_t_array *ends)
 {
-    // CUMULATIVE
-    uint16_t num_starts =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn)] >> 16;
-}
+    // Write the node out to disk
+    void *v;
+    uint64_t serialized_size = bpt_node_serialize((void *)bpn, &v);
+    uint32_t ds_id = disk_store_append(ds,
+                                       v,
+                                       serialized_size);         
+    free(v);
 
-int giggle_bulk_insert_increment_end(struct bpt_node *bpn)
-{
-}
+    // Write out the leaf data
+    struct leaf_data *ld = (struct leaf_data *)
+            malloc(sizeof(struct leaf_data));
+    ld->num_leading = leading->num;
+    ld->num_starts = starts->num;
+    ld->num_ends = ends->num;
+
+#if DEBUG
+    fprintf(stderr, 
+            "ld->num_leading\t%u\tld->num_starts\t%u\tld->num_ends\t%u\n",
+            ld->num_leading,
+            ld->num_starts,
+            ld->num_ends);
 #endif
+
+    ld->data = (uint32_t *) 
+            malloc((ld->num_leading + ld->num_starts + ld->num_ends) * 
+                    sizeof(uint32_t));
+    ld->leading = ld->data;
+    ld->starts = ld->data + ld->num_leading;
+    ld->ends = ld->data + ld->num_leading + ld->num_starts;
+    memcpy(ld->leading, leading->data, ld->num_leading * sizeof(uint32_t));
+    memcpy(ld->starts, starts->data, ld->num_starts * sizeof(uint32_t));
+    memcpy(ld->ends, ends->data, ld->num_ends * sizeof(uint32_t));
+
+    serialized_size = leaf_data_serialize((void *)ld, &v);
+    ds_id = disk_store_append(ds,
+                              v,
+                              serialized_size);         
+    free(v);
+    free(ld->data);
+    free(ld);
+
+    // Reset the leaf data
+    leading->num = 0;
+    starts->num = 0;
+    ends->num = 0;
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+void giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+                                   uint32_t new_starts)
+{
+    uint32_t curr_starts_ends =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1];
+    uint32_t curr_starts = curr_starts_ends >> 16;
+    uint32_t curr_ends = curr_starts_ends & 65535;
+    uint32_t new_starts_ends = (new_starts << 16) + curr_ends;
+    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_set_ends(struct bpt_node *bpn,
+void giggle_bulk_insert_set_ends(struct bpt_node *bpn,
+                                 uint32_t new_ends)
+{
+    uint32_t curr_starts_ends =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1];
+    uint32_t curr_starts = curr_starts_ends >> 16;
+    uint32_t curr_ends = curr_starts_ends & 65535;
+    uint32_t new_starts_ends = (curr_starts << 16) + new_ends;
+    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
+}
+//}}}
+
+uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
+                                           uint32_t curr_level_first_id,
+                                           uint32_t curr_level_num_nodes,
+                                           uint32_t curr_level_is_leaf,
+                                           uint32_t *new_level_first_id)
+
+{
+    // If the level only has 1 node, then it will become the root
+    if (curr_level_num_nodes == 1) {
+        *new_level_first_id = curr_level_first_id;
+        return 0;
+    }
+
+
+    // We will use this node to hold the data that will be written to disk
+    struct bpt_node *new_bpn =
+            (struct bpt_node *) malloc(sizeof(struct bpt_node));
+    new_bpn->data = 
+            (uint32_t *) malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+    memset(new_bpn->data, 0, BPT_NODE_SIZE);
+    *new_level_first_id = curr_ds->num;
+    BPT_ID(new_bpn) =  curr_ds->num + 1;//1-based
+
+    uint32_t curr_row_len = 0;
+
+    // put the left most node input the pointers
+    BPT_POINTERS(new_bpn)[0] = curr_level_first_id + 1;//1-based
+    //uint32_t num_leaf_nodes_leaf_data = curr_ds->num;
+
+    uint32_t j, key_i = 0;
+    uint64_t size;
+    void *v;
+    struct bpt_node *bpn_in;
+    uint64_t deserialized_size;
+    uint64_t curr_node_id = 0;
+
+    //for (j = 2; j < num_leaf_nodes_leaf_data; j+=2) {
+    for (j = 1; j < curr_level_num_nodes; j+=1) {
+        // Read the current node from disk
+        if (curr_level_is_leaf == 1)
+            curr_node_id = curr_level_first_id + j*2;
+        else
+            curr_node_id = curr_level_first_id + j;
+        v = disk_store_get(curr_ds, j, &size);
+        deserialized_size = bpt_node_deserialize(v,
+                                                 size,
+                                                 (void **)&bpn_in); 
+#if DEBUG
+        fprintf(stderr,
+                "%u(%u) ",
+                BPT_KEYS(bpn_in)[0],
+                BPT_ID(bpn_in));
+#endif
+
+        BPT_KEYS(new_bpn)[key_i] = BPT_KEYS(bpn_in)[0];
+        BPT_POINTERS(new_bpn)[key_i + 1] = BPT_ID(bpn_in);
+
+        key_i += 1;
+
+        if (key_i == ORDER) {
+            // The node is full, write it to disk and reset
+            void *v;
+            uint64_t serialized_size = bpt_node_serialize((void *)new_bpn, &v);
+            uint32_t ds_id = disk_store_append(curr_ds,
+                                               v,
+                                               serialized_size);         
+            free(v);
+
+            memset(new_bpn->data, 0, BPT_NODE_SIZE);
+            BPT_ID(new_bpn) =  curr_ds->num + 1;//1-based
+            key_i = 0;
+            curr_row_len += 1;
+        }
+    
+        free(bpn_in->data);
+        free(bpn_in);
+        free(v);
+        v = NULL;
+    }
+
+    if (key_i > 0) {
+        void *v;
+        uint64_t serialized_size = bpt_node_serialize((void *)new_bpn, &v);
+        uint32_t ds_id = disk_store_append(curr_ds,
+                                           v,
+                                           serialized_size);         
+        free(v);
+        curr_row_len += 1;
+    }
+
+    free(new_bpn->data);
+    free(new_bpn);
+    return curr_row_len;
+}
+//}}}
