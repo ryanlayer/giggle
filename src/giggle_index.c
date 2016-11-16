@@ -20,6 +20,12 @@
 #include "fastlz.h"
 #include "jsw_avltree.h"
 
+char *CHRM_INDEX_FILE_NAME = "chrm_index.dat";
+char *FILE_INDEX_FILE_NAME = "file_index.dat";
+char *OFFSET_INDEX_FILE_NAME = "offset_index.dat";
+char *ROOT_IDS_FILE_NAME = "root_ids.dat";
+char *CACHE_FILE_NAME_PREFIX = "cache.";
+
 //{{{ void *file_id_offset_pair_load(FILE *f, char *file_name)
 void *file_id_offset_pair_load(FILE *f, char *file_name)
 {
@@ -935,8 +941,9 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
         uint32_t i, ret;
         for (i = 0; i < num_chrms; ++i) {
             ret = asprintf(&(cache_names[i]),
-                           "%s/cache.%u",
+                           "%s/%s%u",
                            data_dir,
+                           CACHE_FILE_NAME_PREFIX,
                            i);
         }
     }
@@ -951,20 +958,24 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
 
     if (data_dir != NULL) {
         int ret = asprintf(&(gi->chrm_idx->file_name),
-                           "%s/chrm_index.dat",
-                           data_dir);
+                           "%s/%s",
+                           data_dir,
+                           CHRM_INDEX_FILE_NAME);
 
         ret = asprintf(&(gi->file_idx->file_name),
-                       "%s/file_index.dat",
-                       data_dir);
+                       "%s/%s",
+                       data_dir,
+                       FILE_INDEX_FILE_NAME);
 
         ret = asprintf(&(gi->offset_idx->file_name),
-                       "%s/offset_index.dat",
-                       data_dir);
+                       "%s/%s",
+                       data_dir,
+                       OFFSET_INDEX_FILE_NAME);
 
         ret = asprintf(&(gi->root_ids_file_name),
-                       "%s/root_ids.dat",
-                       data_dir);
+                       "%s/%s",
+                       data_dir,
+                       ROOT_IDS_FILE_NAME);
     }
 
     if (cache_names != NULL) {
@@ -1067,8 +1078,9 @@ struct giggle_index *giggle_load(char *data_dir,
     struct timeval read_root_ids = in();
 #endif
     int ret = asprintf(&(gi->root_ids_file_name),
-                       "%s/root_ids.dat",
-                       data_dir);
+                       "%s/%s",
+                       data_dir,
+                       ROOT_IDS_FILE_NAME);
 
     FILE *f = fopen(gi->root_ids_file_name, "rb");
     if (f == NULL)
@@ -1099,8 +1111,9 @@ struct giggle_index *giggle_load(char *data_dir,
     char *chrm_index_file_name = NULL;
 
     ret = asprintf(&chrm_index_file_name,
-                   "%s/chrm_index.dat",
-                   data_dir);
+                   "%s/%s",
+                   data_dir,
+                   CHRM_INDEX_FILE_NAME);
 
     gi->chrm_idx = chrm_index_load(chrm_index_file_name);
     free(chrm_index_file_name);
@@ -1131,8 +1144,9 @@ struct giggle_index *giggle_load(char *data_dir,
 
     char *file_index_file_name = NULL;
     ret = asprintf(&file_index_file_name,
-                   "%s/file_index.dat",
-                   data_dir);
+                   "%s/%s",
+                   data_dir,
+                   FILE_INDEX_FILE_NAME);
     gi->file_idx = file_index_load(file_index_file_name);
     free(file_index_file_name);
 
@@ -1157,8 +1171,9 @@ struct giggle_index *giggle_load(char *data_dir,
 #endif
     char *offset_index_file_name = NULL;
     ret = asprintf(&offset_index_file_name,
-                   "%s/offset_index.dat",
-                   data_dir);
+                   "%s/%s",
+                   data_dir,
+                   OFFSET_INDEX_FILE_NAME);
     gi->offset_idx = offset_index_load(offset_index_file_name);
     free(offset_index_file_name);
 
@@ -1196,8 +1211,9 @@ struct giggle_index *giggle_load(char *data_dir,
     uint32_t i;
     for (i = 0; i < gi->len; ++i) {
         ret = asprintf(&(cache_names[i]),
-                          "%s/cache.%u",
+                          "%s/%s%u",
                           data_dir,
+                          CACHE_FILE_NAME_PREFIX,
                           i);
     }
 
