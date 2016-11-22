@@ -778,3 +778,52 @@ void byte_array_append_zeros(struct byte_array *ba, uint32_t size)
 }
 //}}}
 //}}}
+
+//{{{ uint32_t_array
+//{{{ struct uint32_t_array *uint32_t_array_init(uint32_t init_size)
+struct uint32_t_array *uint32_t_array_init(uint32_t init_size)
+{
+    struct uint32_t_array *ua = 
+            (struct uint32_t_array *) malloc(sizeof(struct uint32_t_array));
+    ua->size = init_size;
+    ua->data = (uint32_t *)malloc(init_size * sizeof(uint32_t));
+    ua->num = 0;
+    return ua;
+}
+//}}}
+
+//{{{void uint32_t_array_destroy(struct uint32_t_array **ua);
+void uint32_t_array_destroy(struct uint32_t_array **ua)
+{
+    free((*ua)->data);
+    free(*ua);
+    *ua = NULL;
+}
+//}}}
+
+//{{{uint32_t uint32_t_array_add(struct uint32_t_array *oi)
+uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val)
+{
+    if (ua->num == ua->size) {
+        ua->size = ua->size * 2;
+        ua->data = (uint32_t *)
+                realloc(ua->data, ua->size * sizeof(uint32_t));
+        memset(ua->data + ua->num, 0, (ua->size - ua->num) * sizeof(uint32_t));
+    }
+
+    ua->data[ua->num] = val;
+    ua->num = ua->num + 1;
+    return ua->num - 1;
+}
+//}}}
+
+//{{{uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index)
+uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index)
+{
+    if (index > ua->size)
+        return NULL;
+    else
+        return &(ua->data[index]);
+}
+//}}}
+//}}}

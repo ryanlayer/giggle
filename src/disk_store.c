@@ -154,7 +154,7 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
         ds->size = ds->size * 2;
         ds->offsets = (uint64_t *)realloc(ds->offsets,
                                           ds->size * sizeof(uint64_t));
-        memset(ds->offsets + (old_size * sizeof(uint64_t)),
+        memset(ds->offsets + old_size,
                0,
                old_size * sizeof(uint64_t));
     }

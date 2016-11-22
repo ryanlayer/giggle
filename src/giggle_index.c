@@ -716,17 +716,6 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
     gi->file_idx = file_index_init(3, NULL);
 
     gi->offset_idx = offset_index_init(1000, NULL);
-    /*
-    gi->offset_index = (struct file_id_offset_pairs *)
-            malloc(sizeof(struct file_id_offset_pairs));
-    gi->offset_index->num = 0;
-    gi->offset_index->size = 1000;
-    gi->offset_index->vals = (struct file_id_offset_pair *)
-            calloc(gi->offset_index->size,
-                   sizeof(struct file_id_offset_pair));
-
-    gi->offset_index_file_name = NULL;
-    */
     gi->root_ids_file_name = NULL;
 
     return gi;
@@ -762,8 +751,6 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 //{{{void giggle_index_destroy(struct giggle_index **gi)
 void giggle_index_destroy(struct giggle_index **gi)
 {
-    //if ((*gi)->offset_index_file_name != NULL)
-        //free((*gi)->offset_index_file_name);
     if ((*gi)->root_ids_file_name != NULL)
         free((*gi)->root_ids_file_name);
     if ((*gi)->data_dir != NULL)
@@ -771,14 +758,10 @@ void giggle_index_destroy(struct giggle_index **gi)
 
     free((*gi)->root_ids);
 
-    //unordered_list_destroy(&((*gi)->file_index), file_data_free);
     file_index_destroy(&((*gi)->file_idx));
 
     offset_index_destroy(&((*gi)->offset_idx));
-    //free((*gi)->offset_index->vals);
-    //free((*gi)->offset_index);
 
-    //ordered_set_destroy(&((*gi)->chrm_index), str_uint_pair_free);
     chrm_index_destroy(&((*gi)->chrm_idx));
 
     free(*gi);
@@ -797,12 +780,6 @@ uint32_t giggle_index_file(struct giggle_index *gi,
     uint32_t start, end;
     long offset;
 
-    /*
-    struct file_data *fd = (struct file_data *)
-        calloc(1, sizeof(struct file_data));
-    fd->file_name = strdup(file_name);
-    uint32_t file_id = unordered_list_add(gi->file_index, fd);
-    */
     uint32_t file_id = file_index_add(gi->file_idx, file_name);
     struct file_data *fd = file_index_get(gi->file_idx, file_id);
 
@@ -818,33 +795,9 @@ uint32_t giggle_index_file(struct giggle_index *gi,
                                            &end,
                                            &offset) >= 0) {
         //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
-/*
-        p = (struct file_id_offset_pair *)
-                malloc(sizeof(struct file_id_offset_pair));
-        p->offset = offset;
-        p->file_id = file_id;
-        intrv_id = unordered_list_add(gi->offset_index, p);
-*/
         intrv_id = offset_index_add(gi->offset_idx,
                                     offset,
                                     file_id);
-        /*
-        intrv_id = gi->offset_index->num;
-        gi->offset_index->num = gi->offset_index->num + 1;
-        if (gi->offset_index->num == gi->offset_index->size) {
-            gi->offset_index->size = gi->offset_index->size * 2;
-            gi->offset_index->vals = (struct file_id_offset_pair *)
-                realloc(gi->offset_index->vals,
-                        gi->offset_index->size * 
-                        sizeof(struct file_id_offset_pair));
-            memset(gi->offset_index->vals + gi->offset_index->num,
-                   0,
-                   (gi->offset_index->size - gi->offset_index->num) *
-                        sizeof(struct file_id_offset_pair));
-        }
-        gi->offset_index->vals[intrv_id].offset = offset;
-        gi->offset_index->vals[intrv_id].file_id = file_id;
-        */
 
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
         uint32_t r = giggle_insert(chrm_id,
@@ -1016,41 +969,10 @@ uint32_t giggle_store(struct giggle_index *gi)
     fclose(f);
 
     chrm_index_store(gi->chrm_idx);
-    /*
-    f = fopen(gi->chrm_index_file_name, "wb");
-    ordered_set_store(gi->chrm_index,
-                      f,
-                      gi->chrm_index_file_name,
-                      str_uint_pair_store);
-    fclose(f);
-    */
 
     file_index_store(gi->file_idx);
-    /*
-    f = fopen(gi->file_index_file_name, "wb");
-    unordered_list_store(gi->file_index,
-                         f,
-                         gi->file_index_file_name,
-                         file_data_store);
-    fclose(f);
-    */
 
     offset_index_store(gi->offset_idx);
-    /*
-    f = fopen(gi->offset_index_file_name, "wb");
-    if (fwrite(&(gi->offset_index->num),
-               sizeof(uint64_t),1, f) != 1)
-        err(EX_IOERR, "Error writing offset_index num to '%s'.",
-            gi->offset_index_file_name);
-
-    if (fwrite(gi->offset_index->vals, 
-               sizeof(struct file_id_offset_pair), 
-               gi->offset_index->num, f) != gi->offset_index->num)
-        err(EX_IOERR, "Error writing file_id offset pairs to '%s'.",
-            gi->offset_index_file_name);
-    fclose(f);
-    */
-
     return 0;
 }
 //}}}
@@ -1117,21 +1039,6 @@ struct giggle_index *giggle_load(char *data_dir,
 
     gi->chrm_idx = chrm_index_load(chrm_index_file_name);
     free(chrm_index_file_name);
-
-        /*
-    ret = asprintf(&(gi->chrm_index_file_name),
-                   "%s/chrm_index.dat",
-                   data_dir);
-
-    f = fopen(gi->chrm_index_file_name, "rb");
-    gi->chrm_index = ordered_set_load(f,
-                                      gi->chrm_index_file_name,
-                                      str_uint_pair_load,
-                                      str_uint_pair_sort_element_cmp,
-                                      str_uint_pair_search_element_cmp,
-                                      str_uint_pair_search_key_cmp);
-    fclose(f);
-    */
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread chrm_index\t%lu\n",
@@ -1149,17 +1056,6 @@ struct giggle_index *giggle_load(char *data_dir,
                    FILE_INDEX_FILE_NAME);
     gi->file_idx = file_index_load(file_index_file_name);
     free(file_index_file_name);
-
-    /*
-    ret = asprintf(&(gi->file_index_file_name),
-                   "%s/file_index.dat",
-                   data_dir);
-    f = fopen(gi->file_index_file_name, "rb");
-    gi->file_index = unordered_list_load(f,
-                                       gi->file_index_file_name,
-                                       file_data_load);
-    fclose(f);
-    */
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread file_index\t%lu\n",
@@ -1177,28 +1073,6 @@ struct giggle_index *giggle_load(char *data_dir,
     gi->offset_idx = offset_index_load(offset_index_file_name);
     free(offset_index_file_name);
 
-    /*
-    ret = asprintf(&(gi->offset_index_file_name),
-                   "%s/offset_index.dat",
-                   data_dir);
-
-    f = fopen(gi->offset_index_file_name, "rb");
-    gi->offset_index = (struct file_id_offset_pairs *)
-            malloc(sizeof(struct file_id_offset_pairs));
-    fr = fread(&(gi->offset_index->num), sizeof(uint64_t), 1, f);
-    check_file_read(gi->offset_index_file_name, f, 1, fr);
-    gi->offset_index->size = gi->offset_index->num;
-    gi->offset_index->vals = (struct file_id_offset_pair *)
-            malloc(gi->offset_index->size * 
-                   sizeof(struct file_id_offset_pair));
-    fr = fread(gi->offset_index->vals,
-               sizeof(struct file_id_offset_pair),
-               gi->offset_index->num,
-               f);
-    check_file_read(gi->offset_index_file_name, f, gi->offset_index->num, fr);
-
-    fclose(f);
-    */
 #ifdef TIME
     fprintf(stderr,
             "giggle_load\tread offset_index\t%lu\n",
@@ -2736,7 +2610,7 @@ void offset_index_destroy(struct offset_index **oi)
 }
 //}}}
 
-//{{uint32_t offset_index_add(struct offset_index *oi)
+//{{{uint32_t offset_index_add(struct offset_index *oi)
 uint32_t offset_index_add(struct offset_index *oi,
                           long offset,
                           uint32_t file_id)
@@ -2818,4 +2692,974 @@ struct file_id_offset_pair offset_index_get(struct offset_index *oi,
 }
 //}}}
  
+//}}}
+
+//{{{ uint64_t giggle_bulk_insert(char *input_path_name,
+uint64_t giggle_bulk_insert(char *input_path_name,
+                            char *output_path_name,
+                            uint32_t force)
+{
+    // Make the output directory
+    struct stat st = {0};
+    if (stat(output_path_name, &st) == -1) {
+        mkdir(output_path_name, 0700);
+    } else if (force == 1) {
+        rmrf(output_path_name);
+        mkdir(output_path_name, 0700);
+    } else {
+        fprintf(stderr,
+                "The directory '%s' already exists. "
+                "Use the force option to overwrite.\n",
+                output_path_name);
+        return 0;
+    }
+
+    struct giggle_index *gi = (struct giggle_index *)
+            malloc(sizeof(struct giggle_index));
+    gi->data_dir = strdup(output_path_name);
+
+    // open files
+    gi->file_idx = NULL;
+    struct input_file **i_files = NULL;
+    uint32_t num_input_files = giggle_bulk_insert_open_files(input_path_name,
+                                                             gi->data_dir, 
+                                                             &i_files,
+                                                             &(gi->file_idx));
+
+    //init offset index
+    char *offset_index_file_name = NULL;
+    int ret = asprintf(&offset_index_file_name,
+                       "%s/%s",
+                       gi->data_dir,
+                       OFFSET_INDEX_FILE_NAME);
+    gi->offset_idx = offset_index_init(1000, offset_index_file_name);
+    free(offset_index_file_name);
+ 
+    //init chrm index
+    char *chrm_index_file_name = NULL;
+    ret = asprintf(&chrm_index_file_name,
+                   "%s/%s",
+                   gi->data_dir,
+                   CHRM_INDEX_FILE_NAME);
+    gi->chrm_idx = chrm_index_init(24, chrm_index_file_name);
+    free(chrm_index_file_name);
+ 
+    // prime pqs
+    pri_queue pq_start = priq_new(num_input_files);
+    // Since we know that each file will have at most one start in the priority
+    // queue, we can reduce mallocs by reusing the array
+    struct pq_data *pqd_starts = (struct pq_data *)
+            malloc(num_input_files * sizeof(struct pq_data));
+
+    pri_queue pq_end = priq_new(num_input_files);
+
+    giggle_bulk_insert_prime_pqs(gi,
+                                 &pq_start,
+                                 pqd_starts,
+                                 &pq_end,
+                                 i_files,
+                                 num_input_files);
+    
+    // scan files
+    giggle_bulk_insert_build_leaf_levels(gi,
+                                         &pq_start,
+                                         pqd_starts,
+                                         &pq_end,
+                                         i_files,
+                                         num_input_files);
+
+    // clean up
+    priq_free(pq_end);
+    priq_free(pq_start);
+    free(pqd_starts);
+    uint32_t i;
+    for (i = 0; i < num_input_files; ++i)
+        input_file_destroy(&(i_files[i]));
+    free(i_files);
+
+    // build trees
+    giggle_bulk_insert_build_tree_on_leaves(gi);
+
+    for (i = 0; i < gi->file_idx->index->num; ++i) {
+        struct file_data *fd = file_index_get(gi->file_idx, i);
+        fd->mean_interval_size = fd->mean_interval_size / fd->num_intervals;
+    }
+
+    // save 
+    ret = asprintf(&(gi->root_ids_file_name),
+                   "%s/%s",
+                   gi->data_dir,
+                   ROOT_IDS_FILE_NAME);
+
+    FILE *f = fopen(gi->root_ids_file_name, "wb");
+
+    if (fwrite(&(gi->len), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR, "Error writing len for root_ids'%s'.",
+            gi->root_ids_file_name);
+
+    if (fwrite(&(gi->num), sizeof(uint32_t), 1, f) != 1)
+        err(EX_IOERR, "Error writing num for root_ids'%s'.",
+            gi->root_ids_file_name);
+
+    if (fwrite(gi->root_ids, sizeof(uint32_t), gi->len, f) != gi->len)
+        err(EX_IOERR, "Error writing root_ids '%s'.",
+            gi->root_ids_file_name);
+    fclose(f);
+
+    chrm_index_store(gi->chrm_idx);
+    file_index_store(gi->file_idx);
+    offset_index_store(gi->offset_idx);
+
+    uint64_t num_intervals = gi->offset_idx->index->num;
+
+    if (gi->root_ids_file_name != NULL)
+        free(gi->root_ids_file_name);
+    if (gi->data_dir != NULL)
+        free(gi->data_dir);
+
+    free(gi->root_ids);
+    file_index_destroy(&(gi->file_idx));
+    offset_index_destroy(&(gi->offset_idx));
+    chrm_index_destroy(&(gi->chrm_idx));
+    free(gi);
+    gi = NULL;
+
+    return num_intervals;
+}
+//}}}
+
+//{{{void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi)
+void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi)
+{
+    gi->len = gi->chrm_idx->index->num;
+    gi->num = gi->len;
+    gi->root_ids = (uint32_t *)malloc(gi->num * sizeof(uint32_t));
+
+    int ret = asprintf(&(gi->root_ids_file_name),
+                       "%s/%s",
+                       gi->data_dir,
+                       ROOT_IDS_FILE_NAME);
+ 
+    char *ds_curr_index_file_name = NULL, *ds_curr_data_file_name = NULL;
+    struct disk_store *curr_ds;
+    uint32_t curr_chrm_id;
+    for (curr_chrm_id = 0;
+         curr_chrm_id < gi->chrm_idx->index->num;
+         ++curr_chrm_id) {
+
+        ret = asprintf(&ds_curr_index_file_name,
+                       "%s/%s%u.idx",
+                       gi->data_dir,
+                       CACHE_FILE_NAME_PREFIX,
+                       curr_chrm_id);
+        ret = asprintf(&ds_curr_data_file_name,
+                       "%s/%s%u.dat",
+                       gi->data_dir,
+                       CACHE_FILE_NAME_PREFIX,
+                       curr_chrm_id);
+        curr_ds = disk_store_load(NULL,
+                                  ds_curr_index_file_name,
+                                  NULL,
+                                  ds_curr_data_file_name);
+        free(ds_curr_index_file_name);
+        free(ds_curr_data_file_name);
+        ds_curr_index_file_name = NULL;
+        ds_curr_data_file_name = NULL;
+
+        // Here we need to loop over each level of the tree until the current
+        // level has just one element in which case that element is the root
+
+        uint32_t num_leaf_node_leaf_data = curr_ds->num;
+        uint32_t curr_level_num_nodes = num_leaf_node_leaf_data / 2;
+        uint32_t curr_level_first_id = 1;
+        uint32_t curr_level_is_leaf = 1;
+        uint32_t new_level_first_id = 0;
+        uint32_t new_level_len = 
+                giggle_bulk_insert_add_tree_level(curr_ds,
+                                                  curr_level_first_id,
+                                                  curr_level_num_nodes,
+                                                  curr_level_is_leaf,
+                                                  &new_level_first_id);
+
+        while(new_level_len > 1) {
+            curr_level_num_nodes = new_level_len;
+            curr_level_first_id = new_level_first_id;
+            curr_level_is_leaf = 0;
+            new_level_first_id = 0;
+            new_level_len = 
+                    giggle_bulk_insert_add_tree_level(curr_ds,
+                                                      curr_level_first_id,
+                                                      curr_level_num_nodes,
+                                                      curr_level_is_leaf,
+                                                      &new_level_first_id);
+        }
+
+        if (new_level_len == 1) {
+            gi->root_ids[curr_chrm_id] = new_level_first_id;
+        } else if (new_level_len == 0) {
+            gi->root_ids[curr_chrm_id] = curr_level_first_id;
+        } 
+
+        disk_store_destroy(&curr_ds);
+    }
+}
+//}}}
+
+//{{{void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
+void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
+                                          pri_queue *pq_start,
+                                          struct pq_data *pqd_starts,
+                                          pri_queue *pq_end,
+                                          struct input_file **i_files,
+                                          uint32_t num_input_files)
+{
+    // Grab the top element on the start pq 
+    priority pri_start;
+    struct pq_data *pqd_start =
+            (struct pq_data *)priq_top(*pq_start, &pri_start);
+ 
+    // curr_pos and curr_chrm track the status of the indexing
+    uint32_t curr_pos = pri_start.pos;
+    char curr_chrm[10];
+    strcpy(curr_chrm, pri_start.chrm);
+
+    // register the chrom with chrom index
+    uint32_t curr_chrm_id = chrm_index_add(gi->chrm_idx, curr_chrm);
+
+    //init disk store, do this at the start of every chrom
+    char *ds_curr_index_file_name = NULL, *ds_curr_data_file_name = NULL;
+    uint32_t ret = asprintf(&ds_curr_index_file_name,
+                            "%s/%s%u.idx",
+                            gi->data_dir,
+                            CACHE_FILE_NAME_PREFIX,
+                            curr_chrm_id);
+    ret = asprintf(&ds_curr_data_file_name,
+                   "%s/%s%u.dat",
+                   gi->data_dir,
+                   CACHE_FILE_NAME_PREFIX,
+                   curr_chrm_id);
+    struct disk_store *curr_ds = disk_store_init(10,
+                                                 NULL,
+                                                 ds_curr_index_file_name,
+                                                 NULL,
+                                                 ds_curr_data_file_name);
+    free(ds_curr_index_file_name);
+    free(ds_curr_data_file_name);
+
+    // Collect the values into this node, then write it and clear 
+    struct bpt_node *bpn = (struct bpt_node *) malloc(sizeof(struct bpt_node));
+    bpn->data = (uint32_t *) malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+    memset(bpn->data, 0, BPT_NODE_SIZE);
+
+    BPT_ID(bpn) = curr_ds->num + 1;//1-based
+    BPT_PARENT(bpn) = 0;
+    BPT_IS_LEAF(bpn) = 1;
+    BPT_LEADING(bpn) = 0;
+    BPT_NEXT(bpn) = 0;
+    BPT_NUM_KEYS(bpn) = 0;
+    BPT_POINTERS_BLOCK(bpn) = 0;
+
+    // These will be used to create the leaf data for each node
+    uint32_t num_leading = 0, num_starts = 0, num_ends = 0;
+    struct uint32_t_array *leading, *starts, *ends;
+    leading = uint32_t_array_init(100);
+    starts = uint32_t_array_init(100);
+    ends = uint32_t_array_init(100);
+
+    // This tree will track intervals that have begun and not yet ended and
+    // will be used to populate the leading value of nodes
+    jsw_avltree_t *avl = jsw_avlnew(uint_cmp_f, uint_dup_f, uint_rel_f);
+
+    // add the current possition to the node
+    ret = giggle_bulk_insert_append_bpt_key(bpn,
+                                            curr_pos,
+                                            curr_ds,
+                                            avl,
+                                            leading,
+                                            starts,
+                                            ends);
+
+    // These will be used to read intervals from files
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len * sizeof(char));
+    uint32_t start, end;
+    long offset;
+
+    priority pri_end;
+    struct pq_data *pqd_end;
+    // Loop over the start queue until it is empty
+    while (priq_top(*pq_start, &pri_start) != NULL) {
+        // Grab the top element
+        pqd_start = (struct pq_data *)priq_pop(*pq_start, &pri_start);
+
+        /* The posibilities for this start position are that:
+         * 1) it has been seen before, in which case we will need to add the
+         * interval id associated with that position to the starts leaf data
+         * and leave the bp tree node alone
+         * 2) it has not been seen before, so it will need to be eventually
+         * added it to the tree we need to first let the ends catch up by
+         * popping any end that is less than to the start that was just seen 3)
+         * it is on a new chromosome and we need to do everything that is in 2)
+         * as well as close out the disk store for the current chrom and start
+         * a new one
+         *
+         * - Every start and end must be added to the starts and ends arrays.
+         * - Any time a new node is created, we need to move the leading,
+         *   starts, and ends arrays to a leaf node, and reset the arrays
+         */
+
+        if ((pri_start.pos == curr_pos) && 
+            (strcmp(curr_chrm, pri_start.chrm) == 0)) {
+            // The key didnt' change, so append the current
+            // interval id to the end of the leaf data starts
+
+            uint32_t idx = uint32_t_array_add(starts, pqd_start->interval_id);
+            // bump starts 
+            //giggle_bulk_insert_set_starts(bpn, idx + 1);
+            giggle_bulk_insert_set_starts_ends(bpn, starts->num, ends->num);
+
+            // Add interval to tree to track intervals for leading value
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_start.chrm,
+                    pri_start.pos,
+                    pqd_start->interval_id);
+#endif
+
+            jsw_avlinsert(avl, &(pqd_start->interval_id));
+        } else {
+            //{{{ #2, we need to go through the ends to catch up
+            pqd_end = (struct pq_data *)priq_top(*pq_end, &pri_end);
+
+            // Since the key changed, flush out the ends to this or new keys
+            // up to the value of the next start
+            while ( (pqd_end != NULL) && //not empy
+                    ((strcmp(pri_start.chrm, pri_end.chrm) != 0) || //same chr
+                     (pri_end.pos < pri_start.pos)) ) { // < the start we saw
+
+                pqd_end = (struct pq_data *)priq_pop(*pq_end, &pri_end);
+                //fprintf(stderr, "%s e:%u\n", pri_end.chrm, pri_end.pos);
+
+                if (curr_pos == pri_end.pos)  {
+                    // The key didnt' change, so append the current
+                    // interval id to the end of the leaf data ends
+                    uint32_t idx = 
+                            uint32_t_array_add(ends,
+                                               pqd_end->interval_id);
+                    // bump ends
+                    //giggle_bulk_insert_set_ends(bpn, idx + 1);
+                    giggle_bulk_insert_set_starts_ends(bpn,
+                                                       starts->num,
+                                                       ends->num);
+
+                    // remove end from tree tracking leading values
+#if DEBUG
+                    fprintf(stderr,
+                            "<- %s %u %u\n",
+                            pri_end.chrm,
+                            pri_end.pos,
+                            pqd_end->interval_id);
+#endif
+
+                    ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+                    if (ret == 0)
+                        errx(1, "Error removing element from tree.");
+                } else {
+                    ret = giggle_bulk_insert_append_bpt_key(bpn,
+                                                            pri_end.pos,
+                                                            curr_ds,
+                                                            avl,
+                                                            leading,
+                                                            starts,
+                                                            ends);
+
+                    uint32_t idx =
+                            uint32_t_array_add(ends,
+                                               pqd_end->interval_id);
+                    // bump ends
+                    //giggle_bulk_insert_set_ends(bpn, idx + 1);
+                    giggle_bulk_insert_set_starts_ends(bpn,
+                                                       starts->num,
+                                                       ends->num);
+                    // remove end from tree tracking leading values
+#if DEBUG
+                    fprintf(stderr,
+                            "<- %s %u %u\n",
+                            pri_end.chrm,
+                            pri_end.pos,
+                            pqd_end->interval_id);
+#endif
+                    ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+                    if (ret == 0)
+                        errx(1, "Error removing element from tree.");
+
+
+                    curr_pos = pri_end.pos;
+                }
+
+                free(pqd_end);
+                pqd_end = (struct pq_data *)priq_top(*pq_end, &pri_end);
+            }
+            //}}}
+
+            // If the chrom did change, we need to sync up the disk store and
+            // open up a new one
+            if (strcmp(curr_chrm, pri_start.chrm) != 0) {
+
+                if (BPT_NUM_KEYS(bpn) > 0) {
+                    BPT_POINTERS_BLOCK(bpn) = (curr_ds->num + 1) + 1;//1-based
+                    BPT_NEXT(bpn) = 0;
+
+                    giggle_bulk_insert_write_leaf_node(bpn,
+                                                       curr_ds,
+                                                       leading,
+                                                       starts,
+                                                       ends);
+                    // Reset the bpt node
+                    memset(bpn->data, 0, BPT_NODE_SIZE);
+                    BPT_ID(bpn) =  1;
+                    BPT_PARENT(bpn) = 0;
+                    BPT_IS_LEAF(bpn) = 1;
+                    BPT_LEADING(bpn) = 0;
+                    BPT_NEXT(bpn) = 0;
+                    BPT_NUM_KEYS(bpn) = 0;
+                    BPT_POINTERS_BLOCK(bpn) = 0;
+                }
+
+                strcpy(curr_chrm, pri_start.chrm);
+                //register the new chrom
+                curr_chrm_id = chrm_index_add(gi->chrm_idx,
+                                              curr_chrm);
+                //{{{ fix up the disk store
+                disk_store_sync(curr_ds);
+                disk_store_destroy(&curr_ds);
+
+                ret = asprintf(&ds_curr_index_file_name,
+                               "%s/%s%u.idx",
+                               gi->data_dir,
+                               CACHE_FILE_NAME_PREFIX,
+                               curr_chrm_id);
+                ret = asprintf(&ds_curr_data_file_name,
+                               "%s/%s%u.dat",
+                               gi->data_dir,
+                               CACHE_FILE_NAME_PREFIX,
+                               curr_chrm_id);
+                curr_ds = disk_store_init(10,
+                                          NULL,
+                                          ds_curr_index_file_name,
+                                          NULL,
+                                          ds_curr_data_file_name);
+                free(ds_curr_index_file_name);
+                free(ds_curr_data_file_name);
+                //}}}
+            }
+
+            curr_pos = pri_start.pos;
+            ret = giggle_bulk_insert_append_bpt_key(bpn,
+                                                    curr_pos,
+                                                    curr_ds,
+                                                    avl,
+                                                    leading,
+                                                    starts,
+                                                    ends);
+            uint32_t idx = uint32_t_array_add(starts, pqd_start->interval_id);
+            // bump starts
+            //giggle_bulk_insert_set_starts(bpn, idx + 1);
+            giggle_bulk_insert_set_starts_ends(bpn, starts->num, ends->num);
+
+            // add to tree tracking the leading values
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_start.chrm,
+                    pri_start.pos,
+                    pqd_start->interval_id);
+#endif
+
+            jsw_avlinsert(avl, &(pqd_start->interval_id));
+        }
+
+        //{{{ put another interval from the file that just lost one 
+        int ret = i_files[pqd_start->file_id]->
+                    input_file_get_next_interval(i_files[pqd_start->file_id],
+                                                 &chrm,
+                                                 &chrm_len,
+                                                 &start,
+                                                 &end,
+                                                 &offset);
+
+        if (ret >= 0) {
+            uint32_t interval_id = offset_index_add(gi->offset_idx,
+                                                    offset,
+                                                    pqd_start->file_id);
+            struct file_data *fd = file_index_get(gi->file_idx,
+                                                  pqd_start->file_id);
+            fd->mean_interval_size += end-start;
+            fd->num_intervals += 1;
+
+            //fprintf(stderr, "%s %u %u %u\n", chrm, start, end, interval_id);
+
+            pqd_starts[pqd_start->file_id].interval_id = interval_id;
+            pri_start.pos = start;
+            strcpy(pri_start.chrm, chrm);
+            priq_push(*pq_start, &(pqd_starts[pqd_start->file_id]), pri_start);
+
+            pqd_end = (struct pq_data *) malloc(sizeof(struct pq_data));
+            pqd_end->file_id = pqd_start->file_id;
+            pqd_end->interval_id = interval_id;
+            pri_end.pos = end + 1;
+            strcpy(pri_end.chrm, chrm);
+            priq_push(*pq_end, pqd_end, pri_end);
+        }
+        //}}}
+    }
+
+    // Once the start queue is empty we need to drain the end queue
+    while (priq_top(*pq_end, &pri_end) != NULL) {
+        pqd_end = (struct pq_data *)priq_pop(*pq_end, &pri_end);
+
+        if (curr_pos == pri_end.pos)  {
+            uint32_t idx = uint32_t_array_add(ends, pqd_end->interval_id);
+            // bump ends
+            //giggle_bulk_insert_set_ends(bpn, idx + 1);
+            giggle_bulk_insert_set_starts_ends(bpn,
+                                               starts->num,
+                                               ends->num);
+
+            // remove from tree tracking leading values
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_end.chrm,
+                    pri_end.pos,
+                    pqd_end->interval_id);
+#endif
+            ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+
+            if (ret == 0)
+                errx(1, "Error removing element from tree.");
+        } else {
+            curr_pos = pri_end.pos;
+            ret = giggle_bulk_insert_append_bpt_key(bpn,
+                                                    curr_pos,
+                                                    curr_ds,
+                                                    avl,
+                                                    leading,
+                                                    starts,
+                                                    ends);
+            uint32_t idx = uint32_t_array_add(ends, pqd_end->interval_id);
+            // bump ends
+            //giggle_bulk_insert_set_ends(bpn, idx + 1);
+            giggle_bulk_insert_set_starts_ends(bpn,
+                                               starts->num,
+                                               ends->num);
+
+#if DEBUG
+            fprintf(stderr,
+                    "-> %s %u %u\n",
+                    pri_end.chrm,
+                    pri_end.pos,
+                    pqd_end->interval_id);
+#endif
+            // remove from tree tracking leading values
+            ret = jsw_avlerase(avl, &(pqd_end->interval_id));
+            if (ret == 0)
+                errx(1, "Error removing element from tree.");
+        }
+
+        free(pqd_end);
+    }
+    
+
+    // Write out the data if there is a partially filled node left
+    if (BPT_NUM_KEYS(bpn) > 0) {
+        BPT_POINTERS_BLOCK(bpn) = (curr_ds->num + 1) + 1;//1-based
+        BPT_NEXT(bpn) = 0;
+
+        giggle_bulk_insert_write_leaf_node(bpn,
+                                           curr_ds,
+                                           leading,
+                                           starts,
+                                           ends);
+    }
+
+    disk_store_sync(curr_ds);
+    disk_store_destroy(&curr_ds);
+
+    jsw_avldelete(avl);
+
+    free(bpn->data);
+    free(bpn);
+    uint32_t_array_destroy(&leading);
+    uint32_t_array_destroy(&starts);
+    uint32_t_array_destroy(&ends);
+    free(chrm);
+}
+//}}}
+
+//{{{void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
+void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
+                                  pri_queue *pq_start,
+                                  struct pq_data *pqd_starts,
+                                  pri_queue *pq_end,
+                                  struct input_file **i_files,
+                                  uint32_t num_input_files)
+{
+    // Priority queue of starts
+    //pri_queue pq_start = priq_new(results.gl_pathc);
+    priority pri_start;
+    priority pri_end;
+
+    // We cannot assume that there will be some set numberof ends per file
+    // (contained intervals) so we must malloc on each insert
+    struct pq_data *pqd_end;
+
+    // Use these to read intervals from files
+    int chrm_len = 10;
+    char *chrm = (char *)malloc(chrm_len * sizeof(char));
+    uint32_t start, end;
+    long offset;
+
+    uint32_t interval_id = 0;
+
+    // add one interval from each file to the priority queue
+    uint32_t i, ret;
+    for (i = 0; i < num_input_files; i++) {
+        ret = i_files[i]->input_file_get_next_interval(i_files[i],
+                                                       &chrm,
+                                                       &chrm_len,
+                                                       &start,
+                                                       &end,
+                                                       &offset);
+
+        struct file_data *fd = file_index_get(gi->file_idx, i);
+        fd->mean_interval_size += end-start;
+        fd->num_intervals += 1;
+
+        // register the interval with the offset index
+        interval_id = offset_index_add(gi->offset_idx, offset, i);
+
+        //fprintf(stderr, "%s %u %u %u\n", chrm, start, end, interval_id);
+
+        //Update the pq data for the start, use the array to reduce mallocs
+        pqd_starts[i].file_id = i;
+        pqd_starts[i].interval_id = interval_id;
+        pri_start.pos = start;
+        strcpy(pri_start.chrm, chrm);
+        priq_push(*pq_start, &(pqd_starts[i]), pri_start);
+
+        //Update the pq data for the end
+        pqd_end = (struct pq_data *) malloc(sizeof(struct pq_data));
+        pqd_end->file_id = i;
+        pqd_end->interval_id = interval_id;
+        pri_end.pos = end + 1; // use end + 1
+        strcpy(pri_end.chrm, chrm);
+        priq_push(*pq_end, pqd_end, pri_end);
+    }
+
+    free(chrm);
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_open_files(char *input_path_name,
+uint32_t giggle_bulk_insert_open_files(char *input_path_name,
+                                       char *output_dir_name,
+                                       struct input_file ***i_files,
+                                       struct file_index **file_idx)
+{
+    glob_t results;
+    int ret = glob(input_path_name, 0, NULL, &results);
+    if (ret != 0) 
+        errx(1,
+             "Problem with %s (%s), stopping early\n",
+             input_path_name,
+             (ret == GLOB_ABORTED ? "filesystem problem" :
+             ret == GLOB_NOMATCH ? "no match of pattern" :
+             ret == GLOB_NOSPACE ? "no dynamic memory" :
+             "unknown problem"));
+
+    //Array of open pre-sorted input files
+    *i_files = (struct input_file **)
+            malloc(results.gl_pathc * sizeof(struct input_file *));
+
+    char *file_index_file_name = NULL;
+    ret = asprintf(&file_index_file_name,
+                   "%s/%s",
+                   output_dir_name,
+                   FILE_INDEX_FILE_NAME);
+
+    *file_idx = file_index_init(results.gl_pathc,
+                                file_index_file_name);
+    free(file_index_file_name);
+ 
+    uint32_t i;
+    for (i = 0; i < results.gl_pathc; i++) {
+        (*i_files)[i] = input_file_init(results.gl_pathv[i]);
+        // register the file with the file index
+        uint32_t file_id = file_index_add(*file_idx, results.gl_pathv[i]);
+        if (i != file_id)
+            errx(1,
+                 "Error with file_index synchronization. Saw %u, expected %u.",
+                 file_id,
+                 i);
+    }
+    uint32_t num_files = results.gl_pathc;
+    globfree(&results);
+ 
+    return num_files;
+}
+//}}}
+
+//{{{int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
+int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
+                                      uint32_t key_val,
+                                      struct disk_store *ds,
+                                      jsw_avltree_t *avl,
+                                      struct uint32_t_array *leading,
+                                      struct uint32_t_array *starts,
+                                      struct uint32_t_array *ends)
+{
+#if DEBUG
+   fprintf(stderr,
+           "giggle_bulk_insert_append_bpt_key: append %u %u\n",
+           BPT_NUM_KEYS(bpn),
+           key_val);
+#endif
+
+    int ret = 0;
+    if (BPT_NUM_KEYS(bpn) == ORDER) {
+        //fprintf(stderr,
+                //"giggle_bulk_insert_append_bpt_key: store full node\n");
+                
+        BPT_POINTERS_BLOCK(bpn) = (ds->num + 1) + 1;//1-based
+        BPT_NEXT(bpn) = (ds->num + 2) + 1;//1-based
+
+        giggle_bulk_insert_write_leaf_node(bpn,
+                                           ds,
+                                           leading,
+                                           starts,
+                                           ends);
+
+        // Reset the bpt node
+        memset(bpn->data, 0, BPT_NODE_SIZE);
+        BPT_ID(bpn) =  ds->num + 1;//1-based
+        BPT_PARENT(bpn) = 0;
+        BPT_IS_LEAF(bpn) = 1;
+        BPT_LEADING(bpn) = 0;
+        BPT_NEXT(bpn) = 0;
+        BPT_NUM_KEYS(bpn) = 0;
+        BPT_POINTERS_BLOCK(bpn) = 0;
+
+        // populate the leading values for the next leaf node
+        jsw_avltrav_t *avl_t = jsw_avltnew();
+        uint32_t *id = (uint32_t *)jsw_avltfirst( avl_t, avl);
+
+        while (id != NULL) {
+            uint32_t idx = uint32_t_array_add(leading, *id);
+            id = (uint32_t *) jsw_avltnext(avl_t);
+        }
+
+        if (leading->num > 0)
+            BPT_LEADING(bpn) = 1;
+
+        jsw_avltdelete(avl_t);
+
+        ret = 1;
+    }
+
+    BPT_KEYS(bpn)[BPT_NUM_KEYS(bpn)] = key_val;
+    BPT_NUM_KEYS(bpn) = BPT_NUM_KEYS(bpn) + 1;
+
+    return ret;
+}
+//}}}
+
+//{{{void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
+void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
+                                        struct disk_store *ds,
+                                        struct uint32_t_array *leading,
+                                        struct uint32_t_array *starts,
+                                        struct uint32_t_array *ends)
+{
+    // Write the node out to disk
+    void *v;
+    uint64_t serialized_size = bpt_node_serialize((void *)bpn, &v);
+    uint32_t ds_id = disk_store_append(ds,
+                                       v,
+                                       serialized_size);         
+    free(v);
+
+    // Write out the leaf data
+    struct leaf_data *ld = (struct leaf_data *)
+            malloc(sizeof(struct leaf_data));
+    ld->num_leading = leading->num;
+    ld->num_starts = starts->num;
+    ld->num_ends = ends->num;
+
+#if DEBUG
+    fprintf(stderr, 
+            "ld->num_leading\t%u\tld->num_starts\t%u\tld->num_ends\t%u\n",
+            ld->num_leading,
+            ld->num_starts,
+            ld->num_ends);
+#endif
+
+    ld->data = (uint32_t *) 
+            malloc((ld->num_leading + ld->num_starts + ld->num_ends) * 
+                    sizeof(uint32_t));
+    ld->leading = ld->data;
+    ld->starts = ld->data + ld->num_leading;
+    ld->ends = ld->data + ld->num_leading + ld->num_starts;
+    memcpy(ld->leading, leading->data, ld->num_leading * sizeof(uint32_t));
+
+    qsort(ld->leading, ld->num_leading, sizeof(uint32_t), uint32_t_cmp);
+
+    memcpy(ld->starts, starts->data, ld->num_starts * sizeof(uint32_t));
+    memcpy(ld->ends, ends->data, ld->num_ends * sizeof(uint32_t));
+
+    serialized_size = leaf_data_serialize((void *)ld, &v);
+    ds_id = disk_store_append(ds,
+                              v,
+                              serialized_size);         
+    free(v);
+    free(ld->data);
+    free(ld);
+
+    // Reset the leaf data
+    leading->num = 0;
+    starts->num = 0;
+    ends->num = 0;
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+void giggle_bulk_insert_set_starts_ends(struct bpt_node *bpn,
+                                        uint32_t new_starts,
+                                        uint32_t new_ends)
+{
+    uint32_t new_starts_ends = (new_starts << 16) | new_ends;
+    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+void giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+                                   uint32_t new_starts)
+{
+    uint32_t curr_starts_ends =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1];
+    uint32_t curr_starts = curr_starts_ends >> 16;
+    uint32_t curr_ends = curr_starts_ends & 65535;
+    uint32_t new_starts_ends = (new_starts << 16) | curr_ends;
+    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_set_ends(struct bpt_node *bpn,
+void giggle_bulk_insert_set_ends(struct bpt_node *bpn,
+                                 uint32_t new_ends)
+{
+    uint32_t curr_starts_ends =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1];
+    uint16_t curr_starts = curr_starts_ends >> 16;
+    uint16_t curr_ends = curr_starts_ends & 65535;
+    uint32_t new_starts_ends = (curr_starts << 16) | new_ends;
+    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
+}
+//}}}
+
+//{{{uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
+uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
+                                           uint32_t curr_level_first_id,
+                                           uint32_t curr_level_num_nodes,
+                                           uint32_t curr_level_is_leaf,
+                                           uint32_t *new_level_first_id)
+
+{
+    // If the level only has 1 node, then it will become the root
+    if (curr_level_num_nodes == 1) {
+        *new_level_first_id = curr_level_first_id;
+        return 0;
+    }
+
+    // We will use this node to hold the data that will be written to disk
+    struct bpt_node *new_bpn =
+            (struct bpt_node *) malloc(sizeof(struct bpt_node));
+    new_bpn->data = 
+            (uint32_t *) malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+    memset(new_bpn->data, 0, BPT_NODE_SIZE);
+    *new_level_first_id = curr_ds->num + 1;//1-based
+    BPT_ID(new_bpn) =  curr_ds->num + 1;//1-based
+
+    uint32_t curr_row_len = 0;
+
+    // put the left most node input the pointers
+    BPT_POINTERS(new_bpn)[0] = curr_level_first_id;
+    //uint32_t num_leaf_nodes_leaf_data = curr_ds->num;
+
+    uint32_t j, key_i = 0;
+    uint64_t size;
+    void *v;
+    struct bpt_node *bpn_in;
+    uint64_t deserialized_size;
+    uint64_t curr_node_id = 0;
+
+    for (j = 1; j < curr_level_num_nodes; j+=1) {
+        // Read the current node from disk
+        if (curr_level_is_leaf == 1)
+            curr_node_id = curr_level_first_id + j*2;
+        else
+            curr_node_id = curr_level_first_id + j;
+        v = disk_store_get(curr_ds, curr_node_id - 1, &size);
+        deserialized_size = bpt_node_deserialize(v,
+                                                 size,
+                                                 (void **)&bpn_in); 
+#if DEBUG
+        fprintf(stderr,
+                "%u(%u) ",
+                BPT_KEYS(bpn_in)[0],
+                BPT_ID(bpn_in));
+#endif
+
+        BPT_KEYS(new_bpn)[key_i] = BPT_KEYS(bpn_in)[0];
+        BPT_NUM_KEYS(new_bpn) = BPT_NUM_KEYS(new_bpn) + 1;
+        BPT_POINTERS(new_bpn)[key_i + 1] = BPT_ID(bpn_in);
+
+        key_i += 1;
+
+        if (key_i == ORDER) {
+            // The node is full, write it to disk and reset
+            void *v;
+            uint64_t serialized_size = bpt_node_serialize((void *)new_bpn, &v);
+            uint32_t ds_id = disk_store_append(curr_ds,
+                                               v,
+                                               serialized_size);         
+            free(v);
+
+            memset(new_bpn->data, 0, BPT_NODE_SIZE);
+            BPT_ID(new_bpn) =  curr_ds->num + 1;//1-based
+            key_i = 0;
+            curr_row_len += 1;
+        }
+    
+        free(bpn_in->data);
+        free(bpn_in);
+        free(v);
+        v = NULL;
+    }
+
+    if (key_i > 0) {
+        void *v;
+        uint64_t serialized_size = bpt_node_serialize((void *)new_bpn, &v);
+        uint32_t ds_id = disk_store_append(curr_ds,
+                                           v,
+                                           serialized_size);         
+        free(v);
+        curr_row_len += 1;
+    }
+
+    free(new_bpn->data);
+    free(new_bpn);
+    return curr_row_len;
+}
+//}}}
 //}}}

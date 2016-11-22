@@ -34,6 +34,7 @@ struct cache_handler bpt_node_cache_handler = {bpt_node_serialize,
 //{{{int b_search(int key, int *D, int D_size)
 int b_search(uint32_t key, const uint32_t *D, uint32_t D_size)
 {
+    //fprintf(stderr, "D_size:%u\n", D_size);
     // This is a common case when incoming data is sorted.
     if(key > D[D_size-1]) {
         return D_size;
@@ -115,6 +116,7 @@ struct bpt_node *bpt_new_node(uint32_t domain)
 //{{{ struct bpt_node *bpt_find_leaf(struct bpt_node *curr, int key)
 uint32_t bpt_find_leaf(uint32_t domain, uint32_t curr_id, uint32_t key)
 {
+    //fprintf(stderr, "domain:%u\tcurr_id:%u\n", domain, curr_id);
     // cache is zero-based, while bpt is one-based
     struct bpt_node *curr = cache.get(domain,
                                       curr_id - 1,

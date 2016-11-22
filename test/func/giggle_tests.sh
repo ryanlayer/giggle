@@ -43,8 +43,6 @@ then
     rm -f bt.out
 fi
 
-
-
 for i in `seq 1 10`
 do
 R_CHRM=$((RANDOM%21 + 1))
@@ -59,3 +57,28 @@ assert_equal 0 $(diff $STDOUT_FILE <( ../../bin/giggle search \
                                         -i ../data/chr_mix_i \
                                         -r chr$R_CHRM:$R_START-$R_END) | wc -l)
 done
+
+../../bin/giggle index \
+    -i "../data/many/*gz" \
+    -o ../data/many_i \
+    -f \
+2>/dev/null
+
+../../bin/giggle index \
+    -s \
+    -i "../data/many/*gz" \
+    -o ../data/many_i_sort \
+    -f \
+2>/dev/null
+
+run check_bulk_insert \
+        ../../bin/giggle search \
+        -s \
+        -i ../data/many_i_sort \
+        -q ../data/1k.sort.bed.gz
+assert_equal 0 $(diff $STDOUT_FILE <(../../bin/giggle search \
+                                                      -s \
+                                                      -i ../data/many_i \
+                                                      -q ../data/1k.sort.bed.gz) | wc -l)
+
+

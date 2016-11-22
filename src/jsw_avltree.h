@@ -18,15 +18,7 @@
   anyone who has modified the code through
   a header comment, such as this one.
 */
-#ifdef __cplusplus
-#include <cstddef>
-
-using std::size_t;
-
-extern "C" {
-#else
 #include <stddef.h>
-#endif
 
 /* Opaque types */
 typedef struct jsw_avltree jsw_avltree_t;
@@ -40,6 +32,10 @@ typedef void  (*rel_f) ( void *p );
 int int_cmp_f ( const void *p1, const void *p2 );
 void *int_dup_f( void *p );
 void int_rel_f( void *p );
+
+int uint_cmp_f ( const void *p1, const void *p2 );
+void *uint_dup_f( void *p );
+void uint_rel_f( void *p );
 
 /* AVL tree functions */
 jsw_avltree_t *jsw_avlnew ( cmp_f cmp, dup_f dup, rel_f rel );
@@ -56,9 +52,5 @@ void          *jsw_avltfirst ( jsw_avltrav_t *trav, jsw_avltree_t *tree );
 void          *jsw_avltlast ( jsw_avltrav_t *trav, jsw_avltree_t *tree );
 void          *jsw_avltnext ( jsw_avltrav_t *trav );
 void          *jsw_avltprev ( jsw_avltrav_t *trav );
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

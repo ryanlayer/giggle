@@ -954,3 +954,52 @@ void test_bit_map(void)
     remove(file_name);
 }
 //}}}
+
+//{{{void test_uint32_t_array(void)
+void test_uint32_t_array(void)
+{
+    /*
+struct uint32_t_array
+{
+    uint32_t num, size, *data;
+};
+
+struct uint32_t_array *uint32_t_array_init(uint32_t init_size);
+void uint32_t_array_destroy(struct uint32_t_array **ua);
+uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val);
+uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index);
+*/
+
+    struct uint32_t_array *ua = uint32_t_array_init(10);
+
+    TEST_ASSERT_EQUAL(10, ua->size);
+    TEST_ASSERT_EQUAL(0, ua->num);
+
+    uint32_t ret = uint32_t_array_add(ua, 5);
+
+    TEST_ASSERT_EQUAL(10, ua->size);
+    TEST_ASSERT_EQUAL(0, ret);
+    TEST_ASSERT_EQUAL(1, ua->num);
+    TEST_ASSERT_EQUAL(5, ua->data[0]);
+
+    uint32_t *ret_p = uint32_t_array_get(ua, 0);
+    TEST_ASSERT_EQUAL(5, *ret_p);
+
+    ret_p = uint32_t_array_get(ua, 100);
+    TEST_ASSERT_EQUAL(NULL, ret_p);
+
+
+    uint32_t i;
+    for (i = 0; i < 10; ++i) {
+        ret = uint32_t_array_add(ua, 5);
+        TEST_ASSERT_EQUAL(i + 1, ret);
+    }
+
+    TEST_ASSERT_EQUAL(20, ua->size);
+    TEST_ASSERT_EQUAL(11, ua->num);
+   
+    uint32_t_array_destroy(&ua);
+
+    TEST_ASSERT_EQUAL(NULL, ua);
+}
+//}}}

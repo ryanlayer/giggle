@@ -1176,9 +1176,9 @@ void test_giggle_index_directory(void)
 
     valid_giggle_index(gi);
 
-    TEST_ASSERT_EQUAL(21000, r);
-    TEST_ASSERT_EQUAL(21, gi->file_idx->index->num);
-    TEST_ASSERT_EQUAL(21000, gi->offset_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, r);
+    TEST_ASSERT_EQUAL(22, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, gi->offset_idx->index->num);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)
         giggle_query_region(gi, "11", 1000, 3000000);
@@ -1189,13 +1189,13 @@ void test_giggle_index_directory(void)
                                                   "1",
                                                   1000,
                                                   3000000);
-    TEST_ASSERT_EQUAL(70, R->len);
+    TEST_ASSERT_EQUAL(71, R->len);
     uint32_t_ll_free((void **)&R);
     
     R = (struct uint32_t_ll *)giggle_query_region(gi,
                                                   "1",
-                                                  999207,
-                                                  1000014);
+                                                  249250622,
+                                                  249250625);
     TEST_ASSERT_EQUAL(NULL, R);
 
     R = (struct uint32_t_ll *)giggle_query_region(gi,
@@ -1203,7 +1203,7 @@ void test_giggle_index_directory(void)
                                                   52463173,
                                                   52464215);
 
-    TEST_ASSERT_EQUAL(3, R->len);
+    TEST_ASSERT_EQUAL(4, R->len);
     uint32_t_ll_free((void **)&R);
     giggle_index_destroy(&gi);
     cache.destroy();
@@ -1214,29 +1214,27 @@ void test_giggle_index_directory(void)
 void test_giggle_init_null_dir(void)
 {
     struct giggle_index *gi = giggle_init(
-                23,
+                24,
                 NULL,
-                0,
+                1,
                 uint32_t_ll_giggle_set_data_handler);
 
     char *path_name = "../data/many/*bed.gz";
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
-    TEST_ASSERT_EQUAL(11000, r);
-    TEST_ASSERT_EQUAL(11, gi->file_idx->index->num);
-    TEST_ASSERT_EQUAL(11000, gi->offset_idx->index->num);
-
-    giggle_query_region(gi, "11", 1000, 3000000);
+    TEST_ASSERT_EQUAL(21024, r);
+    TEST_ASSERT_EQUAL(22, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, gi->offset_idx->index->num);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                                      "1",
+                                                                      "11",
                                                                       1000,
                                                                       3000000);
     /*
-     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 39
+     * ls *gz | xargs -I{} tabix {} chr11:1000-3000000 | wc -l
+     * 81
      */
-    TEST_ASSERT_EQUAL(39, R->len);
+    TEST_ASSERT_EQUAL(81, R->len);
 
     uint32_t_ll_free((void **)&R);
 
@@ -1251,7 +1249,7 @@ void test_giggle_init_null_dir(void)
 void test_giggle_init_store_load(void)
 {
     struct giggle_index *gi = giggle_init(
-                23,
+                24,
                 "tmp",
                 1,
                 uint32_t_ll_giggle_set_data_handler);
@@ -1259,9 +1257,9 @@ void test_giggle_init_store_load(void)
     char *path_name = "../data/many/*bed.gz";
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
-    TEST_ASSERT_EQUAL(21000, r);
-    TEST_ASSERT_EQUAL(21, gi->file_idx->index->num);
-    TEST_ASSERT_EQUAL(21000, gi->offset_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, r);
+    TEST_ASSERT_EQUAL(22, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, gi->offset_idx->index->num);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)
         giggle_query_region(gi, "11", 1000, 3000000);
@@ -1274,9 +1272,9 @@ void test_giggle_init_store_load(void)
                                                   3000000);
     /*
      * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 70
+     * 71
      */
-    TEST_ASSERT_EQUAL(70, R->len);
+    TEST_ASSERT_EQUAL(71, R->len);
 
     uint32_t_ll_free((void **)&R);
     TEST_ASSERT_EQUAL(0, giggle_store(gi));
@@ -1290,7 +1288,7 @@ void test_giggle_init_store_load(void)
                                                    "1",
                                                    1000,
                                                    1000000);
-    TEST_ASSERT_EQUAL(15, R->len);
+    TEST_ASSERT_EQUAL(16, R->len);
     uint32_t_ll_free((void **)&R);
 
     R = (struct uint32_t_ll *)giggle_query_region(gi,
@@ -1551,7 +1549,7 @@ void valid_giggle_index(struct giggle_index *gi)
 void test_valid_giggle_index_many(void)
 {
     ORDER=100;
-    struct giggle_index *gi = giggle_init(23,
+    struct giggle_index *gi = giggle_init(24,
                                           "tmp",
                                           1,
                                           uint32_t_ll_giggle_set_data_handler);
@@ -1664,7 +1662,7 @@ void test_valid_giggle_index_many(void)
 void test_valid_giggle_index(void)
 {
     ORDER=100;
-    struct giggle_index *gi = giggle_init(23,
+    struct giggle_index *gi = giggle_init(24,
                                           "tmp",
                                           1,
                                           uint32_t_ll_giggle_set_data_handler);
@@ -1769,7 +1767,7 @@ void test_valid_giggle_index(void)
 void test_giggle_index_search_store_search(void)
 {
     struct giggle_index *gi = giggle_init(
-                23,
+                24,
                 "tmp",
                 1,
                 uint32_t_ll_giggle_set_data_handler);
@@ -1810,7 +1808,7 @@ void test_giggle_index_search_store_search(void)
 void test_giggle_index_search_store_search_block(void)
 {
     struct giggle_index *gi = giggle_init(
-                23,
+                24,
                 "tmp",
                 1,
                 uint32_t_ll_giggle_set_data_handler);
@@ -1901,7 +1899,7 @@ void test_giggle_index_search_store_search_block(void)
 void test_giggle_query_bug_0(void)
 {
     struct giggle_index *gi = giggle_init(
-                23,
+                24,
                 "tmp",
                 1,
                 uint32_t_ll_giggle_set_data_handler);
@@ -1964,7 +1962,7 @@ void test_giggle_query_bug_0(void)
 void test_giggle_query_bug_1(void)
 {
     struct giggle_index *gi = giggle_init(
-                23,
+                24,
                 "tmp",
                 1,
                 uint32_t_ll_giggle_set_data_handler);

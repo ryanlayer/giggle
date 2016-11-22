@@ -172,4 +172,15 @@ struct byte_array *byte_array_init(uint32_t init_size);
 void byte_array_destory(struct byte_array **ba);
 void byte_array_append(struct byte_array *ba, void *data, uint32_t size);
 void byte_array_append_zeros(struct byte_array *ba, uint32_t size);
+
+struct uint32_t_array
+{
+    uint32_t num, size, *data;
+};
+
+struct uint32_t_array *uint32_t_array_init(uint32_t init_size);
+void uint32_t_array_destroy(struct uint32_t_array **ua);
+uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val);
+uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index);
+
 #endif

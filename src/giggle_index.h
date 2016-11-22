@@ -4,10 +4,10 @@
 #include <stdint.h>
 #include <htslib/khash.h>
 #include "bpt.h"
-//#include "ll.h"
 #include "cache.h"
 #include "leaf.h"
 #include "jsw_avltree.h"
+#include "pq.h"
 
 #define PROGRAM_NAME  "giggle"
 #define MAJOR_VERSION "0"
@@ -376,4 +376,54 @@ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
                                      struct indexed_list *file_index_id_map,
                                      struct unordered_list *merged_file_index);
 
+int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
+                                      uint32_t key_val,
+                                      struct disk_store *ds,
+                                      jsw_avltree_t *avl,
+                                      struct uint32_t_array *leading,
+                                      struct uint32_t_array *starts,
+                                      struct uint32_t_array *ends);
+
+void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
+                                        struct disk_store *ds,
+                                        struct uint32_t_array *leading,
+                                        struct uint32_t_array *starts,
+                                        struct uint32_t_array *ends);
+
+void giggle_bulk_insert_set_starts_ends(struct bpt_node *bpn,
+                                        uint32_t new_starts,
+                                        uint32_t new_ends);
+
+void giggle_bulk_insert_set_starts(struct bpt_node *bpn,
+                                   uint32_t new_starts);
+
+void giggle_bulk_insert_set_ends(struct bpt_node *bpn,
+                                 uint32_t new_ends);
+uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
+                                           uint32_t curr_level_first_id,
+                                           uint32_t curr_level_num_nodes,
+                                           uint32_t curr_level_is_leaf,
+                                           uint32_t *new_level_first_id);
+uint32_t giggle_bulk_insert_open_files(char *path_name,
+                                       char *output_dir_name,
+                                       struct input_file ***i_files,
+                                       struct file_index **file_idx);
+
+void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
+                                  pri_queue *pq_start,
+                                  struct pq_data *pqd_starts,
+                                  pri_queue *pq_end,
+                                  struct input_file **i_files,
+                                  uint32_t num_input_files);
+void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
+                                          pri_queue *pq_start,
+                                          struct pq_data *pqd_starts,
+                                          pri_queue *pq_end,
+                                          struct input_file **i_files,
+                                          uint32_t num_input_files);
+void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi);
+
+uint64_t giggle_bulk_insert(char *input_path_name,
+                            char *output_path_name,
+                            uint32_t force);
 #endif

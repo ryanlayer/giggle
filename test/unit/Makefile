@@ -20,6 +20,7 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 wah.c \
 		 leaf.c \
 		 jsw_avltree.c \
+		 pq.c \
 		 fastlz.c
 
 
@@ -48,7 +49,7 @@ endif
 	    $@.c $@_Runner.c \
 	    $(HTS_ROOT)/libhts.a \
 	    -lz -lm -lcurl -lcrypto -lssl
-	rm $@_Runner.c
+	#rm $@_Runner.c
 
 test:
 	$(foreach var,$(TEST_NAMES),./$(var);)
