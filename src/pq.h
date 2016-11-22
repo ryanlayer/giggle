@@ -5,7 +5,12 @@
 #include <stdint.h>
 #include <sysexits.h>
 #include <err.h>
- 
+
+struct pq_data
+{
+    uint32_t file_id, interval_id;
+};
+
 typedef struct
 {
     uint32_t pos;

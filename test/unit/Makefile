@@ -49,7 +49,7 @@ endif
 	    $@.c $@_Runner.c \
 	    $(HTS_ROOT)/libhts.a \
 	    -lz -lm -lcurl -lcrypto -lssl
-	rm $@_Runner.c
+	#rm $@_Runner.c
 
 test:
 	$(foreach var,$(TEST_NAMES),./$(var);)

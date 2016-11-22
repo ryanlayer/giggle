@@ -4,6 +4,7 @@
 #include <sysexits.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include "giggle_index.h"
 #include "wah.h"
 #include "cache.h"
@@ -19,6 +20,7 @@ int index_help(int exit_code)
 "%s, v%s\n"
 "usage:   %s index -i <input files> -o <output dir> -f\n"
 "         options:\n"
+"             -s  Files are sorted\n"
 "             -i  Files to index (e.g. data/*.gz)\n"
 "             -o  Index output directory\n"
 "             -f  For reindex if output directory exists\n",
@@ -38,9 +40,10 @@ int index_main(int argc, char **argv, char *full_cmd)
 
     int i_is_set = 0,
         o_is_set = 0,
+        s_is_set = 0,
         f_is_set = 0;
 
-    while((c = getopt (argc, argv, "i:o:fh")) != -1) {
+    while((c = getopt (argc, argv, "i:o:fsh")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -52,6 +55,9 @@ int index_main(int argc, char **argv, char *full_cmd)
                 break;
             case 'f':
                 f_is_set = 1;
+                break;
+            case 's':
+                s_is_set = 1;
                 break;
             case 'h':
                 return index_help(EX_OK);
@@ -82,34 +88,41 @@ int index_main(int argc, char **argv, char *full_cmd)
 
     struct giggle_index *gi;
         
-    if (i_type[0] == 'i')
-        gi = giggle_init(num_chrms,
-                         output_dir_name,
-                         f_is_set,
-                         uint32_t_ll_giggle_set_data_handler);
-    else
-        gi = giggle_init(num_chrms,
-                         output_dir_name,
-                         f_is_set,
-                         uint32_t_ll_wah_giggle_set_data_handler);
+    if (s_is_set == 1) {
+        uint64_t num_intervals = giggle_bulk_insert(input_dir_name,
+                                                    output_dir_name,
+                                                    f_is_set);
+        fprintf(stderr, "Indexed %" PRIu64 " intervals.\n", num_intervals);
+    } else {
+        if (i_type[0] == 'i')
+            gi = giggle_init(num_chrms,
+                             output_dir_name,
+                             f_is_set,
+                             uint32_t_ll_giggle_set_data_handler);
+        else
+            gi = giggle_init(num_chrms,
+                             output_dir_name,
+                             f_is_set,
+                             uint32_t_ll_wah_giggle_set_data_handler);
 
-    if (gi == NULL)
-        return EX_DATAERR;
+        if (gi == NULL)
+            return EX_DATAERR;
 
-    uint32_t r = giggle_index_directory(gi, input_dir_name, 0);
-    
-    fprintf(stderr, "Indexed %u intervals.\n", r);
+        uint32_t r = giggle_index_directory(gi, input_dir_name, 0);
+        
+        fprintf(stderr, "Indexed %u intervals.\n", r);
 
 #if BLOCK_STORE
-    giggle_data_handler.write_tree = giggle_write_tree_leaf_data;
+        giggle_data_handler.write_tree = giggle_write_tree_leaf_data;
 #endif
 
-    r = giggle_store(gi);
+        r = giggle_store(gi);
 
-    if (r != 0)
-        errx(1, "Error storing giggle index.");
-    
-    giggle_index_destroy(&gi);
-    cache.destroy();
+        if (r != 0)
+            errx(1, "Error storing giggle index.");
+        
+        giggle_index_destroy(&gi);
+        cache.destroy();
+    }
     return EX_OK;
 }

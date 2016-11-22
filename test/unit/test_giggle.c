@@ -1216,27 +1216,25 @@ void test_giggle_init_null_dir(void)
     struct giggle_index *gi = giggle_init(
                 24,
                 NULL,
-                0,
+                1,
                 uint32_t_ll_giggle_set_data_handler);
 
     char *path_name = "../data/many/*bed.gz";
     uint32_t r = giggle_index_directory(gi, path_name, 0);
 
-    TEST_ASSERT_EQUAL(11000, r);
-    TEST_ASSERT_EQUAL(11, gi->file_idx->index->num);
-    TEST_ASSERT_EQUAL(11000, gi->offset_idx->index->num);
-
-    giggle_query_region(gi, "11", 1000, 3000000);
+    TEST_ASSERT_EQUAL(21024, r);
+    TEST_ASSERT_EQUAL(22, gi->file_idx->index->num);
+    TEST_ASSERT_EQUAL(21024, gi->offset_idx->index->num);
 
     struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-                                                                      "1",
+                                                                      "11",
                                                                       1000,
                                                                       3000000);
     /*
-     * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 39
+     * ls *gz | xargs -I{} tabix {} chr11:1000-3000000 | wc -l
+     * 81
      */
-    TEST_ASSERT_EQUAL(39, R->len);
+    TEST_ASSERT_EQUAL(81, R->len);
 
     uint32_t_ll_free((void **)&R);
 
@@ -1274,7 +1272,7 @@ void test_giggle_init_store_load(void)
                                                   3000000);
     /*
      * ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-     * 70
+     * 71
      */
     TEST_ASSERT_EQUAL(71, R->len);
 
