@@ -2920,7 +2920,7 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
  
     // curr_pos and curr_chrm track the status of the indexing
     uint32_t curr_pos = pri_start.pos;
-    char curr_chrm[10];
+    char curr_chrm[50];
     strcpy(curr_chrm, pri_start.chrm);
 
     // register the chrom with chrom index
@@ -2980,7 +2980,7 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                             ends);
 
     // These will be used to read intervals from files
-    int chrm_len = 10;
+    int chrm_len = 50;
     char *chrm = (char *)malloc(chrm_len * sizeof(char));
     uint32_t start, end;
     long offset;
@@ -3197,8 +3197,6 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                   pqd_start->file_id);
             fd->mean_interval_size += end-start;
             fd->num_intervals += 1;
-
-            //fprintf(stderr, "%s %u %u %u\n", chrm, start, end, interval_id);
 
             pqd_starts[pqd_start->file_id].interval_id = interval_id;
             pri_start.pos = start;
