@@ -14,7 +14,7 @@ struct pq_data
 typedef struct
 {
     uint32_t pos;
-    char chrm[10];
+    char chrm[50];
 } priority;
 
 typedef struct
