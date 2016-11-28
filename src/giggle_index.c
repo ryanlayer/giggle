@@ -8,6 +8,7 @@
 #include <glob.h>
 #include <sysexits.h>
 #include <inttypes.h>
+#include <htslib/kstring.h>
 
 #include "bpt.h"
 #include "cache.h"
@@ -779,6 +780,7 @@ uint32_t giggle_index_file(struct giggle_index *gi,
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
     uint32_t file_id = file_index_add(gi->file_idx, file_name);
     struct file_data *fd = file_index_get(gi->file_idx, file_id);
@@ -793,7 +795,8 @@ uint32_t giggle_index_file(struct giggle_index *gi,
                                            &chrm_len,
                                            &start,
                                            &end,
-                                           &offset) >= 0) {
+                                           &offset,
+                                           &line) >= 0) {
         //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
         intrv_id = offset_index_add(gi->offset_idx,
                                     offset,
@@ -810,6 +813,9 @@ uint32_t giggle_index_file(struct giggle_index *gi,
         j += 1;
     }
     fd->mean_interval_size = fd->mean_interval_size/fd->num_intervals;
+
+    if (line.s != NULL)
+        free(line.s);
 
     input_file_destroy(&i);
     free(chrm);
@@ -2923,6 +2929,8 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
     char curr_chrm[10];
     strcpy(curr_chrm, pri_start.chrm);
 
+    fprintf(stderr, "curr_chrm:%s\n", curr_chrm);
+
     // register the chrom with chrom index
     uint32_t curr_chrm_id = chrm_index_add(gi->chrm_idx, curr_chrm);
 
@@ -2984,6 +2992,7 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
     char *chrm = (char *)malloc(chrm_len * sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
     priority pri_end;
     struct pq_data *pqd_end;
@@ -3128,6 +3137,7 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                 }
 
                 strcpy(curr_chrm, pri_start.chrm);
+                fprintf(stderr, "curr_chrm:%s\n", curr_chrm);
                 //register the new chrom
                 curr_chrm_id = chrm_index_add(gi->chrm_idx,
                                               curr_chrm);
@@ -3187,7 +3197,8 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                  &chrm_len,
                                                  &start,
                                                  &end,
-                                                 &offset);
+                                                 &offset,
+                                                 &line);
 
         if (ret >= 0) {
             uint32_t interval_id = offset_index_add(gi->offset_idx,
@@ -3214,6 +3225,9 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
         }
         //}}}
     }
+
+    if (line.s != NULL)
+        free(line.s);
 
     // Once the start queue is empty we need to drain the end queue
     while (priq_top(*pq_end, &pri_end) != NULL) {
@@ -3320,6 +3334,7 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
     char *chrm = (char *)malloc(chrm_len * sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
     uint32_t interval_id = 0;
 
@@ -3331,7 +3346,8 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
                                                        &chrm_len,
                                                        &start,
                                                        &end,
-                                                       &offset);
+                                                       &offset,
+                                                       &line);
 
         struct file_data *fd = file_index_get(gi->file_idx, i);
         fd->mean_interval_size += end-start;
@@ -3357,6 +3373,9 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
         strcpy(pri_end.chrm, chrm);
         priq_push(*pq_end, pqd_end, pri_end);
     }
+
+    if (line.s != NULL)
+        free(line.s);
 
     free(chrm);
 }

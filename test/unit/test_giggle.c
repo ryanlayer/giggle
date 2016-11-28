@@ -1049,13 +1049,15 @@ void test_uint32_t_ll_giggle_query_region(void)
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
             
     int x = i->input_file_get_next_interval(i,
                                             &chrm,
                                             &chrm_len,
                                             &start,
                                             &end,
-                                            &offset);
+                                            &offset,
+                                            &line);
     
     TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(575808, start);
@@ -1072,7 +1074,8 @@ void test_uint32_t_ll_giggle_query_region(void)
                                         &chrm_len,
                                         &start,
                                         &end,
-                                        &offset);
+                                        &offset,
+                                        &line);
 
     TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(2950239, start);
@@ -1081,6 +1084,8 @@ void test_uint32_t_ll_giggle_query_region(void)
     uint32_t_ll_free((void **)&R);
 
     free(chrm);
+    if (line.s != NULL)
+        free(line.s);
     input_file_destroy(&i);
     giggle_index_destroy(&gi);
     cache.destroy();
@@ -1588,6 +1593,7 @@ void test_valid_giggle_index_many(void)
             char *chrm = (char *)malloc(chrm_len*sizeof(char));
             uint32_t start, end;
             long offset;
+            kstring_t line = {0, 0, NULL};
 
         
             /*
@@ -1610,7 +1616,8 @@ void test_valid_giggle_index_many(void)
                                                    &chrm_len,
                                                    &start,
                                                    &end,
-                                                   &offset) >= 0) {
+                                                   &offset,
+                                                   &line) >= 0) {
                 intrv_id = offset_index_add(gi->offset_idx,
                                             offset,
                                             file_id);
@@ -1650,6 +1657,8 @@ void test_valid_giggle_index_many(void)
             fd->mean_interval_size = fd->mean_interval_size/fd->num_intervals;
 
             input_file_destroy(&i);
+            if (line.s != NULL)
+                free(line.s);
             free(chrm);
         }
     }
@@ -1693,6 +1702,7 @@ void test_valid_giggle_index(void)
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
 
     /*
@@ -1716,7 +1726,8 @@ void test_valid_giggle_index(void)
                                            &chrm_len,
                                            &start,
                                            &end,
-                                           &offset) >= 0) {
+                                           &offset,
+                                           &line) >= 0) {
         //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
         //p = (struct file_id_offset_pair *)
                 //malloc(sizeof(struct file_id_offset_pair));
@@ -1759,6 +1770,8 @@ void test_valid_giggle_index(void)
 
     giggle_index_destroy(&gi);
     cache.destroy();
+    if (line.s != NULL)
+        free(line.s);
     free(chrm);
 }
 //}}}

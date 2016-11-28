@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <sysexits.h>
 #include <regex.h>
+#include <htslib/kstring.h>
 
 #include "giggle_index.h"
 #include "wah.h"
@@ -367,6 +368,7 @@ int search_main(int argc, char **argv, char *full_cmd)
         char *chrm = (char *)malloc(chrm_len*sizeof(char));
         uint32_t start, end;
         long offset;
+        kstring_t line = {0, 0, NULL};
 
         struct input_file *q_f = input_file_init(query_file_name);
 
@@ -375,7 +377,8 @@ int search_main(int argc, char **argv, char *full_cmd)
                                                   &chrm_len,
                                                   &start,
                                                   &end,
-                                                  &offset) >= 0 ) {
+                                                  &offset,
+                                                  &line) >= 0 ) {
             gqr = giggle_query(gi, chrm, start, end, gqr);
             if ( (o_is_set == 1) && (gqr->num_hits > 0) ) {
                 char *str;
@@ -402,6 +405,10 @@ int search_main(int argc, char **argv, char *full_cmd)
             num_intervals += 1;
             mean_interval_size += end - start;
         }
+
+        free(chrm);
+        if (line.s != NULL)
+            free(line.s);
 
         mean_interval_size = mean_interval_size/num_intervals;
     }
