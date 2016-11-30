@@ -21,6 +21,7 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 leaf.c \
 		 jsw_avltree.c \
 		 pq.c \
+		 offset_index.c \
 		 fastlz.c
 
 

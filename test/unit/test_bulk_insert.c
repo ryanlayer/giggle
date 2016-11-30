@@ -136,6 +136,7 @@ void test_giggle_bulk_insert_base(void)
         // register the interval with the offset index
         interval_id = offset_index_add(offset_idx,
                                        offset,
+                                       &line,
                                        file_id);
 
         //Update the pq data for the start, use the array to reduce mallocs
@@ -471,6 +472,7 @@ void test_giggle_bulk_insert_base(void)
         if (ret >= 0) {
             interval_id = offset_index_add(offset_idx,
                                            offset,
+                                           &line,
                                            pqd_start->file_id);
 
             pqd_starts[pqd_start->file_id].interval_id = interval_id;

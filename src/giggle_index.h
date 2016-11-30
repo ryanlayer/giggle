@@ -8,6 +8,7 @@
 #include "leaf.h"
 #include "jsw_avltree.h"
 #include "pq.h"
+#include "offset_index.h"
 
 #define PROGRAM_NAME  "giggle"
 #define MAJOR_VERSION "0"
@@ -18,23 +19,8 @@
 
 char *CHRM_INDEX_FILE_NAME;
 char *FILE_INDEX_FILE_NAME;
-char *OFFSET_INDEX_FILE_NAME;
 char *ROOT_IDS_FILE_NAME;
 char *CACHE_FILE_NAME_PREFIX;
-
-struct file_id_offset_pair
-{
-    uint32_t file_id;
-    long offset;
-};
-void *file_id_offset_pair_load(FILE *f, char *file_name);
-void file_id_offset_pair_store(void *v, FILE *f, char *file_name);
-
-struct file_id_offset_pairs
-{
-    uint64_t num,size;
-    struct file_id_offset_pair *vals;
-};
 
 void c_str_store(void *v, FILE *f, char *file_name);
 void *c_str_load(FILE *f, char *file_name);
@@ -64,23 +50,6 @@ uint32_t file_index_add(struct file_index *fi, char *file_name);
 void file_index_store(struct file_index *fi);
 struct file_index *file_index_load(char *file_name);
 struct file_data *file_index_get(struct file_index *fi, uint32_t id);
-
-struct offset_index
-{
-    struct file_id_offset_pairs *index; //<! file_index/offse pair list
-    char *file_name; //<! offset_index file name
-};
-
-struct offset_index *offset_index_init(uint32_t init_size, char *file_name);
-void offset_index_destroy(struct offset_index **oi);
-void offset_index_store(struct offset_index *oi);
-uint32_t offset_index_add(struct offset_index *oi,
-                          long offset,
-                          uint32_t file_id);
-struct offset_index *offset_index_load(char *file_name);
-struct file_id_offset_pair offset_index_get(struct offset_index *oi,
-                                            uint32_t id);
-
 
 /**
  * @brief The core GIGGLE data structure.

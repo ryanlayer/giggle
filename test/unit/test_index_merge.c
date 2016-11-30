@@ -250,5 +250,8 @@ void test_giggle_index_search_store_search_block(void)
     CACHE_NAME_SPACE = 1;
     giggle_index_destroy(&gi_1);
     cache.destroy();
+    rmrf("tmp_0");
+    rmrf("tmp_1");
+    rmrf(data_dir);
 }
 //}}}

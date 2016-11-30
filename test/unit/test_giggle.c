@@ -1304,6 +1304,7 @@ void test_giggle_init_store_load(void)
     uint32_t_ll_free((void **)&R);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1393,6 +1394,7 @@ void test_giggle_index_store(void)
 
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1620,25 +1622,8 @@ void test_valid_giggle_index_many(void)
                                                    &line) >= 0) {
                 intrv_id = offset_index_add(gi->offset_idx,
                                             offset,
+                                            &line,
                                             file_id);
-                /*
-                intrv_id = gi->offset_index->num;
-                gi->offset_index->num = gi->offset_index->num + 1;
-                if (gi->offset_index->num == gi->offset_index->size) {
-                    gi->offset_index->size = gi->offset_index->size * 2;
-                    gi->offset_index->vals = (struct file_id_offset_pair *)
-                        realloc(gi->offset_index->vals,
-                                gi->offset_index->size * 
-                                sizeof(struct file_id_offset_pair));
-                    memset(gi->offset_index->vals + gi->offset_index->num,
-                           0,
-                           (gi->offset_index->size - gi->offset_index->num) *
-                                sizeof(struct file_id_offset_pair));
-                }
-                gi->offset_index->vals[intrv_id].offset = offset;
-                gi->offset_index->vals[intrv_id].file_id = file_id;
-                */
-
 
                 uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
                 uint32_t r = giggle_insert(chrm_id,
@@ -1664,6 +1649,8 @@ void test_valid_giggle_index_many(void)
     }
     giggle_index_destroy(&gi);
     cache.destroy();
+
+    rmrf("tmp");
 }
 //}}}
 
@@ -1728,31 +1715,11 @@ void test_valid_giggle_index(void)
                                            &end,
                                            &offset,
                                            &line) >= 0) {
-        //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
-        //p = (struct file_id_offset_pair *)
-                //malloc(sizeof(struct file_id_offset_pair));
-        //p->offset = offset;
-        //p->file_id = file_id;
-
-        //intrv_id = unordered_list_add(gi->offset_index, p);
 
         intrv_id = offset_index_add(gi->offset_idx,
                                     offset,
+                                    &line,
                                     file_id);
-
-        /*
-        intrv_id = gi->offset_index->num;
-        gi->offset_index->num = gi->offset_index->num + 1;
-        if (gi->offset_index->num == gi->offset_index->size) {
-            gi->offset_index->size = gi->offset_index->size * 2;
-            gi->offset_index->vals = (struct file_id_offset_pair *)
-                realloc(gi->offset_index->vals,
-                        gi->offset_index->size * 
-                        sizeof(struct file_id_offset_pair));
-        }
-        gi->offset_index->vals[intrv_id].offset = offset;
-        gi->offset_index->vals[intrv_id].file_id = file_id;
-        */
 
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
         uint32_t r = giggle_insert(chrm_id,
@@ -1773,6 +1740,7 @@ void test_valid_giggle_index(void)
     if (line.s != NULL)
         free(line.s);
     free(chrm);
+    rmrf("tmp");
 }
 //}}}
 
@@ -1814,6 +1782,7 @@ void test_giggle_index_search_store_search(void)
     uint32_t_ll_free((void **)&R);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1905,6 +1874,7 @@ void test_giggle_index_search_store_search_block(void)
  
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1968,6 +1938,8 @@ void test_giggle_query_bug_0(void)
     giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
+
+    rmrf("tmp");
 }
 //}}}
 
@@ -2031,6 +2003,7 @@ void test_giggle_query_bug_1(void)
     giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 

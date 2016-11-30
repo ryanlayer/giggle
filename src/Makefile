@@ -26,6 +26,7 @@ LIB=bpt.o \
     wah.o \
     kfunc.o \
     index.o \
+    offset_index.o \
     search.o \
     leaf.o \
     pq.o \
