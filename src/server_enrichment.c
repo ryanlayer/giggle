@@ -411,6 +411,8 @@ static int answer_to_connection (void *cls,
         struct request r;
         r.success = 0;
         r.data.reg = NULL;
+        r.file_patterns_to_be_printed = NULL;
+        r.full = 0;
 
         uint32_t file_patterns_set_is_set = 0;
         uint32_t num_file_patterns = 0;
@@ -535,6 +537,7 @@ static int answer_to_connection (void *cls,
                         //(struct file_data *)
                         //unordered_list_get(gi->file_index, i); 
 
+                    giggle_get_query_len(gqr, i));
                     if (test_pattern_match(gi,
                                            regexs,
                                            file_patterns,
@@ -560,6 +563,15 @@ static int answer_to_connection (void *cls,
                                      fd->num_intervals,
                                      giggle_get_query_len(gqr, i));
                         }
+
+                            fprintf(stderr,
+                                     "#%s\t"
+                                     "%u\t"
+                                     "%u\n",
+                                     fd->file_name,
+                                     fd->num_intervals,
+                                     giggle_get_query_len(gqr, i));
+
 
                         free(page);
                         page = tmp_page;

@@ -1,7 +1,7 @@
 var heatmap = null;
 
-var giggleUrl            = "http://potter.genetics.utah.edu:8080/";
-var giggleUCSCBrowserUrl = "http://potter.genetics.utah.edu:8081/"
+var giggleUrl            = "http://localhost:8080/";
+var giggleUCSCBrowserUrl = "http://localhost:8081/"
 var ucscBrowserUrl       = "https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19";
 
 var sourceFileMap = {};	
@@ -57,7 +57,7 @@ function loadUCSCDefinition() {
 
 	    	var def = JSON.parse(data);
 			def.sourceFiles.forEach( function( sourceFile ) {
-				var fileName = sourceFile.name.split("tracks/")[1];
+				var fileName = sourceFile.name.split("/")[1];
 				ucscFileMap[fileName] = sourceFile.position[0];
 			});
 
@@ -90,7 +90,7 @@ function loadUCSCTracks(chr, start, end) {
 					fields = row.split("\t");
 					
 					var rec = {};
-					rec.name     = fields[0].split("#tracks/")[1];
+					rec.name     = fields[0].split("/")[1];
 					rec.size     = fields[1];
 					rec.overlaps = fields[2];
 
@@ -154,7 +154,7 @@ function loadOverlapDetail(fileName, row, col) {
 							recs = [];
 						}
 						header = {};
-						header.name = fields[0].split("#split/")[1];
+						header.name = fields[0].split("/")[1];
 						header.size = fields[1];
 						header.overlaps = fields[2];
 					} else {
@@ -367,7 +367,7 @@ function loadHeatmapChart(data, theDef) {
 
 		} else {
 			var rec = {};
-			rec.name = fields[0].split("split/")[1];
+			rec.name = fields[0].split("/")[1];
 			rec.size = fields[1];
 			var overlaps = fields[2];
 			if (overlaps.indexOf(":") > 0) {
