@@ -22,15 +22,13 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 {
     struct offset_index *oi = 
             (struct offset_index *) malloc(sizeof(struct offset_index));
+    oi->width = sizeof(struct file_id_offset_pair) + offset_data_size;
     oi->index = (struct file_id_offset_pairs *)
             malloc(sizeof(struct file_id_offset_pairs));
     oi->index->num = 0;
     oi->index->size = 1000;
     oi->index->vals = (struct file_id_offset_pair *)
-            calloc(oi->index->size,
-                   sizeof(struct file_id_offset_pair) + offset_data_size);
-
-    oi->width = sizeof(struct file_id_offset_pair) + offset_data_size;
+            calloc(oi->index->size, oi->width);
 
     oi->file_name = NULL;
     if (file_name != NULL) {

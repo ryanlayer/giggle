@@ -20,6 +20,13 @@ struct doubles_uint32_t_tuple
 };
 int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b);
 
+struct long_uint_pair
+{
+    long long_val;
+    uint32_t uint_val;
+};
+int long_uint_pair_cmp(const void *_a, const void *_b);
+
 extern struct FTW *ftwbuf;
 void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs);
 int unlink_cb(const char *fpath,

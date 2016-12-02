@@ -2064,7 +2064,7 @@ void test_giggle_bulk_insert(void)
     struct giggle_query_result *gqr = NULL;
     gqr = giggle_query(gi, "1", 5000000, 6200000, gqr);
 
-    fprintf(stderr, "%u\n", gqr->num_hits);
+    //fprintf(stderr, "%u\n", gqr->num_hits);
 
     giggle_index_destroy(&gi);
     rmrf(output_path_name);

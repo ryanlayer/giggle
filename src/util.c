@@ -15,6 +15,15 @@
 
 #include "util.h"
 
+int long_uint_pair_cmp(const void *_a, const void *_b)
+{
+    struct long_uint_pair *a = (struct long_uint_pair *)_a;
+    struct long_uint_pair *b = (struct long_uint_pair *)_b;
+
+    return a->long_val - b->long_val;
+}
+
+
 int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b)
 {
     struct doubles_uint32_t_tuple *a = (struct doubles_uint32_t_tuple *)_a;

@@ -1398,67 +1398,6 @@ void test_giggle_index_store(void)
 }
 //}}}
 
-//////{{{ void test_giggle_count_hits_by_file(void)
-////void test_giggle_count_hits_by_file(void)
-////{
-////    ORDER = 10;
-////    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-////    uint32_t_ll_giggle_set_data_handler();
-////    struct giggle_index *gi = giggle_init_index(30);
-////    char *path_name = "../data/many/*bed.gz";
-////    uint32_t r = giggle_index_directory(gi, path_name, 0);
-////
-////    TEST_ASSERT_EQUAL(11000, r);
-////    TEST_ASSERT_EQUAL(11, gi->file_index->num);
-////    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
-////
-////    //giggle_query_region(gi, "chr11", 1000, 3000000);
-////
-////    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-////                                                                      "chr1",
-////                                                                      1000,
-////                                                                      3000000);
-////    //ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-////    //39
-////    TEST_ASSERT_EQUAL(39, R->len);
-////
-////    struct uint32_t_ll_node *curr = R->head;
-////    uint32_t *file_counts = (uint32_t *)
-////            calloc(gi->file_index->num, sizeof(uint32_t));
-////    while (curr != NULL) {
-////        //struct file_id_offset_pair *fid_off = 
-////            //(struct file_id_offset_pair *)
-////            //unordered_list_get(gi->offset_index, curr->val);
-////        struct file_id_offset_pair fid_off = gi->offset_index->vals[curr->val];
-////        struct file_data *fd = 
-////            (struct file_data *)
-////            unordered_list_get(gi->file_index, fid_off.file_id);
-////
-////        file_counts[fid_off.file_id] += 1;
-////        curr = curr->next;
-////    }
-////
-////    uint32_t i;
-////    for (i = 0; i < gi->file_index->num; ++i) {
-////        struct file_data *fd = 
-////            (struct file_data *) unordered_list_get(gi->file_index, i);
-////
-////        /*
-////        fprintf(stderr,
-////                "%u %u %f\n",
-////                file_counts[i],
-////                fd->num_intervals,
-////                fd->mean_interval_size);
-////                */
-////    }
-////
-////    uint32_t_ll_free((void **)&R);
-////
-////    giggle_index_destroy(&gi);
-////    cache.destroy();
-////}
-//////}}}
-
 //{{{void valid_giggle_index(struct giggle_index *gi)
 void valid_giggle_index(struct giggle_index *gi)
 {
@@ -1589,7 +1528,7 @@ void test_valid_giggle_index_many(void)
     for (i = 0; i < 21; ++i) {
         {
             char *file_name = files[i];
-            fprintf(stderr, "%s\n", file_name);
+            //fprintf(stderr, "%s\n", file_name);
             struct input_file *i = input_file_init(file_name);
             int chrm_len = 10;
             char *chrm = (char *)malloc(chrm_len*sizeof(char));

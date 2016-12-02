@@ -774,7 +774,7 @@ void giggle_index_destroy(struct giggle_index **gi)
 uint32_t giggle_index_file(struct giggle_index *gi,
                            char *file_name)
 {
-    fprintf(stderr, "%s\n", file_name);
+    //fprintf(stderr, "%s\n", file_name);
     struct input_file *i = input_file_init(file_name);
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
@@ -1154,11 +1154,12 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
         gqr->gi = gi;
         gqr->num_files = gi->file_idx->index->num;
         gqr->num_hits = 0;
-        gqr->offsets = (struct long_ll **)
-            calloc(gi->file_idx->index->num, sizeof(struct long_ll *));
+        gqr->offsets = (struct long_uint_ll **)
+            calloc(gi->file_idx->index->num, sizeof(struct long_uint_ll *));
 
-        for (i = 0; i < gi->file_idx->index->num; ++i)
+        for (i = 0; i < gi->file_idx->index->num; ++i) {
             gqr->offsets[i] = NULL;
+        }
     } else {
         gqr = _gqr;
     }
@@ -1176,7 +1177,7 @@ void giggle_query_result_destroy(struct giggle_query_result **gqr)
         return;
     uint32_t i;
     for (i = 0; i < (*gqr)->gi->file_idx->index->num; ++i) {
-        long_ll_free((void **)&((*gqr)->offsets[i]));
+        long_uint_ll_free((void **)&((*gqr)->offsets[i]));
     }
     free((*gqr)->offsets);
     free(*gqr);
@@ -1211,6 +1212,7 @@ struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
     gqi->num = 0;
     gqi->file_id = file_id;
     gqi->sorted_offsets = NULL;
+    gqi->sorted_offset_id_pairs = NULL;
     gqi->ipf = NULL;
 
     if (gqr->offsets[file_id] == NULL)
@@ -1227,10 +1229,10 @@ struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
     gqi->sorted_offsets = (long *)
             malloc(gqr->offsets[file_id]->len * sizeof(long));
 
-    struct long_ll_node *curr = gqr->offsets[file_id]->head;
+    struct long_uint_ll_node *curr = gqr->offsets[file_id]->head;
     uint32_t i = 0;
     while (curr != NULL) {
-        gqi->sorted_offsets[i++] = curr->val;
+        gqi->sorted_offsets[i++] = curr->long_val;
         curr = curr->next;
     }
 
@@ -1238,6 +1240,49 @@ struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
           gqr->offsets[file_id]->len,
           sizeof(long),
           long_cmp);
+
+    return gqi;
+}
+//}}}
+
+//{{{struct giggle_query_iter *giggle_get_query_data_itr(struct
+struct giggle_query_iter *giggle_get_query_data_itr(
+        struct giggle_query_result *gqr,
+        uint32_t file_id)
+{
+    struct giggle_query_iter *gqi = (struct giggle_query_iter *)
+        malloc(sizeof(struct giggle_query_iter));
+
+    gqi->gi = gqr->gi;
+    gqi->curr = 0;
+    gqi->num = 0;
+    gqi->file_id = file_id;
+    gqi->sorted_offsets = NULL;
+    gqi->sorted_offset_id_pairs = NULL;
+    gqi->ipf = NULL;
+
+    if (gqr->offsets[file_id] == NULL)
+        return gqi;
+
+    gqi->num = gqr->offsets[file_id]->len;
+
+    gqi->sorted_offset_id_pairs = (struct long_uint_pair *)
+            malloc(gqr->offsets[file_id]->len * 
+                   sizeof(struct long_uint_pair));
+
+    struct long_uint_ll_node *curr = gqr->offsets[file_id]->head;
+    uint32_t i = 0;
+    while (curr != NULL) {
+        gqi->sorted_offset_id_pairs[i].long_val = curr->long_val;
+        gqi->sorted_offset_id_pairs[i].uint_val = curr->uint_val;
+        i+=1;
+        curr = curr->next;
+    }
+
+    qsort(gqi->sorted_offset_id_pairs,
+          gqr->offsets[file_id]->len,
+          sizeof(struct long_uint_pair),
+          long_uint_pair_cmp);
 
     return gqi;
 }
@@ -1279,6 +1324,23 @@ int giggle_query_next(struct giggle_query_iter *gqi,
 }
 //}}}
 
+//{{{int giggle_query_next_data(struct giggle_query_iter *gqi,
+int giggle_query_next_data(struct giggle_query_iter *gqi,
+                           void **result)
+{
+    if ((gqi->num == 0) || (gqi->curr == gqi->num)) {
+        return -1; 
+    }
+
+    *result = OFFSET_INDEX_DATA(gqi->gi->offset_idx, 
+                               gqi->sorted_offset_id_pairs[gqi->curr].uint_val);
+
+    gqi->curr += 1;
+
+    return 0;
+}
+//}}}
+
 //{{{void giggle_iter_destroy(struct giggle_query_iter **gqi)
 void giggle_iter_destroy(struct giggle_query_iter **gqi)
 {
@@ -1286,6 +1348,8 @@ void giggle_iter_destroy(struct giggle_query_iter **gqi)
         input_file_destroy(&((*gqi)->ipf));
     if ((*gqi)->sorted_offsets != NULL)
         free((*gqi)->sorted_offsets);
+    if ((*gqi)->sorted_offset_id_pairs != NULL)
+        free((*gqi)->sorted_offset_id_pairs);
     free(*gqi);
     *gqi = NULL;
 }
@@ -1754,11 +1818,10 @@ void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
         for (i = 0; i < R->len; ++i) {
             struct file_id_offset_pair fid_off = 
                     offset_index_get(gi->offset_idx, R->data[i]);
-            /*
-            struct file_id_offset_pair fid_off = 
-                    gi->offset_idx->index->vals[R->data[i]];
-            */
-            long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+            //long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+            long_uint_ll_append(&(gqr->offsets[fid_off.file_id]),
+                                fid_off.offset,
+                                R->data[i]);
         }
 
         struct leaf_data_result *tmp_R = R->next;

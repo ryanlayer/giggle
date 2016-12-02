@@ -14,6 +14,7 @@ struct file_id_offset_pair
 {
     uint32_t file_id;
     long offset;
+    uint32_t interval_id;
 };
 void *file_id_offset_pair_load(FILE *f, char *file_name);
 void file_id_offset_pair_store(void *v, FILE *f, char *file_name);
@@ -45,12 +46,10 @@ struct file_id_offset_pair offset_index_get(struct offset_index *oi,
 
 #define OFFSET_INDEX_PAIR(offset_index, i) \
     ( (struct file_id_offset_pair *) \
-      (((uint8_t *)(offset_index->index->vals))  \
-       + (i * (sizeof(struct file_id_offset_pair) + offset_data_size))))
+      (((uint8_t *)(offset_index->index->vals)) + (i * offset_index->width)))
 
 #define OFFSET_INDEX_DATA(offset_index, i) \
-    ( (((uint8_t *)(offset_index->index->vals)) + \
-       + ((i * (sizeof(struct file_id_offset_pair) + offset_data_size)) \
-           + sizeof(struct file_id_offset_pair))) )
+    ( (void *)(((uint8_t *)(offset_index->index->vals)) + \
+       + (i * offset_index->width + sizeof(struct file_id_offset_pair))) )
 
 #endif

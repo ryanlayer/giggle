@@ -50,6 +50,24 @@ void long_ll_remove(struct long_ll **ll, long val);
 uint32_t long_ll_contains(struct long_ll *ll, long val);
 void long_ll_free(void **ll);
 
+struct long_uint_ll_node
+{
+    long long_val;
+    uint32_t uint_val;
+    struct long_uint_ll_node *next;
+};
+
+struct long_uint_ll
+{
+    uint32_t len;
+    struct long_uint_ll_node *head, *tail;
+};
+
+void long_uint_ll_append(struct long_uint_ll **ll, long long_val, uint32_t uint_val);
+void long_uint_ll_uniq_append(struct long_uint_ll **ll, long val);
+void long_uint_ll_remove(struct long_uint_ll **ll, long val);
+uint32_t long_uint_ll_contains(struct long_uint_ll *ll, long val);
+void long_uint_ll_free(void **ll);
 
 
 

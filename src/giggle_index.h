@@ -76,7 +76,7 @@ struct giggle_query_result
 {
     struct giggle_index *gi;
     uint32_t num_files;
-    struct long_ll **offsets;
+    struct long_uint_ll **offsets;
     uint32_t num_hits;
 };
 
@@ -94,6 +94,7 @@ struct giggle_query_iter
     uint32_t file_id, curr, num;
     struct input_file *ipf;
     long *sorted_offsets;
+    struct long_uint_pair *sorted_offset_id_pairs;
 };
 
 uint32_t giggle_get_query_len(struct giggle_query_result *gqr,
@@ -102,8 +103,17 @@ uint32_t giggle_get_query_len(struct giggle_query_result *gqr,
 struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
                                                uint32_t file_id);
 
+struct giggle_query_iter *giggle_get_query_data_itr(
+        struct giggle_query_result *gqr,
+        uint32_t file_id);
+
 int giggle_query_next(struct giggle_query_iter *gqi,
                       char **result);
+
+int giggle_query_data(struct giggle_query_iter *gqi,
+                      void *result);
+int giggle_query_next_data(struct giggle_query_iter *gqi,
+                           void **result);
 
 void giggle_iter_destroy(struct giggle_query_iter **gqi);
 
