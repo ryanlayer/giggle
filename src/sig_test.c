@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
     struct giggle_index *gi;
 
@@ -57,7 +58,8 @@ int main(int argc, char **argv)
                                                &chrm_len,
                                                &start,
                                                &end,
-                                               &offset) >= 0 ) {
+                                               &offset,
+                                               &line) >= 0 ) {
         num_intervals += 1;
         mean_interval_size += end - start;
 
@@ -88,6 +90,9 @@ int main(int argc, char **argv)
             uint32_t_ll_free((void **)&R);
         }
     }
+
+    if (line.s != NULL)
+        free(line.s);
 
     mean_interval_size = mean_interval_size/num_intervals;
 

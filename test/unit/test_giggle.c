@@ -1049,13 +1049,15 @@ void test_uint32_t_ll_giggle_query_region(void)
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
             
     int x = i->input_file_get_next_interval(i,
                                             &chrm,
                                             &chrm_len,
                                             &start,
                                             &end,
-                                            &offset);
+                                            &offset,
+                                            &line);
     
     TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(575808, start);
@@ -1072,7 +1074,8 @@ void test_uint32_t_ll_giggle_query_region(void)
                                         &chrm_len,
                                         &start,
                                         &end,
-                                        &offset);
+                                        &offset,
+                                        &line);
 
     TEST_ASSERT_EQUAL(0, strcmp("11", chrm));
     TEST_ASSERT_EQUAL(2950239, start);
@@ -1081,6 +1084,8 @@ void test_uint32_t_ll_giggle_query_region(void)
     uint32_t_ll_free((void **)&R);
 
     free(chrm);
+    if (line.s != NULL)
+        free(line.s);
     input_file_destroy(&i);
     giggle_index_destroy(&gi);
     cache.destroy();
@@ -1299,6 +1304,7 @@ void test_giggle_init_store_load(void)
     uint32_t_ll_free((void **)&R);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1388,69 +1394,9 @@ void test_giggle_index_store(void)
 
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
-
-//////{{{ void test_giggle_count_hits_by_file(void)
-////void test_giggle_count_hits_by_file(void)
-////{
-////    ORDER = 10;
-////    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-////    uint32_t_ll_giggle_set_data_handler();
-////    struct giggle_index *gi = giggle_init_index(30);
-////    char *path_name = "../data/many/*bed.gz";
-////    uint32_t r = giggle_index_directory(gi, path_name, 0);
-////
-////    TEST_ASSERT_EQUAL(11000, r);
-////    TEST_ASSERT_EQUAL(11, gi->file_index->num);
-////    TEST_ASSERT_EQUAL(11000, gi->offset_index->num);
-////
-////    //giggle_query_region(gi, "chr11", 1000, 3000000);
-////
-////    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
-////                                                                      "chr1",
-////                                                                      1000,
-////                                                                      3000000);
-////    //ls *gz | xargs -I{} tabix {} chr1:1000-3000000 | wc -l
-////    //39
-////    TEST_ASSERT_EQUAL(39, R->len);
-////
-////    struct uint32_t_ll_node *curr = R->head;
-////    uint32_t *file_counts = (uint32_t *)
-////            calloc(gi->file_index->num, sizeof(uint32_t));
-////    while (curr != NULL) {
-////        //struct file_id_offset_pair *fid_off = 
-////            //(struct file_id_offset_pair *)
-////            //unordered_list_get(gi->offset_index, curr->val);
-////        struct file_id_offset_pair fid_off = gi->offset_index->vals[curr->val];
-////        struct file_data *fd = 
-////            (struct file_data *)
-////            unordered_list_get(gi->file_index, fid_off.file_id);
-////
-////        file_counts[fid_off.file_id] += 1;
-////        curr = curr->next;
-////    }
-////
-////    uint32_t i;
-////    for (i = 0; i < gi->file_index->num; ++i) {
-////        struct file_data *fd = 
-////            (struct file_data *) unordered_list_get(gi->file_index, i);
-////
-////        /*
-////        fprintf(stderr,
-////                "%u %u %f\n",
-////                file_counts[i],
-////                fd->num_intervals,
-////                fd->mean_interval_size);
-////                */
-////    }
-////
-////    uint32_t_ll_free((void **)&R);
-////
-////    giggle_index_destroy(&gi);
-////    cache.destroy();
-////}
-//////}}}
 
 //{{{void valid_giggle_index(struct giggle_index *gi)
 void valid_giggle_index(struct giggle_index *gi)
@@ -1582,12 +1528,13 @@ void test_valid_giggle_index_many(void)
     for (i = 0; i < 21; ++i) {
         {
             char *file_name = files[i];
-            fprintf(stderr, "%s\n", file_name);
+            //fprintf(stderr, "%s\n", file_name);
             struct input_file *i = input_file_init(file_name);
             int chrm_len = 10;
             char *chrm = (char *)malloc(chrm_len*sizeof(char));
             uint32_t start, end;
             long offset;
+            kstring_t line = {0, 0, NULL};
 
         
             /*
@@ -1610,28 +1557,12 @@ void test_valid_giggle_index_many(void)
                                                    &chrm_len,
                                                    &start,
                                                    &end,
-                                                   &offset) >= 0) {
+                                                   &offset,
+                                                   &line) >= 0) {
                 intrv_id = offset_index_add(gi->offset_idx,
                                             offset,
+                                            &line,
                                             file_id);
-                /*
-                intrv_id = gi->offset_index->num;
-                gi->offset_index->num = gi->offset_index->num + 1;
-                if (gi->offset_index->num == gi->offset_index->size) {
-                    gi->offset_index->size = gi->offset_index->size * 2;
-                    gi->offset_index->vals = (struct file_id_offset_pair *)
-                        realloc(gi->offset_index->vals,
-                                gi->offset_index->size * 
-                                sizeof(struct file_id_offset_pair));
-                    memset(gi->offset_index->vals + gi->offset_index->num,
-                           0,
-                           (gi->offset_index->size - gi->offset_index->num) *
-                                sizeof(struct file_id_offset_pair));
-                }
-                gi->offset_index->vals[intrv_id].offset = offset;
-                gi->offset_index->vals[intrv_id].file_id = file_id;
-                */
-
 
                 uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
                 uint32_t r = giggle_insert(chrm_id,
@@ -1650,11 +1581,15 @@ void test_valid_giggle_index_many(void)
             fd->mean_interval_size = fd->mean_interval_size/fd->num_intervals;
 
             input_file_destroy(&i);
+            if (line.s != NULL)
+                free(line.s);
             free(chrm);
         }
     }
     giggle_index_destroy(&gi);
     cache.destroy();
+
+    rmrf("tmp");
 }
 //}}}
 
@@ -1693,6 +1628,7 @@ void test_valid_giggle_index(void)
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
 
     /*
@@ -1716,32 +1652,13 @@ void test_valid_giggle_index(void)
                                            &chrm_len,
                                            &start,
                                            &end,
-                                           &offset) >= 0) {
-        //fprintf(stderr, "%s %u %u\n", chrm, start, end); 
-        //p = (struct file_id_offset_pair *)
-                //malloc(sizeof(struct file_id_offset_pair));
-        //p->offset = offset;
-        //p->file_id = file_id;
-
-        //intrv_id = unordered_list_add(gi->offset_index, p);
+                                           &offset,
+                                           &line) >= 0) {
 
         intrv_id = offset_index_add(gi->offset_idx,
                                     offset,
+                                    &line,
                                     file_id);
-
-        /*
-        intrv_id = gi->offset_index->num;
-        gi->offset_index->num = gi->offset_index->num + 1;
-        if (gi->offset_index->num == gi->offset_index->size) {
-            gi->offset_index->size = gi->offset_index->size * 2;
-            gi->offset_index->vals = (struct file_id_offset_pair *)
-                realloc(gi->offset_index->vals,
-                        gi->offset_index->size * 
-                        sizeof(struct file_id_offset_pair));
-        }
-        gi->offset_index->vals[intrv_id].offset = offset;
-        gi->offset_index->vals[intrv_id].file_id = file_id;
-        */
 
         uint32_t chrm_id = giggle_get_chrm_id(gi, chrm);
         uint32_t r = giggle_insert(chrm_id,
@@ -1759,7 +1676,10 @@ void test_valid_giggle_index(void)
 
     giggle_index_destroy(&gi);
     cache.destroy();
+    if (line.s != NULL)
+        free(line.s);
     free(chrm);
+    rmrf("tmp");
 }
 //}}}
 
@@ -1801,6 +1721,7 @@ void test_giggle_index_search_store_search(void)
     uint32_t_ll_free((void **)&R);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1892,6 +1813,7 @@ void test_giggle_index_search_store_search_block(void)
  
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 
@@ -1955,6 +1877,8 @@ void test_giggle_query_bug_0(void)
     giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
+
+    rmrf("tmp");
 }
 //}}}
 
@@ -2018,6 +1942,7 @@ void test_giggle_query_bug_1(void)
     giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
 //}}}
 

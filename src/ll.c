@@ -143,7 +143,10 @@ void uint32_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
             struct file_id_offset_pair fid_off = 
                     offset_index_get(gi->offset_idx, curr->val);
                     //gi->offset_index->vals[curr->val];
-            long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+            //long_ll_append(&(gqr->offsets[fid_off.file_id]),fid_off.offset);
+            long_uint_ll_append(&(gqr->offsets[fid_off.file_id]),
+                                fid_off.offset,
+                                curr->val);
             curr = curr->next;
         }
 
@@ -1009,6 +1012,48 @@ void long_ll_free(void **_ll)
 {
     struct long_ll **ll = (struct long_ll **)_ll;
     struct long_ll_node *curr, *tmp;
+
+    if (*ll != NULL) {
+        curr = (*ll)->head;
+        while (curr != NULL) {
+            tmp = curr->next;
+            free(curr);
+            curr = tmp;
+        }
+
+        free(*ll);
+        *ll = NULL;
+    }
+}
+//}}}
+
+//{{{void long_uint_ll_append(struct long_uint_ll **ll, long long_val, uint32_t
+void long_uint_ll_append(struct long_uint_ll **ll, long long_val, uint32_t uint_val)
+{
+    struct long_uint_ll_node *n = (struct long_uint_ll_node *)
+        malloc(sizeof(struct long_uint_ll_node));
+    n->long_val = long_val;
+    n->uint_val = uint_val;
+    n->next = NULL;
+
+    if (*ll == NULL) {
+        *ll = (struct long_uint_ll *)malloc(sizeof(struct long_uint_ll));
+        (*ll)->head = n;
+        (*ll)->len = 1;
+    } else {
+        (*ll)->tail->next = n;
+        (*ll)->len = (*ll)->len + 1;
+    }
+
+    (*ll)->tail = n;
+}
+//}}}
+
+//{{{void long_uint_ll_free(struct long_ll **ll)
+void long_uint_ll_free(void **_ll)
+{
+    struct long_uint_ll **ll = (struct long_uint_ll **)_ll;
+    struct long_uint_ll_node *curr, *tmp;
 
     if (*ll != NULL) {
         curr = (*ll)->head;

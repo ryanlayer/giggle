@@ -3,6 +3,7 @@
 
 #include <htslib/bgzf.h>
 #include <htslib/vcf.h>
+#include <htslib/kstring.h>
 #include <stdint.h>
 
 struct file_data
@@ -31,7 +32,8 @@ struct input_file
                                         int *chrm_len,
                                         uint32_t *start,
                                         uint32_t *end,
-                                        long *offset);
+                                        long *offset,
+                                        kstring_t *line);
     int (*input_file_get_next_line)(struct input_file *i,
                                     char **str);
     void (*input_file_seek)(struct input_file *i, long offset);
@@ -46,13 +48,15 @@ int input_file_get_next_interval_bed(struct input_file *i,
                                      int *chrm_len,
                                      uint32_t *start,
                                      uint32_t *end,
-                                     long *offset);
+                                     long *offset,
+                                     kstring_t *line);
 int input_file_get_next_interval_vcf(struct input_file *i,
                                      char **chrm,
                                      int *chrm_len,
                                      uint32_t *start,
                                      uint32_t *end,
-                                     long *offset);
+                                     long *offset,
+                                     kstring_t *line);
 int input_file_get_next_line_bgzf(struct input_file *i,
                                   char **str);
 

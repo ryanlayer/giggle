@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <htslib/bgzf.h>
+#include <htslib/kstring.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -127,6 +128,9 @@ struct input_file *input_file_init(char *file_name)
 //{{{void input_file_destroy(struct input_file **i)
 void input_file_destroy(struct input_file **i)
 {
+    if ((*i)->type == VCF) {
+        bcf_hdr_destroy((*i)->hdr); 
+    }
     free((*i)->file_name);
     bgzf_close((*i)->bed_fp);
     free((*i)->kstr->s);
@@ -142,16 +146,19 @@ int input_file_get_next_interval_bed(struct input_file *i,
                                      int *chrm_len,
                                      uint32_t *start,
                                      uint32_t *end,
-                                     long *offset)
+                                     long *offset,
+                                     kstring_t *line)
 {
     *offset = i->last_offset;
     int ret = bgzf_getline(i->bed_fp, '\n', i->kstr);
     i->last_offset = bgzf_tell(i->bed_fp);
 
-
     if (ret < 0 )
         return ret;
 
+    line->l = 0;
+    kputs(i->kstr->s, line);
+ 
     int s=0, e=0;
     int col = 0;
     while ( scan_s(i->kstr->s, i->kstr->l, &s, &e, '\t') >= 0 ) {
@@ -192,7 +199,8 @@ int input_file_get_next_interval_vcf(struct input_file *i,
                                      int *chrm_len,
                                      uint32_t *start,
                                      uint32_t *end,
-                                     long *offset)
+                                     long *offset,
+                                     kstring_t *line)
 {
     *offset = i->last_offset;
     int ret = bgzf_getline(i->bed_fp, '\n', i->kstr);
@@ -202,6 +210,9 @@ int input_file_get_next_interval_vcf(struct input_file *i,
         return ret;
 
     vcf_parse(i->kstr, i->hdr, i->line);
+
+    line->l = 0;
+    kputs(i->kstr->s, line);
 
     int lensize = sizeof(uint32_t);
     uint32_t *len = (uint32_t *) calloc(1,lensize);

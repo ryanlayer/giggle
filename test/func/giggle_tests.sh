@@ -81,4 +81,10 @@ assert_equal 0 $(diff $STDOUT_FILE <(../../bin/giggle search \
                                                       -i ../data/many_i \
                                                       -q ../data/1k.sort.bed.gz) | wc -l)
 
-
+run check_offset_additional_data \
+    ../../bin/api_test "../data/many/*gz" ../data/many_i 1 1000000 2000000
+assert_equal 0 $(paste <(grep "^data" $STDOUT_FILE | cut -f2,3) \
+                       <(grep "^line" $STDOUT_FILE | cut -f6,8) \
+                 | awk '$1 !=0 && $2 != 0.000000' \
+                 | awk '($1 != $3) || ($2-$4 > 0.001)' \
+                 | wc -l )

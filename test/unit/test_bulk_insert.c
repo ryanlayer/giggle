@@ -13,6 +13,7 @@
 #include <sysexits.h>
 #include <glob.h>
 #include <string.h>
+#include <htslib/kstring.h>
 
 #include "unity.h"
 #include "bpt.h"
@@ -88,6 +89,7 @@ void test_giggle_bulk_insert_base(void)
     char *chrm = (char *)malloc(chrm_len * sizeof(char));
     uint32_t start, end;
     long offset;
+    kstring_t line = {0, 0, NULL};
 
     // Priority queue of starts
     pri_queue pq_start = priq_new(results.gl_pathc);
@@ -129,10 +131,12 @@ void test_giggle_bulk_insert_base(void)
                                                        &chrm_len,
                                                        &start,
                                                        &end,
-                                                       &offset);
+                                                       &offset,
+                                                       &line);
         // register the interval with the offset index
         interval_id = offset_index_add(offset_idx,
                                        offset,
+                                       &line,
                                        file_id);
 
         //Update the pq data for the start, use the array to reduce mallocs
@@ -161,6 +165,7 @@ void test_giggle_bulk_insert_base(void)
         priq_push(pq_end, pqd_end, pri_end);
     }
     globfree(&results);
+
     //}}}
 
     TEST_ASSERT_EQUAL(22, file_idx->index->num);
@@ -461,11 +466,13 @@ void test_giggle_bulk_insert_base(void)
                                                  &chrm_len,
                                                  &start,
                                                  &end,
-                                                 &offset);
+                                                 &offset,
+                                                 &line);
 
         if (ret >= 0) {
             interval_id = offset_index_add(offset_idx,
                                            offset,
+                                           &line,
                                            pqd_start->file_id);
 
             pqd_starts[pqd_start->file_id].interval_id = interval_id;
@@ -483,6 +490,8 @@ void test_giggle_bulk_insert_base(void)
         //}}}
     }
 
+    if (line.s != NULL)
+        free(line.s);
 
     // Once the start queue is empty we need to drain the end queue
     while (priq_top(pq_end, &pri_end) != NULL) {
@@ -2055,7 +2064,7 @@ void test_giggle_bulk_insert(void)
     struct giggle_query_result *gqr = NULL;
     gqr = giggle_query(gi, "1", 5000000, 6200000, gqr);
 
-    fprintf(stderr, "%u\n", gqr->num_hits);
+    //fprintf(stderr, "%u\n", gqr->num_hits);
 
     giggle_index_destroy(&gi);
     rmrf(output_path_name);
