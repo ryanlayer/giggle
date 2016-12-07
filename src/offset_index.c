@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <htslib/kstring.h>
 #include <err.h>
+#include <sys/mman.h>
 
 #include "offset_index.h"
 #include "util.h"
@@ -35,6 +36,8 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
         oi->file_name = strdup(file_name);
     }
 
+    oi->f = NULL;
+
     return oi;
 }
 //}}}
@@ -42,12 +45,18 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 //{{{void offset_index_destroy(struct offset_index **oi);
 void offset_index_destroy(struct offset_index **oi)
 {
-    free((*oi)->index->vals);
+
+    //free((*oi)->index->vals);
     free((*oi)->index);
 
     if ((*oi)->file_name != NULL) {
         free((*oi)->file_name);
         (*oi)->file_name = NULL;
+    }
+
+    if ((*oi)->f != NULL) {
+        munmap((*oi)->index->vals, (*oi)->index->size * (*oi)->width);
+        fclose((*oi)->f);
     }
 
     free(*oi);
@@ -94,6 +103,9 @@ void offset_index_store(struct offset_index *oi)
         errx(1,"No output file given for offset_index.");
 
     FILE *f = fopen(oi->file_name, "wb");
+    if (f == NULL)
+        err(1, "Could not open %s.", oi->file_name);
+
     if (fwrite(&(oi->index->num),
                sizeof(uint64_t),1, f) != 1)
         err(EX_IOERR, "Error writing offset_index num to '%s'.",
@@ -121,17 +133,22 @@ struct offset_index *offset_index_load(char *file_name)
 
     oi->file_name = strdup(file_name);
 
-    FILE *f = fopen(file_name, "rb");
+    oi->f = fopen(file_name, "rb");
+    if (oi->f == NULL)
+        err(1, "Could not open %s.", oi->file_name);
 
     oi->index = (struct file_id_offset_pairs *)
             malloc(sizeof(struct file_id_offset_pairs));
-    size_t fr = fread(&(oi->index->num), sizeof(uint64_t), 1, f);
-    check_file_read(oi->file_name, f, 1, fr);
+    size_t fr = fread(&(oi->index->num), sizeof(uint64_t), 1, oi->f);
+    check_file_read(oi->file_name, oi->f, 1, fr);
 
-    fr = fread(&(oi->width), sizeof(uint32_t), 1, f);
-    check_file_read(oi->file_name, f, 1, fr);
+    fr = fread(&(oi->width), sizeof(uint32_t), 1, oi->f);
+    check_file_read(oi->file_name, oi->f, 1, fr);
+
+    rewind(oi->f);
 
     oi->index->size = oi->index->num;
+    /*
     oi->index->vals = (struct file_id_offset_pair *)
             malloc(oi->index->size * oi->width);
     fr = fread(oi->index->vals,
@@ -140,6 +157,15 @@ struct offset_index *offset_index_load(char *file_name)
                f);
     check_file_read(oi->file_name, f, oi->index->num, fr);
     fclose(f);
+    */
+
+    oi->index->vals = (struct file_id_offset_pair *)
+            mmap(0,
+                 oi->index->size * oi->width,
+                 PROT_READ,
+                 MAP_FILE,
+                 fileno(oi->f),
+                 0);
     
     return oi;
 }
