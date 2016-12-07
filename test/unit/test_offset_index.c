@@ -172,13 +172,27 @@ void test_offset_index_add_no_data(void)
         TEST_ASSERT_EQUAL(A_offsets[j], 
                           OFFSET_INDEX_PAIR(offset_idx, j)->offset);
 
+    offset_index_store(offset_idx);
+
+    offset_index_destroy(&offset_idx);
+
+
     if (line.s != NULL)
         free(line.s);
     input_file_destroy(&i);
-    offset_index_destroy(&offset_idx);
     free(chrm);
+
+
+    offset_idx = offset_index_load("tmp.test_offset_index_add");
+
+    for (j = 0; j < 1000; ++j)
+        TEST_ASSERT_EQUAL(A_offsets[j], 
+                          OFFSET_INDEX_PAIR(offset_idx, j)->offset);
+
+    offset_index_destroy(&offset_idx);
 }
 //}}}
+
 
 //{{{ void test_offset_index_add_data(void)
 struct offset_data_append_data_test_struct
@@ -447,6 +461,7 @@ void offset_data_append_data_test_func_larger(uint8_t *dest, kstring_t *line)
     struct offset_data_append_data_test_struct_larger a;
     a.uint = atoi(line->s + fields[4]);
     a.flt = atof(line->s + fields[6]);
+    memset(&a.concat, 0, 20);
     int ret = sprintf(a.concat, "%u %.6f", a.uint, a.flt);
 
     memcpy(dest, &a, sizeof(struct offset_data_append_data_test_struct_larger));
@@ -1165,7 +1180,7 @@ void test_offset_index_store_load_data(void)
     offset_data_append_data = offset_data_append_data_test_func_larger;
 
     struct offset_index *offset_idx = 
-            offset_index_init(100,
+            offset_index_init(10,
                               "tmp.test_offset_index_add");
     uint32_t intrv_id;
 
@@ -1227,3 +1242,4 @@ void test_offset_index_store_load_data(void)
     remove("tmp.test_offset_index_add");
 }
 //}}}
+
