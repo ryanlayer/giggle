@@ -31,6 +31,7 @@ struct offset_index
     char *file_name; //<! offset_index file name
     uint32_t width;
     FILE *f;
+    enum {in_memory, on_disk} type;
 };
 
 struct offset_index *offset_index_init(uint32_t init_size, char *file_name);
@@ -46,13 +47,15 @@ struct file_id_offset_pair offset_index_get(struct offset_index *oi,
 
 
 #define OFFSET_INDEX_PAIR(offset_index, i) \
-    ( (struct file_id_offset_pair *) \
-      (((uint8_t *)(offset_index->index->vals)) \
-       + (sizeof(uint64_t) + sizeof(uint32_t) + (i * offset_index->width)) ))
+    ( (struct file_id_offset_pair *) (((uint8_t *)(offset_index->index->vals)) \
+        + ((offset_index->type == in_memory) \
+            ? 0 : sizeof(uint64_t) + sizeof(uint32_t)) \
+        + (i * offset_index->width)) )
 
 #define OFFSET_INDEX_DATA(offset_index, i) \
-    ( (void *)(((uint8_t *)(offset_index->index->vals)) + \
-       + ( sizeof(uint64_t) + sizeof(uint32_t) + \
-       + (i * offset_index->width + sizeof(struct file_id_offset_pair))) ) )
+    ( (void *) (((uint8_t *)(offset_index->index->vals)) \
+        + ((offset_index->type == in_memory) \
+            ? 0 : sizeof(uint64_t) + sizeof(uint32_t)) \
+        + (i * offset_index->width + sizeof(struct file_id_offset_pair))) )
 
 #endif

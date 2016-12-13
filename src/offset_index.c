@@ -38,6 +38,8 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 
     oi->f = NULL;
 
+    oi->type = in_memory;
+
     return oi;
 }
 //}}}
@@ -46,18 +48,20 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 void offset_index_destroy(struct offset_index **oi)
 {
 
-    //free((*oi)->index->vals);
-    free((*oi)->index);
-
     if ((*oi)->file_name != NULL) {
         free((*oi)->file_name);
         (*oi)->file_name = NULL;
     }
 
     if ((*oi)->f != NULL) {
-        munmap((*oi)->index->vals, (*oi)->index->size * (*oi)->width);
+        munmap((*oi)->index->vals, 
+               (*oi)->index->size * (*oi)->width);
         fclose((*oi)->f);
+    } else {
+        free((*oi)->index->vals);
     }
+
+    free((*oi)->index);
 
     free(*oi);
     *oi = NULL;
@@ -141,9 +145,8 @@ struct offset_index *offset_index_load(char *file_name)
     fr = fread(&(oi->width), sizeof(uint32_t), 1, oi->f);
     check_file_read(oi->file_name, oi->f, 1, fr);
 
-    rewind(oi->f);
-
     oi->index->size = oi->index->num;
+
     /*
     oi->index->vals = (struct file_id_offset_pair *)
             malloc(oi->index->size * oi->width);
@@ -155,14 +158,22 @@ struct offset_index *offset_index_load(char *file_name)
     fclose(f);
     */
 
+    off_t filesize = lseek(fileno(oi->f), 0, SEEK_END);
+    rewind(oi->f);
+
     oi->index->vals = (struct file_id_offset_pair *)
             mmap(0,
-                 oi->index->size * oi->width,
+                 filesize,
                  PROT_READ,
-                 MAP_FILE,
+                 MAP_SHARED,
                  fileno(oi->f),
                  0);
+
+    if (oi->index->vals == MAP_FAILED)
+        err(1, "Error mmapping file.");
     
+    oi->type = on_disk;
+
     return oi;
 }
 //}}}
