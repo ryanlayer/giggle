@@ -149,6 +149,7 @@ void test_offset_index_add_no_data(void)
             offset_index_init(100,
                               "tmp.test_offset_index_add");
     uint32_t intrv_id;
+    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
 
     while (i->input_file_get_next_interval(i,
                                            &chrm,
@@ -182,8 +183,8 @@ void test_offset_index_add_no_data(void)
     input_file_destroy(&i);
     free(chrm);
 
-
     offset_idx = offset_index_load("tmp.test_offset_index_add");
+    TEST_ASSERT_EQUAL(on_disk, offset_idx->type);
 
     for (j = 0; j < 1000; ++j)
         TEST_ASSERT_EQUAL(A_offsets[j], 
@@ -192,7 +193,6 @@ void test_offset_index_add_no_data(void)
     offset_index_destroy(&offset_idx);
 }
 //}}}
-
 
 //{{{ void test_offset_index_add_data(void)
 struct offset_data_append_data_test_struct
@@ -409,6 +409,7 @@ void test_offset_index_add_data(void)
     struct offset_index *offset_idx = 
             offset_index_init(100,
                               "tmp.test_offset_index_add");
+    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
     uint32_t intrv_id;
 
     while (i->input_file_get_next_interval(i,
@@ -805,6 +806,7 @@ void test_offset_index_add_data_larger(void)
     struct offset_index *offset_idx = 
             offset_index_init(100,
                               "tmp.test_offset_index_add");
+    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
     uint32_t intrv_id;
 
     while (i->input_file_get_next_interval(i,
@@ -1182,6 +1184,7 @@ void test_offset_index_store_load_data(void)
     struct offset_index *offset_idx = 
             offset_index_init(10,
                               "tmp.test_offset_index_add");
+    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
     uint32_t intrv_id;
 
     while (i->input_file_get_next_interval(i,
@@ -1224,6 +1227,7 @@ void test_offset_index_store_load_data(void)
     free(chrm);
 
     offset_idx = offset_index_load("tmp.test_offset_index_add");
+    TEST_ASSERT_EQUAL(on_disk, offset_idx->type);
 
     for (j = 0; j < 1000; ++j) {
         TEST_ASSERT_EQUAL(A_offsets[j], 
