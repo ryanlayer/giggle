@@ -52,7 +52,7 @@ run check_chr_v_nochr_search_$i \
         ../../bin/giggle search \
         -i ../data/chr_mix_i \
         -r $R_CHRM:$R_START-$R_END 
-        
+assert_equal 11 $(cat $STDOUT_FILE | grep "^#" | wc -l | awk '{print $1;}')
 assert_equal 0 $(diff $STDOUT_FILE <( ../../bin/giggle search \
                                         -i ../data/chr_mix_i \
                                         -r chr$R_CHRM:$R_START-$R_END) | wc -l)
@@ -76,6 +76,7 @@ run check_bulk_insert \
         -s \
         -i ../data/many_i_sort \
         -q ../data/1k.sort.bed.gz
+assert_equal 22 $(cat $STDOUT_FILE | grep "^#" | wc -l | awk '{print $1;}')
 assert_equal 0 $(diff $STDOUT_FILE <(../../bin/giggle search \
                                                       -s \
                                                       -i ../data/many_i \
@@ -83,6 +84,7 @@ assert_equal 0 $(diff $STDOUT_FILE <(../../bin/giggle search \
 
 run check_offset_additional_data \
     ../../bin/api_test "../data/many/*gz" ../data/many_i 1 1000000 2000000
+assert_equal 72 $(cat $STDOUT_FILE | wc -l | awk '{print $1}')
 assert_equal 0 $(paste <(grep "^data" $STDOUT_FILE | cut -f2,3) \
                        <(grep "^line" $STDOUT_FILE | cut -f6,8) \
                  | awk '$1 !=0 && $2 != 0.000000' \
