@@ -8,6 +8,7 @@
 #include <regex.h>
 #include <err.h>
 #include <sysexits.h>
+#include <htslib/kstring.h>
 
 #include "util.h"
 #include "giggle_index.h"
@@ -510,12 +511,14 @@ static int answer_to_connection (void *cls,
 
                     free(full_path);
 
+                    kstring_t line = {0, 0, NULL};
                     while ( q_f->input_file_get_next_interval(q_f, 
                                                               &chrm,
                                                               &chrm_len,
                                                               &start,
                                                               &end,
-                                                              &offset) >= 0 ) {
+                                                              &offset,
+                                                              &line) >= 0 ) {
                         gqr = giggle_query(gi,
                                            chrm,
                                            start,
@@ -524,6 +527,9 @@ static int answer_to_connection (void *cls,
                         num_intervals += 1;
                         mean_interval_size += end - start;
                     }
+
+                    if (line.s != NULL)
+                        free(line.s);
 
                     input_file_destroy(&q_f);
                     mean_interval_size = mean_interval_size/num_intervals;
@@ -537,7 +543,7 @@ static int answer_to_connection (void *cls,
                         //(struct file_data *)
                         //unordered_list_get(gi->file_index, i); 
 
-                    giggle_get_query_len(gqr, i));
+                    giggle_get_query_len(gqr, i);
                     if (test_pattern_match(gi,
                                            regexs,
                                            file_patterns,
@@ -670,16 +676,21 @@ static int answer_to_connection (void *cls,
 
             struct giggle_query_result *gqr = NULL;
 
+            kstring_t line = {0, 0, NULL};
             while ( q_f->input_file_get_next_interval(q_f, 
                                                      &chrm,
                                                      &chrm_len,
                                                      &start,
                                                      &end,
-                                                     &offset) >= 0 ) {
+                                                     &offset,
+                                                     &line) >= 0 ) {
                 gqr = giggle_query(con_info->arg->gi, chrm, start, end, gqr);
                 num_intervals += 1;
                 mean_interval_size += end - start;
             }
+
+            if (line.s != NULL)
+                free(line.s);
 
             input_file_destroy(&q_f);
 
