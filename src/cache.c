@@ -30,6 +30,8 @@ uint64_t uint32_t_serialize(void *deserialized, void **serialized)
 
     //uint8_t *data = (uint8_t *)calloc(1, sizeof(uint32_t));
     uint8_t *data = (uint8_t *)calloc(sizeof(uint32_t), sizeof(uint8_t));
+    if (data == NULL)
+        err(1, "calloc error in uint32_t_serialize().");
 
     memcpy(data, de, sizeof(uint32_t));
 
@@ -46,6 +48,8 @@ uint64_t uint32_t_deserialize(void *serialized,
     uint8_t *data = (uint8_t *)serialized;
 
     uint32_t *u = (uint32_t *)malloc(sizeof(uint32_t));
+    if (u == NULL)
+        err(1, "malloc error in uint32_t_deserialize().");
 
     memcpy(u, data, sizeof(uint32_t));
 
@@ -83,6 +87,8 @@ void *simple_cache_init(uint32_t size,
 {
     struct simple_cache *sc = (struct simple_cache *)
             malloc(sizeof(struct simple_cache));
+    if (sc == NULL)
+        err(1, "malloc error in simple_cache_init().");
 
     _cache[CACHE_NAME_SPACE] = sc;
     cache = simple_cache_def;
@@ -94,8 +100,16 @@ void *simple_cache_init(uint32_t size,
 
     sc->ils = (struct indexed_list **)calloc(num_domains,
                                              sizeof(struct indexed_list *));
+    if (sc->ils == NULL)
+        err(1, "calloc error in simple_cache_init().");
+
     sc->nums = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
+    if (sc->nums == NULL)
+        err(1, "calloc error in simple_cache_init().");
+
     sc->seens = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
+    if (sc->seens == NULL)
+        err(1, "calloc error in simple_cache_init().");
 
     sc->dss = NULL;
     sc->data_file_names = NULL;
@@ -106,10 +120,19 @@ void *simple_cache_init(uint32_t size,
     if (file_names != NULL) {
         sc->dss = (struct disk_store **)calloc(num_domains, 
                                                sizeof(struct disk_store *));
+        if (sc->dss == NULL)
+            err(1, "calloc error in simple_cache_init().");
+
         sc->index_file_names = (char **)calloc(num_domains, 
                                                sizeof(char *));
+        if (sc->index_file_names == NULL)
+            err(1, "calloc error in simple_cache_init().");
+
         sc->data_file_names = (char **)calloc(num_domains, 
                                               sizeof(char *));
+        if (sc->data_file_names == NULL)
+            err(1, "calloc error in simple_cache_init().");
+
         uint32_t ret;
         char *index_file_name, *data_file_name;
         for ( i = 0; i < num_domains; ++i) {
@@ -138,6 +161,9 @@ void *simple_cache_init(uint32_t size,
 
     // set size
     sc->sizes = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
+    if (sc->sizes == NULL)
+        err(1, "calloc error in simple_cache_init().");
+
     for ( i = 0; i < num_domains; ++i) {
         sc->sizes[i] = size;
         sc->nums[i] = 0;

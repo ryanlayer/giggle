@@ -298,8 +298,14 @@ int search_main(int argc, char **argv, char *full_cmd)
 
         regexs = (regex_t *)
                 malloc(num_file_patterns * sizeof(regex_t));
+        if (regexs == NULL)
+            err(1, "malloc error  in search_main().");
+
         file_patterns = (char **)
                 malloc(num_file_patterns * sizeof(char *));
+        if (file_patterns == NULL)
+            err(1, "malloc error  in search_main().");
+
         uint32_t i = 0;
         s = 0;
         e = 0;
@@ -367,6 +373,8 @@ int search_main(int argc, char **argv, char *full_cmd)
         // search a file
         int chrm_len = 50;
         char *chrm = (char *)malloc(chrm_len*sizeof(char));
+        if (chrm == NULL)
+            err(1, "malloc error  in search_main().");
         uint32_t start, end;
         long offset;
         kstring_t line = {0, 0, NULL};

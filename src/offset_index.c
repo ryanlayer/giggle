@@ -23,9 +23,15 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 {
     struct offset_index *oi = 
             (struct offset_index *) malloc(sizeof(struct offset_index));
+    if (oi == NULL)
+        err(1, "malloc error in offset_index_init()");
+
     oi->width = sizeof(struct file_id_offset_pair) + offset_data_size;
     oi->index = (struct file_id_offset_pairs *)
             malloc(sizeof(struct file_id_offset_pairs));
+    if (oi->index == NULL)
+        err(1, "malloc error in offset_index_init()");
+
     oi->index->num = 0;
     oi->index->size = init_size;
     oi->index->vals = (struct file_id_offset_pair *)
@@ -81,6 +87,8 @@ uint32_t offset_index_add(struct offset_index *oi,
         oi->index->size = oi->index->size * 2;
         oi->index->vals = (struct file_id_offset_pair *)
                 realloc(oi->index->vals, oi->index->size * oi->width);
+        if (oi->index->vals == NULL)
+            err(1, "realloc error in offset_index_add().\n");
         memset((uint8_t *)oi->index->vals + (oi->index->num * oi->width),
                0,
                oi->index->num * oi->width);
@@ -130,6 +138,8 @@ struct offset_index *offset_index_load(char *file_name)
 {
     struct offset_index *oi = (struct offset_index *)
             malloc(sizeof(struct offset_index));
+    if (oi == NULL)
+        err(1, "malloc error in offset_index_load().\n");
 
     oi->file_name = strdup(file_name);
 
@@ -139,6 +149,9 @@ struct offset_index *offset_index_load(char *file_name)
 
     oi->index = (struct file_id_offset_pairs *)
             malloc(sizeof(struct file_id_offset_pairs));
+    if (oi->index == NULL)
+        err(1, "malloc error in offset_index_load().\n");
+
     size_t fr = fread(&(oi->index->num), sizeof(uint64_t), 1, oi->f);
     check_file_read(oi->file_name, oi->f, 1, fr);
 

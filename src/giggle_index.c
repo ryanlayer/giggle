@@ -32,6 +32,8 @@ void *file_id_offset_pair_load(FILE *f, char *file_name)
 {
     struct file_id_offset_pair *p = (struct file_id_offset_pair*)
             malloc(sizeof( struct file_id_offset_pair));
+    if (p == NULL)
+        err(1, "malloc error in file_id_offset_pair_load()");
 
     size_t fr = fread(&(p->file_id), sizeof(uint32_t), 1, f);
     check_file_read(file_name, f, 1, fr);
@@ -66,6 +68,8 @@ void *c_str_load(FILE *f, char *file_name)
     check_file_read(file_name, f, 1, fr);
 
     char *c_str = (char *)calloc(size, sizeof(char));
+    if (c_str == NULL)
+        err(1, "calloc error in c_str_load()");
 
     fr = fread(c_str, sizeof(char), size, f);
     check_file_read(file_name, f, size, fr);
@@ -395,6 +399,8 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
 #endif
 
     uint32_t *I = (uint32_t *)calloc(I_size, sizeof(uint32_t));
+    if (I == NULL)
+        err(1, "calloc error in giggle_collect_intersection_data_in_block()");
 
     struct bpt_node *leaf_start = cache.get(domain,
                                             leaf_start_id - 1,
@@ -414,6 +420,8 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
             LEAF_DATA_ENDS_END(leaf_start,  pos_start_id);
 
     uint32_t *buff = (uint32_t *)calloc(buff_size, sizeof(uint32_t));
+    if (buff == NULL)
+        err(1, "calloc error in giggle_collect_intersection_data_in_block()");
 
     memcpy(buff,
            leaf_start_data->leading,
@@ -482,6 +490,8 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
 
     struct leaf_data_result *ldr = (struct leaf_data_result *)
             calloc(1,sizeof(struct leaf_data_result));
+    if (ldr == NULL)
+        err(1, "calloc error in giggle_collect_intersection_data_in_block()");
 
     ldr->len = I_size;
     ldr->data = I;
@@ -708,10 +718,15 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
+    if (gi == NULL)
+        err(1, "malloc error in giggle_init_index()");
+
     gi->data_dir = NULL;
     gi->len = init_size;
     gi->num = 0;
     gi->root_ids = (uint32_t *)calloc(sizeof(uint32_t), gi->len);
+    if (gi->root_ids == NULL)
+        err(1, "calloc error in giggle_init_index()");
 
     gi->chrm_idx = chrm_index_init(init_size, NULL);
     gi->file_idx = file_index_init(3, NULL);
@@ -736,6 +751,8 @@ uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm)
 
         if (gi->len < size) {
             gi->root_ids = realloc(gi->root_ids, (size)*sizeof(uint32_t));
+            if (gi->root_ids == NULL)
+                err(1, "realloc error in giggle_get_chrm_id()");
             gi->len = size;
             uint32_t i;
             for (i = gi->num; i < gi->len; ++i)
@@ -778,6 +795,9 @@ uint32_t giggle_index_file(struct giggle_index *gi,
     struct input_file *i = input_file_init(file_name);
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
+    if (chrm == NULL)
+        err(1, "realloc error in giggle_index_file()");
+
     uint32_t start, end;
     long offset;
     kstring_t line = {0, 0, NULL};
@@ -898,6 +918,9 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
         }
 
         cache_names = (char **)calloc(num_chrms, sizeof(char *));
+        if (cache_names == NULL)
+            err(1, "calloc error in giggle_init()");
+
         uint32_t i, ret;
         for (i = 0; i < num_chrms; ++i) {
             ret = asprintf(&(cache_names[i]),
@@ -999,6 +1022,8 @@ struct giggle_index *giggle_load(char *data_dir,
 
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
+    if (gi == NULL)
+        err(1, "calloc error in giggle_load()");
 
     gi->data_dir = strdup(data_dir);
 
@@ -1022,6 +1047,8 @@ struct giggle_index *giggle_load(char *data_dir,
     check_file_read(gi->root_ids_file_name, f, 1, fr);
 
     gi->root_ids = (uint32_t *)calloc(gi->len, sizeof(uint32_t));
+    if (gi->root_ids == NULL)
+        err(1, "calloc error in giggle_load()");
 
     fr = fread(gi->root_ids, sizeof(uint32_t), gi->len, f);
     check_file_read(gi->root_ids_file_name, f, gi->len, fr);
@@ -1089,6 +1116,9 @@ struct giggle_index *giggle_load(char *data_dir,
 
     //start();
     char **cache_names = (char **)calloc(gi->len, sizeof(char *));
+    if (cache_names == NULL)
+        err(1, "calloc error in giggle_load()");
+
     uint32_t i;
     for (i = 0; i < gi->len; ++i) {
         ret = asprintf(&(cache_names[i]),
@@ -1150,12 +1180,16 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
     if (_gqr == NULL) {
         gqr = (struct giggle_query_result *) 
                 malloc(sizeof(struct giggle_query_result));
+        if (gqr == NULL)
+            err(1, "malloc error in giggle_query()");
 
         gqr->gi = gi;
         gqr->num_files = gi->file_idx->index->num;
         gqr->num_hits = 0;
         gqr->offsets = (struct long_uint_ll **)
             calloc(gi->file_idx->index->num, sizeof(struct long_uint_ll *));
+        if (gqr->offsets == NULL)
+            err(1, "calloc error in giggle_query()");
 
         for (i = 0; i < gi->file_idx->index->num; ++i) {
             gqr->offsets[i] = NULL;
@@ -1206,6 +1240,8 @@ struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
 
     struct giggle_query_iter *gqi = (struct giggle_query_iter *)
         malloc(sizeof(struct giggle_query_iter));
+    if (gqi == NULL)
+        err(1, "malloc error in giggle_get_query_itr()");
 
     gqi->gi = gqr->gi;
     gqi->curr = 0;
@@ -1228,6 +1264,8 @@ struct giggle_query_iter *giggle_get_query_itr(struct giggle_query_result *gqr,
 
     gqi->sorted_offsets = (long *)
             malloc(gqr->offsets[file_id]->len * sizeof(long));
+    if (gqi->sorted_offsets == NULL)
+        err(1, "malloc error in giggle_get_query_itr()");
 
     struct long_uint_ll_node *curr = gqr->offsets[file_id]->head;
     uint32_t i = 0;
@@ -1252,6 +1290,8 @@ struct giggle_query_iter *giggle_get_query_data_itr(
 {
     struct giggle_query_iter *gqi = (struct giggle_query_iter *)
         malloc(sizeof(struct giggle_query_iter));
+    if (gqi == NULL)
+        err(1, "malloc error in giggle_get_query_data_itr()");
 
     gqi->gi = gqr->gi;
     gqi->curr = 0;
@@ -1269,6 +1309,8 @@ struct giggle_query_iter *giggle_get_query_data_itr(
     gqi->sorted_offset_id_pairs = (struct long_uint_pair *)
             malloc(gqr->offsets[file_id]->len * 
                    sizeof(struct long_uint_pair));
+    if (gqi->sorted_offset_id_pairs == NULL)
+        err(1, "malloc error in giggle_get_query_data_itr()");
 
     struct long_uint_ll_node *curr = gqr->offsets[file_id]->head;
     uint32_t i = 0;
@@ -1380,8 +1422,13 @@ void giggle_write_tree_leaf_data(void *giggle_index)
     // are in cache
     struct bpt_node *to_write_node = (struct bpt_node *)
             malloc(sizeof(struct bpt_node));
+    if (to_write_node == NULL)
+        err(1, "malloc error in giggle_write_tree_leaf_data()");
+
     to_write_node->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS,
                                              sizeof(uint32_t));
+    if (to_write_node->data == NULL)
+        err(1, "malloc error in giggle_write_tree_leaf_data()");
 
     uint32_t domain;
     for (domain = 0; domain < gi->num; ++domain) {
@@ -1420,6 +1467,9 @@ void giggle_write_tree_leaf_data(void *giggle_index)
         // first will but current id 
         // second is the on-disk id
         p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+        if (p == NULL)
+            err(1, "malloc error in giggle_write_tree_leaf_data()");
+
         p->first = BPT_ID(curr_node);
         p->second = old_id_to_new_id_os->num + 1;
         r = ordered_set_add(old_id_to_new_id_os, p);
@@ -1428,6 +1478,9 @@ void giggle_write_tree_leaf_data(void *giggle_index)
 
         struct fifo_q *node_q = NULL, *leaf_q = NULL;
         uint32_t *id = (uint32_t *)malloc(sizeof(uint32_t));
+        if (id == NULL)
+            err(1, "malloc error in giggle_write_tree_leaf_data()");
+
         *id = BPT_ID(curr_node);
         fifo_q_push(&node_q, id);
 
@@ -1484,6 +1537,12 @@ void giggle_write_tree_leaf_data(void *giggle_index)
                         // put a map between the current id and the to disk id
                         p = (struct uint_pair *)
                                 malloc(sizeof(struct uint_pair));
+                        if (p == NULL)
+                            err(1,
+                                "malloc error in "
+                                "giggle_write_tree_leaf_data()");
+
+
                         p->first = BPT_POINTERS(curr_node)[i];
                         p->second = old_id_to_new_id_os->num + 1;
                         r = ordered_set_add(old_id_to_new_id_os, p);
@@ -1500,6 +1559,11 @@ void giggle_write_tree_leaf_data(void *giggle_index)
 
                         // put the child on the queue
                         id = (uint32_t *)malloc(sizeof(uint32_t));
+                        if (id == NULL)
+                            err(1,
+                                "malloc error in "
+                                "giggle_write_tree_leaf_data()");
+
                         *id = BPT_POINTERS(curr_node)[i];
                         fifo_q_push(&node_q, id);
                     }
@@ -1560,11 +1624,19 @@ void giggle_write_tree_leaf_data(void *giggle_index)
                           &leaf_data_cache_handler);
 
                 p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
+                if (p == NULL)
+                    err(1,
+                        "malloc error in giggle_write_tree_leaf_data()");
+
                 p->first = data_id;
                 p->second = old_id_to_new_id_os->num + 1;
                 r = ordered_set_add(old_id_to_new_id_os, p);
 
                 id = (uint32_t *)malloc(sizeof(uint32_t));
+                if (id == NULL)
+                    err(1,
+                        "malloc error in giggle_write_tree_leaf_data()");
+
                 *id = data_id;
                 fifo_q_push(&leaf_q, id);
 
@@ -1658,6 +1730,8 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
     // If the node is a leaf we need to deal with the leading values
     if (BPT_IS_LEAF(curr_node)) {
         *lf = (struct leaf_data *) calloc(1, sizeof(struct leaf_data));
+        if (*lf == NULL)
+            err(1, "calloc error in giggle_get_leaf_data()");
 
 
         // Do one scan to find the sizes
@@ -1685,6 +1759,8 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
         (*lf)->data = (uint32_t *)calloc(
                 (*lf)->num_leading + (*lf)->num_starts + (*lf)->num_ends,
                 sizeof(uint32_t));
+        if ((*lf)->data == NULL)
+            err(1, "calloc error in giggle_get_leaf_data()");
 
         if ((*lf)->num_leading > 0)
             (*lf)->leading = (*lf)->data;
@@ -1704,6 +1780,8 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
         //track the end of each array for each pointer
         *starts_ends_offsets = 
             (uint16_t *)calloc(BPT_NUM_KEYS(curr_node)*2, sizeof(uint16_t));
+        if (starts_ends_offsets == NULL)
+            err(1, "calloc error in giggle_get_leaf_data()");
 
         // Do a second scan to get the data into the array
         uint32_t leading_i = 0, starts_i = 0, ends_i = 0;
@@ -1924,14 +2002,24 @@ uint32_t giggle_merge_chrom(char *chrm_string,
 
     uint32_t *merged_starts =
             (uint32_t *)malloc(merged_starts_size * sizeof(uint32_t));
+    if (merged_starts  == NULL)
+        err(1, "calloc error in giggle_merge_chrom()");
+
     uint32_t *merged_ends = 
             (uint32_t *)malloc(merged_ends_size * sizeof(uint32_t));
+    if (merged_ends  == NULL)
+        err(1, "calloc error in giggle_merge_chrom()");
 
     // Collect the values into this node, then write it and clear 
     struct bpt_node *to_write_node = (struct bpt_node *)
             malloc(sizeof(struct bpt_node));
+    if (to_write_node  == NULL)
+        err(1, "calloc error in giggle_merge_chrom()");
+
     to_write_node->data = (uint32_t *)
             malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+    if (to_write_node->data  == NULL)
+        err(1, "calloc error in giggle_merge_chrom()");
 
     memset(to_write_node->data, 0, BPT_NODE_SIZE);
 
@@ -2247,6 +2335,9 @@ uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
 
         struct file_data *merged_fd = (struct file_data *)
                 malloc(sizeof(struct file_data));
+        if (merged_fd  == NULL)
+            err(1, "calloc error in giggle_merge_add_file_index()");
+
         merged_fd->num_intervals = fd->num_intervals;
         merged_fd->mean_interval_size = fd->mean_interval_size;
         merged_fd->file_name = strdup(fd->file_name);
@@ -2272,6 +2363,8 @@ uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
     // Find the union of the two chrom sets
     char **full_chrm_set = 
             (char **)malloc( (gi_0_num + gi_1_num) * sizeof (char *));
+    if (*full_chrm_set  == NULL)
+        err(1, "calloc error in giggle_merge_chrm_union()");
 
     uint32_t i;
     for (i = 0; i < gi_0_num; ++i) {
@@ -2300,6 +2393,9 @@ uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
     }
 
     *merged_chrm_set = (char **)malloc(num_uniq * sizeof (char *));
+    if (merged_chrm_set  == NULL)
+        err(1, "malloc error in giggle_merge_chrm_union()");
+
     uint32_t merged_chrm_set_i = 0;
     for (i = 0; i < gi_0_num + gi_1_num; ) {
         (*merged_chrm_set)[merged_chrm_set_i] = strdup(full_chrm_set[i]);
@@ -2379,6 +2475,8 @@ void giggle_merge_leaf_key(struct bpt_node *node,
             realloc((*merged_offset_index)->vals,
                     (*merged_offset_index)->size * 
                     sizeof(struct file_id_offset_pair));
+        if ((*merged_offset_index)->vals  == NULL)
+            err(1, "realloc error in giggle_merge_leaf_key()");
 
         memset((*merged_offset_index)->vals + (*merged_offset_index)->num,
                0,
@@ -2394,6 +2492,8 @@ void giggle_merge_leaf_key(struct bpt_node *node,
 
         *merged_starts = (uint32_t *)
             realloc(*merged_starts, *merged_starts_size * sizeof(uint32_t)); 
+        if (merged_starts == NULL)
+            err(1, "realloc error in giggle_merge_leaf_key()");
     }
   
     //grow the merged ends if we need to
@@ -2404,6 +2504,8 @@ void giggle_merge_leaf_key(struct bpt_node *node,
 
         *merged_ends = (uint32_t *)
             realloc(*merged_ends, *merged_ends_size * sizeof(uint32_t)); 
+        if (merged_ends == NULL)
+            err(1, "realloc error in giggle_merge_leaf_key()");
     }
 
     // loop over the starts
@@ -2479,6 +2581,8 @@ struct chrm_index *chrm_index_init(uint32_t init_size,
 {
     struct chrm_index *idx = 
         (struct chrm_index *)malloc(sizeof(struct chrm_index));
+    if (idx == NULL)
+        err(1, "malloc error in chrm_index_init()");
 
     idx->index = ordered_set_init(init_size,
                                   str_uint_pair_sort_element_cmp,
@@ -2507,6 +2611,9 @@ uint32_t chrm_index_add(struct chrm_index *ci,
 {
     struct str_uint_pair *p = (struct str_uint_pair *)
                 malloc(sizeof(struct str_uint_pair));
+    if (p == NULL)
+        err(1, "malloc error in chrm_index_add()");
+
     p->uint = ci->index->num;
     p->str = strdup(chrm);
 
@@ -2533,6 +2640,8 @@ struct chrm_index *chrm_index_load(char *file_name)
 {
     struct chrm_index *idx = 
         (struct chrm_index *)malloc(sizeof(struct chrm_index));
+    if (idx == NULL)
+        err(1, "malloc error in chrm_index_load()");
 
     idx->file_name = strdup(file_name);
 
@@ -2571,6 +2680,9 @@ struct file_index *file_index_init(uint32_t init_size, char *file_name)
 {
     struct file_index *fi = (struct file_index *)
             malloc(sizeof(struct file_index));
+    if (fi == NULL)
+        err(1, "malloc error in chrm_index_init()");
+
     fi->index = unordered_list_init(3);
     fi->file_name = NULL;
     if (file_name != NULL)
@@ -2597,6 +2709,9 @@ uint32_t file_index_add(struct file_index *fi, char *file_name)
 {
     struct file_data *fd = (struct file_data *)
             calloc(1, sizeof(struct file_data));
+    if (fd == NULL)
+        err(1, "calloc error in chrm_index_add()");
+
     fd->file_name = strdup(file_name);
     return unordered_list_add(fi->index, fd);
 }
@@ -2622,6 +2737,9 @@ struct file_index *file_index_load(char *file_name)
 {
     struct file_index *fi = (struct file_index *)
         malloc(sizeof(struct file_index));
+    if (fi == NULL)
+        err(1, "malloc error in chrm_index_load()");
+
     fi->file_name = strdup(file_name);
     FILE *f = fopen(file_name, "rb");
     fi->index = unordered_list_load(f,
@@ -2663,6 +2781,9 @@ uint64_t giggle_bulk_insert(char *input_path_name,
 
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
+    if (gi == NULL)
+        err(1, "malloc error in giggle_bulk_insert()");
+
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -2697,6 +2818,8 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     // queue, we can reduce mallocs by reusing the array
     struct pq_data *pqd_starts = (struct pq_data *)
             malloc(num_input_files * sizeof(struct pq_data));
+    if (pqd_starts == NULL)
+        err(1, "malloc error in giggle_bulk_insert()");
 
     pri_queue pq_end = priq_new(num_input_files);
 
@@ -2781,6 +2904,8 @@ void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi)
     gi->len = gi->chrm_idx->index->num;
     gi->num = gi->len;
     gi->root_ids = (uint32_t *)malloc(gi->num * sizeof(uint32_t));
+    if (gi->root_ids == NULL)
+        err(1, "malloc error in giggle_bulk_insert_build_tree_on_leaves()");
 
     int ret = asprintf(&(gi->root_ids_file_name),
                        "%s/%s",
@@ -2895,7 +3020,13 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
 
     // Collect the values into this node, then write it and clear 
     struct bpt_node *bpn = (struct bpt_node *) malloc(sizeof(struct bpt_node));
+    if (bpn == NULL)
+        err(1, "malloc error in giggle_bulk_insert_build_leaf_levels()");
+
     bpn->data = (uint32_t *) malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+    if (bpn->data == NULL)
+        err(1, "malloc error in giggle_bulk_insert_build_leaf_levels()");
+
     memset(bpn->data, 0, BPT_NODE_SIZE);
 
     BPT_ID(bpn) = curr_ds->num + 1;//1-based
@@ -2929,6 +3060,9 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
     // These will be used to read intervals from files
     int chrm_len = 50;
     char *chrm = (char *)malloc(chrm_len * sizeof(char));
+    if (chrm == NULL)
+        err(1, "malloc error in giggle_bulk_insert_build_leaf_levels()");
+
     uint32_t start, end;
     long offset;
     kstring_t line = {0, 0, NULL};
@@ -3154,6 +3288,10 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
             priq_push(*pq_start, &(pqd_starts[pqd_start->file_id]), pri_start);
 
             pqd_end = (struct pq_data *) malloc(sizeof(struct pq_data));
+            if (pqd_end == NULL)
+                err(1,
+                    "malloc error in giggle_bulk_insert_build_leaf_levels()");
+
             pqd_end->file_id = pqd_start->file_id;
             pqd_end->interval_id = interval_id;
             pri_end.pos = end + 1;
@@ -3269,6 +3407,9 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
     // Use these to read intervals from files
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len * sizeof(char));
+    if (chrm == NULL)
+        err(1, "malloc error in giggle_bulk_insert_prime_pqs()");
+
     uint32_t start, end;
     long offset;
     kstring_t line = {0, 0, NULL};
@@ -3304,6 +3445,9 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
 
         //Update the pq data for the end
         pqd_end = (struct pq_data *) malloc(sizeof(struct pq_data));
+        if (pqd_end == NULL)
+            err(1, "malloc error in giggle_bulk_insert_prime_pqs()");
+        
         pqd_end->file_id = i;
         pqd_end->interval_id = interval_id;
         pri_end.pos = end + 1; // use end + 1
@@ -3338,6 +3482,8 @@ uint32_t giggle_bulk_insert_open_files(char *input_path_name,
     //Array of open pre-sorted input files
     *i_files = (struct input_file **)
             malloc(results.gl_pathc * sizeof(struct input_file *));
+    if (i_files == NULL)
+        err(1, "malloc error in giggle_bulk_insert_open_files()");
 
     char *file_index_file_name = NULL;
     ret = asprintf(&file_index_file_name,
@@ -3449,6 +3595,9 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
     // Write out the leaf data
     struct leaf_data *ld = (struct leaf_data *)
             malloc(sizeof(struct leaf_data));
+    if (ld == NULL)
+        err(1, "malloc error in giggle_bulk_insert_write_leaf_node()");
+
     ld->num_leading = leading->num;
     ld->num_starts = starts->num;
     ld->num_ends = ends->num;
@@ -3464,6 +3613,9 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
     ld->data = (uint32_t *) 
             malloc((ld->num_leading + ld->num_starts + ld->num_ends) * 
                     sizeof(uint32_t));
+    if (ld->data == NULL)
+        err(1, "malloc error in giggle_bulk_insert_write_leaf_node()");
+
     ld->leading = ld->data;
     ld->starts = ld->data + ld->num_leading;
     ld->ends = ld->data + ld->num_leading + ld->num_starts;
@@ -3540,8 +3692,14 @@ uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
     // We will use this node to hold the data that will be written to disk
     struct bpt_node *new_bpn =
             (struct bpt_node *) malloc(sizeof(struct bpt_node));
+    if (new_bpn == NULL)
+        err(1, "malloc error in giggle_bulk_insert_add_tree_level()");
+
     new_bpn->data = 
             (uint32_t *) malloc(BPT_NODE_NUM_ELEMENTS  * sizeof(uint32_t));
+    if (new_bpn->data == NULL)
+        err(1, "malloc error in giggle_bulk_insert_add_tree_level()");
+
     memset(new_bpn->data, 0, BPT_NODE_SIZE);
     *new_level_first_id = curr_ds->num + 1;//1-based
     BPT_ID(new_bpn) =  curr_ds->num + 1;//1-based

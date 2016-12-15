@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <err.h>
 #include "leaf.h"
 
 //{{{uint64_t leaf_data_serialize(void *deserialized, void **serialized)
@@ -36,6 +37,8 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
                                         de->num_starts +
                                         de->num_ends),
                                         sizeof(uint32_t));
+    if (data == NULL)
+        err(1, "calloc error in leaf_data_serialize.\n");
 
     data[0] = de->num_leading;
     data[1] = de->num_starts;
@@ -62,6 +65,9 @@ uint64_t leaf_data_deserialize(void *serialized,
     
     struct leaf_data *lf = (struct leaf_data *) 
             calloc(1, sizeof(struct leaf_data));
+    if (lf == NULL)
+        err(1, "calloc error in leaf_data_deserialize.\n");
+
     lf->num_leading = data[0];
     lf->num_starts = data[1];
     lf->num_ends = data[2];
@@ -69,6 +75,8 @@ uint64_t leaf_data_deserialize(void *serialized,
                                     lf->num_starts +
                                     lf->num_ends,
                                   sizeof(uint32_t));
+    if (lf->data == NULL)
+        err(1, "calloc error in leaf_data_deserialize.\n");
 
     lf->leading = lf->data;
     lf->starts = lf->data + lf->num_leading;
@@ -93,6 +101,7 @@ void leaf_data_free_mem(void **deserialized)
 }
 //}}}
 
+//{{{uint32_t leaf_data_get_starts_ends(struct bpt_node *node,
 uint32_t leaf_data_get_starts_ends(struct bpt_node *node,
                                    struct leaf_data *data,
                                    uint32_t from,
@@ -108,6 +117,9 @@ uint32_t leaf_data_get_starts_ends(struct bpt_node *node,
                 LEAF_DATA_STARTS_START(node, from);
         if (*starts_size > 0) {
             *starts = (uint32_t *) malloc(*starts_size * sizeof(uint32_t));
+            if (starts == NULL)
+                err(1, "calloc error in leaf_data_get_starts_ends().\n");
+
             memcpy(*starts,
                    data->starts + 
                         LEAF_DATA_STARTS_START(node, from),
@@ -121,6 +133,9 @@ uint32_t leaf_data_get_starts_ends(struct bpt_node *node,
                 LEAF_DATA_ENDS_START(node, from);
         if (*ends_size > 0) {
             *ends = (uint32_t *) malloc(*ends_size * sizeof(uint32_t));
+            if (ends == NULL)
+                err(1, "calloc error in leaf_data_get_starts_ends().\n");
+
             memcpy(*ends,
                    data->ends + 
                         LEAF_DATA_ENDS_START(node, from),
@@ -154,3 +169,4 @@ memcpy(I + I_i,
            LEAF_DATA_ENDS_END(leaf_start, pos_start_id)*sizeof(uint32_t));
            */
 }
+//}}}

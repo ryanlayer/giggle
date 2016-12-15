@@ -133,9 +133,13 @@ uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
 
     *regexs = (regex_t *)
             malloc(*num_file_patterns * sizeof(regex_t));
+    if (*regexs == NULL)
+        err(1, "malloc error in parse_file_patterns().");
 
     *file_patterns = (char **)
             malloc(*num_file_patterns * sizeof(char *));
+    if (*file_patterns == NULL)
+        err(1, "malloc error in parse_file_patterns().");
     uint32_t i = 0;
     s = 0;
     e = 0;
@@ -165,7 +169,11 @@ uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
 struct query_file *init_query_file()
 {
 
-    struct query_file *q = (struct query_file *)malloc(sizeof(struct query_file));
+    struct query_file *q = (struct query_file *)
+            malloc(sizeof(struct query_file));
+    if (q == NULL)
+        err(1, "malloc error in init_query_file().");
+
     q->file_name = NULL;
     return q;
 }
@@ -175,6 +183,9 @@ struct query_file *init_query_file()
 struct region *init_region()
 {
     struct region *r = (struct region *)malloc(sizeof(struct region));
+    if (r == NULL)
+        err(1, "malloc error in init_region().");
+
     r->chrm = NULL;
     return r;
 }
@@ -220,6 +231,9 @@ int scan_url_vals(void *cls,
             fprintf(stderr, "scan_url_vals: file\n");
             r->file_patterns_to_be_printed  =
                     (char *)malloc((strlen(value)+1) * sizeof(char));
+            if (r->file_patterns_to_be_printed == NULL)
+                err(1, "malloc error in scan_url_vals().");
+
             strcpy(r->file_patterns_to_be_printed, value);
 #if 0
             if (r->data.reg == NULL)
@@ -374,6 +388,8 @@ static int answer_to_connection (void *cls,
                              "text/html");
 
         con_info = malloc (sizeof (struct connection_info_struct));
+        if (con_info == NULL)
+            err(1, "malloc error in answer_to_connection().");
         con_info->arg = arg;
         if (NULL == con_info)
             return MHD_NO;
@@ -498,6 +514,9 @@ static int answer_to_connection (void *cls,
 
                     int chrm_len = 50;
                     char *chrm = (char *)malloc(chrm_len*sizeof(char));
+                    if (chrm == NULL)
+                        err(1, "malloc error in answer_to_connection().");
+
                     uint32_t start, end;
                     long offset;
 
@@ -602,6 +621,9 @@ static int answer_to_connection (void *cls,
 
                 if (page == NULL) {
                     page = (char *)malloc(sizeof (char));
+                    if (page == NULL)
+                        err(1, "malloc error in answer_to_connection().");
+
                     page[0] = '\0';
                 }
 
@@ -661,6 +683,9 @@ static int answer_to_connection (void *cls,
 
             int chrm_len = 50;
             char *chrm = (char *)malloc(chrm_len*sizeof(char));
+            if (chrm == NULL)
+                err(1, "malloc error in answer_to_connection().");
+
             uint32_t start, end;
             long offset;
             uint32_t num_intervals = 0;
@@ -804,11 +829,16 @@ int main(int argc, char **argv)
     long data_def_size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     char *data_def = (char *)malloc((data_def_size + 1)*sizeof(char));
+    if (data_def == NULL)
+        err(1, "malloc error in main().");
+
     fread(data_def, data_def_size, 1, fp);
     data_def[data_def_size] = '\0';
     fclose(fp);
 
     struct args *arg = (struct args *)malloc(sizeof(struct args));
+    if (arg == NULL)
+        err(1, "malloc error in main().");
 
     arg->data_def = data_def;
     arg->upload_dir = upload_dir_name;
