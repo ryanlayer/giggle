@@ -9,10 +9,14 @@
 struct data_reg *data_reg_init(uint32_t init_size)
 {
     struct data_reg *dr = (struct data_reg *)malloc(sizeof(struct data_reg));
+    if (dr == NULL)
+        err(1, "malloc error in data_reg_init().");
     dr->num_data = 0;
     dr->data_size = init_size;
 
     dr->data = (void **) malloc(init_size * sizeof(void *));
+    if (dr->data == NULL)
+        err(1, "malloc error in data_reg_init().");
 
     return dr;
 }
@@ -42,6 +46,8 @@ uint32_t data_reg_add(struct data_reg *dr,
         dr->data_size = dr->data_size * 2;
         dr->data = (void *)realloc(dr->data, 
                                    dr->data_size * sizeof(void *));
+        if (dr->data == NULL)
+            err(1, "malloc error in data_reg_add().");
     }
 
     dr->data[id] = data;

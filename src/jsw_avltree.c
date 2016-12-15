@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <err.h>
 
 #include "jsw_avltree.h"
 
@@ -111,7 +112,7 @@ static jsw_avlnode_t *new_node ( jsw_avltree_t *tree, void *data )
   jsw_avlnode_t *rn = (jsw_avlnode_t *)malloc ( sizeof *rn );
 
   if ( rn == NULL )
-    return NULL;
+    err(1, "malloc error at new_node()");
 
   rn->balance = 0;
   rn->data = tree->dup ( data );
@@ -125,7 +126,7 @@ jsw_avltree_t *jsw_avlnew ( cmp_f cmp, dup_f dup, rel_f rel )
   jsw_avltree_t *rt = (jsw_avltree_t *)malloc ( sizeof *rt );
 
   if ( rt == NULL )
-    return NULL;
+      err(1, "malloc error at jsw_avlnew()");
 
   rt->root = NULL;
   rt->cmp = cmp;
@@ -431,6 +432,9 @@ void *int_dup_f( void *p )
 {
     int *o = (int *)p;
     int *a = (int *)malloc(sizeof(int));
+    if (a == NULL)
+        err(1, "malloc error in int_dup_f");
+
     *a = *o;
 
     return a;
@@ -458,6 +462,9 @@ void *uint_dup_f( void *p )
 {
     uint32_t *o = (uint32_t *)p;
     uint32_t *a = (uint32_t *)malloc(sizeof(uint32_t));
+    if (a == NULL)
+        err(1, "malloc error in uint_dup_f()");
+
     *a = *o;
 
     return a;

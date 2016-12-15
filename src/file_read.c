@@ -30,6 +30,9 @@ struct input_file *input_file_init(char *file_name)
 {
     struct input_file *i = (struct input_file *)
             malloc(sizeof(struct input_file));
+    if (i == NULL)
+        err(1, "malloc error in input_file_init().");
+
     i->file_name = strdup(file_name);
 
 
@@ -53,6 +56,8 @@ struct input_file *input_file_init(char *file_name)
 
     if (i->type == BED) {
         i->kstr = (kstring_t*)calloc(1, sizeof(kstring_t));
+        if (i->kstr == NULL)
+            err(1, "calloc error in input_file_init().");
 
         if ( bgzf_is_bgzf(file_name) !=1 )
             errx(1,"Not a BGZF file '%s'\n", file_name);
@@ -96,6 +101,8 @@ struct input_file *input_file_init(char *file_name)
             hts_close(i->bcf_fp);
 
             i->kstr = (kstring_t*)calloc(1, sizeof(kstring_t));
+            if (i->kstr == NULL)
+                err(1, "calloc error in input_file_init().");
 
             if ((i->bed_fp = bgzf_open(file_name, "r")) == 0)
                 err(1,"Could not open file '%s'\n", i->file_name);
@@ -168,7 +175,8 @@ int input_file_get_next_interval_bed(struct input_file *i,
                 *chrm_len = *chrm_len *2;
                 *chrm = realloc(*chrm, *chrm_len * sizeof(char));
                 if (*chrm == NULL)
-                    errx(1, "Realloc error.\n");
+                    err(1,
+                        "realloc error in input_file_get_next_interval_bed().");
             }
 
             if( strncmp("chr", i->kstr->s + s, 3) == 0) {
@@ -216,6 +224,9 @@ int input_file_get_next_interval_vcf(struct input_file *i,
 
     int lensize = sizeof(uint32_t);
     uint32_t *len = (uint32_t *) calloc(1,lensize);
+    if (len == NULL)
+        err(1, "calloc error in input_file_get_next_interval_vcf()");
+
     int size = sizeof(uint32_t);
     if (bcf_get_info_int32(i->hdr, i->line, "END", &end, &size) < 0) {
         size = sizeof(uint32_t);
@@ -233,7 +244,7 @@ int input_file_get_next_interval_vcf(struct input_file *i,
         *chrm_len = *chrm_len *2;
         *chrm = realloc(*chrm, *chrm_len * sizeof(char));
         if (*chrm == NULL)
-            errx(1, "Realloc error.\n");
+            err(1, "realloc error in input_file_get_next_interval_vcf()");
     }
 
     if( strncmp("chr", _chrm, 3) == 0)
@@ -325,8 +336,12 @@ void *file_data_load(FILE *f, char *file_name)
 
     struct file_data *fd = (struct file_data *)
         calloc(1, sizeof(struct file_data));
+    if (fd == NULL)
+        err(1, "calloc error in file_data_load()");
 
     fd->file_name = (char *)calloc(str_len + 1, sizeof(char));
+    if (fd->file_name == NULL)
+        err(1, "calloc error in file_data_load()");
 
     fr = fread(fd->file_name, sizeof(char), str_len, f);
     check_file_read(file_name, f, str_len, fr);

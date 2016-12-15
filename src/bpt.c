@@ -61,6 +61,8 @@ uint64_t bpt_node_serialize(void *deserialized, void **serialized)
     //uint8_t *data = (uint8_t *)calloc(2*ORDER+9, sizeof(uint32_t));
     uint8_t *data = (uint8_t *)calloc(BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t),
                                       sizeof(uint8_t));
+    if (data == NULL)
+        err(1, "calloc error in bpt_node_serialize()");
 
     memcpy(data, de->data, BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t));
 
@@ -78,7 +80,13 @@ uint64_t bpt_node_deserialize(void *serialized,
 
     struct bpt_node *n = (struct bpt_node *)malloc(sizeof(struct bpt_node));
 
+    if (n == NULL)
+        err(1, "malloc error in bpt_node_deserialize().");
+
     n->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS,sizeof(uint32_t));
+    if (n->data == NULL)
+        err(1, "calloc error in bpt_node_deserialize().");
+
     memcpy(n->data, data, BPT_NODE_NUM_ELEMENTS*sizeof(uint32_t));
 
     *deserialized = (void *)n;
@@ -102,7 +110,12 @@ void bpt_node_free_mem(void **deserialized)
 struct bpt_node *bpt_new_node(uint32_t domain)
 {
     struct bpt_node *n = (struct bpt_node *)malloc(sizeof(struct bpt_node));
+    if (n == NULL)
+        err(1, "malloc error in bpt_new_node().");
+
     n->data = (uint32_t *)calloc(BPT_NODE_NUM_ELEMENTS, sizeof(uint32_t));
+    if (n->data == NULL)
+        err(1, "calloc error in bpt_new_node().");
 
     // zero is null for a bpt, so the ids start at one the cache number starts
     // at zero so add or subtract one to get the one/zero-based numbering 

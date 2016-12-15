@@ -77,11 +77,16 @@ uint64_t uint32_t_ll_leading_serialize_to_wah(void *deserialized,
         (struct wah_bpt_leading_data *)
         calloc(1,
                sizeof(struct wah_bpt_leading_data));
+    if (wah_d == NULL)
+        err(1, "calloc error in uint32_t_ll_leading_serialize_to_wah().\n");
 
     wah_d->B = NULL;
 
     if (d->B != NULL) {
         uint32_t *B = (uint32_t *)calloc(B_len,sizeof(uint32_t));
+        if (B == NULL)
+            err(1, "calloc error in uint32_t_ll_leading_serialize_to_wah().\n");
+
         uint32_t i;
         struct uint32_t_ll_node *curr;
 
@@ -184,12 +189,19 @@ uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
         (struct wah_bpt_non_leading_data *)
         calloc(1,
                sizeof(struct wah_bpt_non_leading_data));
+    if (wah_d == NULL)
+        err(1, "calloc error in uint32_t_ll_non_leading_serialize_to_wah().\n");
 
     wah_d->SA = NULL;
     wah_d->SE = NULL;
 
     if (d->SA != NULL) {
         uint32_t *B = (uint32_t *)calloc(SA_len,sizeof(uint32_t));
+        if (B == NULL)
+            err(1,
+                "calloc error in "
+                "uint32_t_ll_non_leading_serialize_to_wah().\n");
+
         uint32_t i;
         struct uint32_t_ll_node *curr;
 
@@ -212,6 +224,11 @@ uint64_t uint32_t_ll_non_leading_serialize_to_wah(void *deserialized,
 
     if (d->SE != NULL) {
         uint32_t *B = (uint32_t *)calloc(SE_len,sizeof(uint32_t));
+        if (B == NULL)
+            err(1,
+                "calloc error in "
+                "uint32_t_ll_non_leading_serialize_to_wah().\n");
+
         uint32_t i;
         struct uint32_t_ll_node *curr;
 
@@ -279,6 +296,9 @@ uint64_t uint32_t_ll_non_leading_serialize(void *deserialized,
     serialized_len = (2 + SA_len + SE_len) * sizeof(uint32_t);
 
     uint32_t *data = (uint32_t *)calloc(2 + SA_len + SE_len, sizeof(uint32_t));
+    if (data == NULL)
+        err(1, "calloc error in uint32_t_ll_non_leading_serialize.\n");
+
 
     uint32_t data_i = 0;
     data[data_i++] = SA_len;
@@ -345,6 +365,9 @@ uint64_t uint32_t_ll_non_leading_deserialize(void *serialized,
             (struct uint32_t_ll_bpt_non_leading_data *)
                     calloc(1,
                            sizeof(struct uint32_t_ll_bpt_non_leading_data));
+    if (d == NULL)
+        err(1, "calloc error in uint32_t_ll_non_leading_deserialize");
+
     d->SA = NULL;
     d->SE = NULL;
 
@@ -403,6 +426,8 @@ uint64_t uint32_t_ll_leading_serialize(void *deserialized,
     serialized_len = (1 + B_len) * sizeof(uint32_t);
 
     uint32_t *data = (uint32_t *)calloc(1 + B_len , sizeof(uint32_t));
+    if (data == NULL)
+        err(1, "calloc error in uint32_t_ll_leading_serialize().\n");
 
     uint32_t data_i = 0;
     data[data_i++] = B_len;
@@ -450,6 +475,9 @@ uint64_t uint32_t_ll_leading_deserialize(void *serialized,
             (struct uint32_t_ll_bpt_leading_data *)
                     calloc(1,
                            sizeof(struct uint32_t_ll_bpt_leading_data));
+    if (d == NULL)
+        err(1, "calloc error in uint32_t_ll_leading_deserialize.\n");
+
     d->B = NULL;
 
     uint32_t i;
@@ -519,6 +547,9 @@ void *uint32_t_ll_new_non_leading(uint32_t domain)
     struct uint32_t_ll_bpt_non_leading_data *d = 
             (struct uint32_t_ll_bpt_non_leading_data *)
             malloc(sizeof( struct uint32_t_ll_bpt_non_leading_data));
+    if (d == NULL)
+        err(1, "malloc error in uint32_t_ll_bpt_non_leading_data.\n");
+
     d->SA = NULL;
     d->SE = NULL;
 
@@ -532,6 +563,9 @@ void *uint32_t_ll_new_leading(uint32_t domain)
     struct uint32_t_ll_bpt_leading_data *d = 
             (struct uint32_t_ll_bpt_leading_data *)
             malloc(sizeof( struct uint32_t_ll_bpt_leading_data));
+    if (d == NULL)
+        err(1, "malloc error in uint32_t_ll_new_leading.\n");
+
     d->B = NULL;
 
     return (void *)d;
@@ -685,11 +719,16 @@ void uint32_t_ll_append(struct uint32_t_ll **ll, uint32_t val)
 {
     struct uint32_t_ll_node *n = (struct uint32_t_ll_node *)
         malloc(sizeof(struct uint32_t_ll_node));
+    if (n == NULL)
+        err(1, "malloc error in uint32_t_ll_append.\n");
     n->val = val;
     n->next = NULL;
 
     if (*ll == NULL) {
         *ll = (struct uint32_t_ll *)malloc(sizeof(struct uint32_t_ll));
+        if (*ll == NULL)
+            err(1, "malloc error in uint32_t_ll_append.\n");
+
         (*ll)->head = n;
         (*ll)->len = 1;
     } else {
@@ -710,11 +749,17 @@ void uint32_t_ll_uniq_append(struct uint32_t_ll **ll, uint32_t val)
 #endif
     struct uint32_t_ll_node *n = (struct uint32_t_ll_node *)
         malloc(sizeof(struct uint32_t_ll_node));
+    if (n == NULL)
+        err(1, "malloc error in uint32_t_ll_uniq_append.\n");
+
     n->val = val;
     n->next = NULL;
 
     if (*ll == NULL) {
         *ll = (struct uint32_t_ll *)malloc(sizeof(struct uint32_t_ll));
+        if (*ll == NULL)
+            err(1, "malloc error in uint32_t_ll_uniq_append.\n");
+
         (*ll)->head = n;
         (*ll)->len = 1;
     } else {
@@ -829,6 +874,8 @@ void uint32_t_ll_leading_repair(uint32_t domain,
         struct uint32_t_ll_bpt_leading_data *d = 
             (struct uint32_t_ll_bpt_leading_data *)
             malloc(sizeof(struct uint32_t_ll_bpt_leading_data));
+        if (d == NULL)
+            err(1, "malloc error in uint32_t_ll_leading_repair.\n");
 
         d->B = NULL;
 
@@ -896,11 +943,16 @@ void long_ll_append(struct long_ll **ll, long val)
 {
     struct long_ll_node *n = (struct long_ll_node *)
         malloc(sizeof(struct long_ll_node));
+    if (n == NULL)
+        err(1, "malloc error in long_ll_append().\n");
+
     n->val = val;
     n->next = NULL;
 
     if (*ll == NULL) {
         *ll = (struct long_ll *)malloc(sizeof(struct long_ll));
+        if (*ll == NULL)
+            err(1, "malloc error in long_ll_append().\n");
         (*ll)->head = n;
         (*ll)->len = 1;
     } else {
@@ -921,11 +973,15 @@ void long_ll_uniq_append(struct long_ll **ll, long val)
 #endif
     struct long_ll_node *n = (struct long_ll_node *)
         malloc(sizeof(struct long_ll_node));
+    if (n == NULL)
+        err(1, "malloc error in long_ll_uniq_append().\n");
     n->val = val;
     n->next = NULL;
 
     if (*ll == NULL) {
         *ll = (struct long_ll *)malloc(sizeof(struct long_ll));
+        if (*ll == NULL)
+            err(1, "malloc error in long_ll_uniq_append().\n");
         (*ll)->head = n;
         (*ll)->len = 1;
     } else {
@@ -1032,12 +1088,17 @@ void long_uint_ll_append(struct long_uint_ll **ll, long long_val, uint32_t uint_
 {
     struct long_uint_ll_node *n = (struct long_uint_ll_node *)
         malloc(sizeof(struct long_uint_ll_node));
+    if (n == NULL)
+        err(1, "malloc error in long_uint_ll_append().\n");
+
     n->long_val = long_val;
     n->uint_val = uint_val;
     n->next = NULL;
 
     if (*ll == NULL) {
         *ll = (struct long_uint_ll *)malloc(sizeof(struct long_uint_ll));
+        if (*ll == NULL)
+            err(1, "malloc error in long_uint_ll_append().\n");
         (*ll)->head = n;
         (*ll)->len = 1;
     } else {

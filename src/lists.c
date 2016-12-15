@@ -15,21 +15,32 @@
 struct bit_map *bit_map_init(uint64_t bits)
 {
     struct bit_map *b = (struct bit_map *) malloc(sizeof(struct bit_map));
+    if (b == NULL)
+        err(1, "calloc error in bit_map_init().\n");
+
     b->num_bits = bits;
     b->num_ints = (bits + 32 - 1) / 32;
     b->bm = (uint32_t *) calloc(b->num_ints, sizeof(uint32_t));
+    if (b->bm == NULL)
+        err(1, "calloc error in bit_map_init().\n");
+
     return b;
 }
 
 struct bit_map *bit_map_load(FILE *f, char *file_name)
 {
     struct bit_map *b = (struct bit_map *) malloc(sizeof(struct bit_map));
+    if (b == NULL)
+        err(1, "calloc error in bit_map_load().\n");
 
     size_t fr = fread(&(b->num_bits), sizeof(uint64_t), 1, f);
     check_file_read(file_name, f, 1, fr);
     fr = fread(&(b->num_ints), sizeof(uint32_t), 1, f);
     check_file_read(file_name, f, 1, fr);
     b->bm = (uint32_t *) calloc(b->num_ints, sizeof(uint32_t));
+    if (b->bm == NULL)
+        err(1, "calloc error in bit_map_load().\n");
+
     fr = fread(b->bm, sizeof(uint32_t), b->num_ints, f);
     check_file_read(file_name, f, b->num_ints, fr);
 
@@ -67,6 +78,9 @@ void bit_map_set(struct bit_map *b, uint64_t i)
         uint64_t new_bits = (b->num_bits)*2;
         uint32_t new_ints = (new_bits + 32 - 1) / 32;
         uint32_t *new_bm = (uint32_t *)calloc(new_ints, sizeof(uint32_t));
+        if (new_bm== NULL)
+            err(1, "calloc error in bit_map_set().\n");
+
         memcpy(new_bm, b->bm, (b->num_ints)*sizeof(uint32_t));
 
         free(b->bm);
@@ -96,9 +110,15 @@ struct indexed_list *indexed_list_init(uint64_t init_size,
 {
     struct indexed_list *il = (struct indexed_list *)
             calloc(1,sizeof(struct indexed_list));
+    if (il == NULL)
+        err(1, "calloc error in indexed_list_init().\n");
+
     il->size = init_size;
     il->element_size = element_size;
     il->data = (char *) calloc(init_size, element_size);
+    if (il->data == NULL)
+        err(1, "calloc error in indexed_list_init().\n");
+
     il->bm = bit_map_init(init_size);
     return il;
 }
@@ -126,6 +146,9 @@ uint32_t indexed_list_add(struct indexed_list *il,
         uint32_t old_size = il->size;
         il->size = il->size * 2;
         il->data = (char *)realloc(il->data, il->size * il->element_size);
+        if (il->data == NULL)
+            err(1, "realloc error in indexed_list_add().\n");
+
         memset(il->data + old_size * il->element_size,
                0,
                old_size * il->element_size);
@@ -178,6 +201,8 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
 {
     struct indexed_list *il = (struct indexed_list *)
             malloc(sizeof(struct indexed_list));
+    if (il == NULL)
+        err(1, "malloc error in indexed_list_load().\n");
 
     size_t fr = fread(&(il->size), sizeof(uint64_t), 1, f);
     check_file_read(file_name, f, 1, fr);
@@ -186,6 +211,8 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
     check_file_read(file_name, f, 1, fr);
 
     il->data = (char *) calloc(il->size, il->element_size);
+    if (il->data == NULL)
+        err(1, "calloc error in indexed_list_load().\n");
     fr = fread(il->data, il->element_size, il->size, f);
     check_file_read(file_name, f, il->size, fr);
 
@@ -203,10 +230,15 @@ struct unordered_list *unordered_list_init(uint32_t init_size)
 {
     struct unordered_list *us = (struct unordered_list *)
             malloc(sizeof(struct unordered_list));
+    if (us == NULL)
+        err(1, "malloc error in indexed_list_init().\n");
+
     us->num = 0;
     us->size = init_size;
 
     us->data = (void **) malloc(init_size * sizeof(void *));
+    if (us->data == NULL)
+        err(1, "malloc error in indexed_list_init().\n");
 
     return us;
 }
@@ -244,6 +276,8 @@ uint32_t unordered_list_add(struct unordered_list *ul,
         ul->size = ul->size * 2;
         ul->data = (void *)realloc(ul->data, 
                                    ul->size * sizeof(void *));
+        if (ul->data == NULL)
+            err(1, "realloc error in indexed_list_add().\n");
     }
 
     ul->data[id] = data;
@@ -288,6 +322,9 @@ struct unordered_list *unordered_list_load(
 
     struct unordered_list *ul = (struct unordered_list *)
                                 malloc(sizeof(struct unordered_list));
+    if (ul == NULL)
+        err(1, "realloc error in indexed_list_load().\n");
+
     size_t fr = fread(&(ul->num), sizeof(uint32_t), 1, f);
     check_file_read(file_name, f, 1, fr);
 
@@ -295,6 +332,8 @@ struct unordered_list *unordered_list_load(
     check_file_read(file_name, f, 1, fr);
 
     ul->data = (void **) calloc(ul->size, sizeof(void *));
+    if (ul->data == NULL)
+        err(1, "calloc error in indexed_list_load().\n");
 
     uint32_t i;
     for (i = 0; i < ul->num; ++i) {
@@ -316,9 +355,15 @@ struct ordered_set
 {
     struct ordered_set *os = (struct ordered_set *)
                                 malloc(sizeof(struct ordered_set));
+    if (os == NULL)
+        err(1, "calloc error in ordered_set_init().\n");
+
     os->num = 0;
     os->size = init_size;
     os->data = (void **) calloc(init_size, sizeof(void *));
+    if (os->data == NULL)
+        err(1, "calloc error in ordered_set_init().\n");
+
     os->sort_element_cmp = sort_element_cmp;
     os->search_element_cmp = search_element_cmp;
     os->search_key_cmp = search_key_cmp;
@@ -364,6 +409,8 @@ void *ordered_set_add(struct ordered_set *os,
         if (os->num == os->size - 1) {
             os->size = os->size * 2;
             os->data = realloc(os->data, os->size * sizeof(void *));
+            if (os->data == NULL)
+                err(1, "realloc error in ordered_set_add().\n");
         }
         int i;
         // insert we move elements to the right until we find a spot for
@@ -435,6 +482,9 @@ struct ordered_set
 
     struct ordered_set *os = (struct ordered_set *)
                                 malloc(sizeof(struct ordered_set));
+    if (os == NULL)
+        err(1, "realloc error in ordered_set_load().\n");
+
     size_t fr = fread(&(os->num), sizeof(uint32_t), 1, f);
     check_file_read(file_name, f, 1, fr);
 
@@ -442,6 +492,8 @@ struct ordered_set
     check_file_read(file_name, f, 1, fr);
 
     os->data = (void **) calloc(os->size, sizeof(void *));
+    if (os->data == NULL)
+        err(1, "calloc error in ordered_set_load().\n");
 
     uint32_t i;
     for (i = 0; i < os->num; ++i) {
@@ -510,6 +562,8 @@ void *str_uint_pair_load(FILE *f, char *file_name)
 {
     struct str_uint_pair *p = (struct str_uint_pair *)
             calloc(1,sizeof(struct str_uint_pair));
+    if (p == NULL)
+        err(1, "calloc error in str_uint_pair_load().\n");
 
     size_t fr = fread(&(p->uint), sizeof(uint32_t), 1, f);
     check_file_read(file_name, f, 1, fr);
@@ -520,6 +574,8 @@ void *str_uint_pair_load(FILE *f, char *file_name)
     check_file_read(file_name, f, 1, fr);
 
     p->str = (char *)calloc(str_len + 1, sizeof(char));
+    if (p->str == NULL)
+        err(1, "calloc error in str_uint_pair_load().\n");
 
     fr = fread(p->str, sizeof(char), str_len, f);
     check_file_read(file_name, f, str_len, fr);
@@ -686,11 +742,16 @@ void fifo_q_push(struct fifo_q **q, void *val)
     int *v = (int *)val;
     struct fifo_q_element *n = (struct fifo_q_element *)
             malloc(sizeof(struct fifo_q_element));
+    if (n == NULL)
+        err(1, "calloc error in fifo_q_push().\n");
+
     n->val = val;
     n->next = NULL;
 
     if (*q == NULL) {
         *q = (struct fifo_q *)malloc(sizeof(struct fifo_q));
+        if (*q == NULL)
+            err(1, "calloc error in fifo_q_push().\n");
         (*q)->head = n;
         (*q)->tail = n;
     } else {
@@ -737,8 +798,13 @@ struct byte_array *byte_array_init(uint32_t init_size)
 {
     struct byte_array *ba = (struct byte_array *)
             malloc(sizeof(struct byte_array));
+    if (ba == NULL)
+        err(1, "malloc error in byte_array_init().\n");
     
     ba->data = (char *) malloc(init_size);
+    if (ba->data == NULL)
+        err(1, "malloc error in byte_array_init().\n");
+
     ba->num = 0;
     ba->size = init_size;
 
@@ -761,6 +827,8 @@ void byte_array_append(struct byte_array *ba, void *data, uint32_t size)
     while (ba->num + size >= ba->size) {
         ba->size = ba->size * 2;
         ba->data = realloc(ba->data, ba->size * sizeof(char *));
+        if (ba->data == NULL)
+            err(1, "realloc error in byte_array_append().\n");
     }
     if (ba->num + size >= ba->size)
         errx(1, "Not enough room to append on byte array");
@@ -785,8 +853,14 @@ struct uint32_t_array *uint32_t_array_init(uint32_t init_size)
 {
     struct uint32_t_array *ua = 
             (struct uint32_t_array *) malloc(sizeof(struct uint32_t_array));
+    if (ua == NULL)
+        err(1, "alloc error in uint32_t_array_init().\n");
+
     ua->size = init_size;
     ua->data = (uint32_t *)malloc(init_size * sizeof(uint32_t));
+    if (ua->data == NULL)
+        err(1, "alloc error in uint32_t_array_init().\n");
+
     ua->num = 0;
     return ua;
 }
@@ -808,6 +882,10 @@ uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val)
         ua->size = ua->size * 2;
         ua->data = (uint32_t *)
                 realloc(ua->data, ua->size * sizeof(uint32_t));
+
+        if (ua->data == NULL)
+            err(1, "alloc error in uint32_t_array_add().\n");
+
         memset(ua->data + ua->num, 0, (ua->size - ua->num) * sizeof(uint32_t));
     }
 

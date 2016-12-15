@@ -9,10 +9,10 @@ pri_queue priq_new(int size)
 
     pri_queue q = malloc(sizeof(pri_queue_t));
     if (!q)
-        err(EX_OSERR, "malloc error");
+        err(EX_OSERR, "malloc error in priq_new().");
     q->buf = malloc(sizeof(q_elem_t) * size);
     if (!q->buf)
-        err(EX_OSERR, "malloc error");
+        err(EX_OSERR, "malloc error priq_new().");
     q->alloc = size;
     q->n = 1;
 
@@ -27,6 +27,8 @@ void priq_push(pri_queue q, void *data, priority pri)
     if (q->n >= q->alloc) {
         q->alloc *= 2;
         b = q->buf = realloc(q->buf, sizeof(q_elem_t) * q->alloc);
+        if (b == NULL)
+            err(EX_OSERR, "realloc error priq_push().");
     } else
         b = q->buf;
 
@@ -70,8 +72,11 @@ void *priq_pop(pri_queue q, priority *pri)
     }
 
     b[n] = b[q->n];
-    if (q->n < q->alloc / 2 && q->n >= 16)
+    if (q->n < q->alloc / 2 && q->n >= 16) {
         q->buf = realloc(q->buf, (q->alloc /= 2) * sizeof(b[0]));
+        if (q->buf == NULL)
+            err(1, "realloc error in priq_pop().");
+    }
 
     return out;
 }

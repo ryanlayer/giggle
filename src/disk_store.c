@@ -17,11 +17,16 @@ struct disk_store *disk_store_init(uint32_t size,
 {
     struct disk_store *ds =
             (struct disk_store *)calloc(1, sizeof(struct disk_store));
+    if (ds == NULL)
+        err(1, "calloc error in disk_store_init().");
+
     ds->num = 0;
     ds->size = size;
     ds->index_file_name = strdup(index_file_name);
     ds->data_file_name = strdup(data_file_name);
     ds->offsets = (uint64_t *)calloc(size, sizeof(uint64_t));
+    if (ds->offsets == NULL)
+        err(1, "calloc error in disk_store_init().");
 
     if ((index_fp == NULL) || (*index_fp == NULL)) {
         ds->index_fp = fopen(index_file_name, "wb");
@@ -65,6 +70,8 @@ struct disk_store *disk_store_load(FILE **index_fp,
 
     struct disk_store *ds =
             (struct disk_store *)calloc(1, sizeof(struct disk_store));
+    if (ds == NULL)
+        err(1, "calloc error in disk_store_load().");
 
     ds->index_file_name = strdup(index_file_name);
 
@@ -84,6 +91,8 @@ struct disk_store *disk_store_load(FILE **index_fp,
     check_file_read(ds->index_file_name, ds->index_fp, 1, fr);
 
     ds->offsets = (uint64_t *)calloc(ds->size, sizeof(uint64_t));
+    if (ds->offsets == NULL)
+        err(1, "calloc error in disk_store_load().");
 
     fr = fread(ds->offsets, sizeof(uint64_t), ds->size, ds->index_fp);
     check_file_read(ds->index_file_name, ds->index_fp, ds->size, fr);
@@ -154,6 +163,9 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
         ds->size = ds->size * 2;
         ds->offsets = (uint64_t *)realloc(ds->offsets,
                                           ds->size * sizeof(uint64_t));
+        if (ds->offsets == NULL)
+            err(1, "realloc error in disk_store_append().");
+
         memset(ds->offsets + old_size,
                0,
                old_size * sizeof(uint64_t));
@@ -197,6 +209,8 @@ void *disk_store_get(struct disk_store *ds, uint32_t id, uint64_t *size)
     *size = end_offset - start_offset;
 
     void *data = (void *) calloc(1, *size);
+    if (data == NULL)
+        err(1, "calloc error in disk_store_append().");
 
     if (fseek(ds->data_fp, start_offset, SEEK_SET) != 0)
         err(1, "Could not seek to data in '%s'.", ds->data_file_name);
