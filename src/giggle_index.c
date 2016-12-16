@@ -1166,13 +1166,18 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
     if (strncmp("chr", chrm, 3) == 0)
         off = 3;
 
-    uint32_t chr_id = giggle_get_chrm_id(gi, chrm + off);
-    
-    // HERE R COULD BE A LIST
-    void *R = giggle_search(chr_id,
-                            gi->root_ids[chr_id],
-                            start,
-                            end);
+    void *R = NULL;
+    struct str_uint_pair *r = chrm_index_get(gi->chrm_idx, chrm + off);
+
+    if (r != NULL) {
+        uint32_t chr_id = giggle_get_chrm_id(gi, chrm + off);
+        
+        // HERE R COULD BE A LIST
+        R = giggle_search(chr_id,
+                          gi->root_ids[chr_id],
+                          start,
+                          end);
+    }
 
 
     uint32_t i,j;
