@@ -8,6 +8,7 @@
 #include <sysexits.h>
 #include <regex.h>
 #include <htslib/kstring.h>
+#include <math.h>
 
 #include "giggle_index.h"
 #include "wah.h"
@@ -18,6 +19,28 @@
 #include "ll.h"
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+double log2fc(double ratio)
+{
+    if (fabs(ratio) < 0.0001)
+        return 0.0;
+
+    if (ratio < 1) {
+        ratio = 1.0/ratio;
+        return -1.0 * log2(ratio);
+    }
+
+    return log2(ratio);
+}
+
+double neglog10p(double sig)
+{
+    //if (sig == 0.0)
+    //fabs (val) < 0.0001
+    if (fabs(sig) < 0.0001)
+        return 10.0;
+    return -1.0 * log10(sig);
+}
 
 int search_help(int exit_code);
 int print_giggle_query_result(struct giggle_query_result *gqr,
@@ -75,6 +98,15 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
 
     uint32_t i,j;
 
+    if (s_is_set == 1) {
+        printf("#file\t"
+               "file_size\t"
+               "overlaps\t"
+               "odds_ratio\t"
+               "fishers_two_tail\t"
+               "combo_score\n");
+    }
+
     for(i = 0; i < gqr->num_files; i++) {
         struct file_data *fd = file_index_get(gi->file_idx, i);
         if (test_pattern_match(gi,
@@ -121,19 +153,21 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                                            &two);
 
                 double ratio = 
-                        (((double)n11/(double)n12) / ((double)n21/(double)n22));
+                        (((double)n11/(double)MAX(1,n12)) / ((double)n21/(double)n22));
 
-                printf("#%s\t"
-                       "size:%u\t"
-                       "overlaps:%u\t"
-                       "ratio:%f\t"
-                       "sig:%f"
+                printf("%s\t"
+                       "%u\t"
+                       "%u\t"
+                       "%f\t"
+                       "%f\t"
+                       "%f\t"
                        "\n",
                        fd->file_name,
                        fd->num_intervals,
                        file_counts,
                        ratio,
-                       right);
+                       two,
+                       log2fc(ratio) * neglog10p(two));
                 /*
                 printf("#%s\t"
                        "size:%u\t"
@@ -160,7 +194,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        fd->mean_interval_size,
                        mean_interval_size,
                        comp_mean);
-                */
+                       */
 
             }
         }
