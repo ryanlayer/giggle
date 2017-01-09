@@ -76,7 +76,7 @@ run check_bulk_insert \
         -s \
         -i ../data/many_i_sort \
         -q ../data/1k.sort.bed.gz
-assert_equal 22 $(cat $STDOUT_FILE | grep "^#" | wc -l | awk '{print $1;}')
+assert_equal 23 $(cat $STDOUT_FILE | wc -l | awk '{print $1;}')
 assert_equal 0 $(diff $STDOUT_FILE <(../../bin/giggle search \
                                                       -s \
                                                       -i ../data/many_i \
