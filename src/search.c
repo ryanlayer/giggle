@@ -20,28 +20,6 @@
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-double log2fc(double ratio)
-{
-    if (fabs(ratio) < 0.0001)
-        return 0.0;
-
-    if (ratio < 1) {
-        ratio = 1.0/ratio;
-        return -1.0 * log2(ratio);
-    }
-
-    return log2(ratio);
-}
-
-double neglog10p(double sig)
-{
-    //if (sig == 0.0)
-    //fabs (val) < 0.0001
-    if (fabs(sig) < 0.0001)
-        return 10.0;
-    return -1.0 * log10(sig);
-}
-
 int search_help(int exit_code);
 int print_giggle_query_result(struct giggle_query_result *gqr,
                               struct giggle_index *gi,
