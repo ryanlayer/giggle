@@ -9,6 +9,7 @@
 #include <err.h>
 #include <sysexits.h>
 #include <htslib/kstring.h>
+#include <math.h>
 
 #include "util.h"
 #include "giggle_index.h"
@@ -761,12 +762,14 @@ static int answer_to_connection (void *cls,
                              "overlaps:%u\t"
                              "ratio:%f\t"
                              "sig:%f"
+                             "combo:%f"
                              "\n",
                              fd->file_name,
                              fd->num_intervals,
                              file_counts,
                              ratio,
-                             right);
+                             right,
+                             log2fc(ratio) * neglog10p(two));
                 } else {
                     asprintf(&tmp_page,
                              "%s"
@@ -774,14 +777,16 @@ static int answer_to_connection (void *cls,
                              "size:%u\t"
                              "overlaps:%u\t"
                              "ratio:%f\t"
-                             "sig:%f"
+                             "sig:%f\t"
+                             "combo:%f"
                              "\n",
                              page,
                              fd->file_name,
                              fd->num_intervals,
                              file_counts,
                              ratio,
-                             right);
+                             right,
+                             log2fc(ratio) * neglog10p(two));
                 }
 
                 free(page);
