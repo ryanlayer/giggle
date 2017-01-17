@@ -166,7 +166,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        fd->num_intervals,
                        file_counts,
                        ratio,
-                       two,
+                       right,
                        log2fc(ratio) * neglog10p(two));
                 /*
                 printf("#%s\t"
