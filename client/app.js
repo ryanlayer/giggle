@@ -1,7 +1,7 @@
 var heatmap = null;
 
-var giggleUrl            = "http://localhost:8080/";
-var giggleUCSCBrowserUrl = "http://localhost:8081/"
+var giggleUrl            = "http://potter.genetics.utah.edu:8080/";
+var giggleUCSCBrowserUrl = "http://potter.genetics.utah.edu:8081/";
 var ucscBrowserUrl       = "https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19";
 
 var sourceFileMap = {};	
@@ -15,7 +15,27 @@ var uploadedFileName = null;
 var ucscFileMap = {};
 var ucscTrackNames = [];
 
+$.urlParam = function(name){
+    var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+    if (results==null){
+        return null;
+    }else{
+        return results[1] || 0;
+    }
+}
+
 $(document).ready(function() {
+        console.log(decodeURIComponent($.urlParam('server')));
+
+        if (decodeURIComponent($.urlParam('rme_index')) != 'null') {
+           giggleUrl = "http://" + decodeURIComponent($.urlParam('rme_index'));
+        } 
+
+        if (decodeURIComponent($.urlParam('ucsc_index')) != 'null') {
+           giggleUCSCBrowserUrl = "http://" + decodeURIComponent($.urlParam('ucsc_index'));
+        } 
+
+
 	$.material.init();
 
 	$('#giggle-url').val(giggleUrl);
@@ -258,8 +278,10 @@ function initBedUploadForm() {
 		uploadedFileName =  $('#bed-upload-form input[type=file]')[0].files[0].name;
 
 		// Enable odds ratio and default as checked
-		$("#radio-value-ratio").prop("checked", true);
-		$("#radio-value-ratio-span").removeClass("hide");
+		//$("#radio-value-ratio").prop("checked", true);
+		//$("#radio-value-ratio-span").removeClass("hide");
+		$("#radio-value-combo").prop("checked", true);
+		$("#radio-value-combo-span").removeClass("hide");
 
 		// Highlight upload panel
 		$("#upload-panel").addClass("selected");
@@ -355,6 +377,7 @@ function loadHeatmapChart(data, theDef) {
 	def = theDef ? theDef : def; 
 	dataForChart = data ? data : dataForChart;
 
+        console.log(def)
 	def.cells = [];
 
 	if($("input[type='radio'].radio-value-field").is(':checked')) {
@@ -392,6 +415,16 @@ function loadHeatmapChart(data, theDef) {
 				}	
 				rec.sig = rec.sig * 100;			
 			}
+			if (fields.length > 5) {
+				var combo = fields[5];
+				if (combo.indexOf(":") > 0) {
+					rec.combo = combo.split(":")[1];
+				} else {
+					rec.combo = combo;
+				}	
+                                console.log(combo)
+			}
+
 			rec.row = sourceFileMap[rec.name].row;
 			rec.col = sourceFileMap[rec.name].col;
 			def.cells.push(rec);
