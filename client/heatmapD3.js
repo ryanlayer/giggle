@@ -43,7 +43,7 @@ function heatmapD3() {
 
 			var colorScale = d3.scale
 			                   .quantize()
-			                   .domain([0, buckets - 1, d3.max(data, function (d) { return cellValue(d); })])
+			                   .domain([d3.min(data, function (d) { return cellValue(d); }), buckets - 1, d3.max(data, function (d) { return cellValue(d); })])
 			                   .range(colors);
 
 			d3.select('#chart svg').remove();
@@ -139,11 +139,8 @@ function heatmapD3() {
 
 			cells.exit().remove();
 
-
-
 			var interval = (colorScale.domain()[1] - colorScale.domain()[0]) / colorScale.range().length;
-			var breaks = d3.range(0, colorScale.range().length).map(function(i) { return d3.round(i * interval); });
-
+			var breaks = d3.range(0, colorScale.range().length).map(function(i) { return colorScale.domain()[0] + d3.round(i * interval); });
 
 			var legendGroup = svg.append("g")
 			                     .attr("transform", "translate(" + 

@@ -94,12 +94,12 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                                i,
                                f_is_set)) {
             if ( (v_is_set == 1) && (giggle_get_query_len(gqr, i) > 0 )){
-                printf("#%s\n", fd->file_name);
+                //printf("#%s\n", fd->file_name);
                 char *result;
                 struct giggle_query_iter *gqi =
                     giggle_get_query_itr(gqr, i);
                 while (giggle_query_next(gqi, &result) == 0)
-                    printf("%s\n", result);
+                    printf("%s\t%s\n", result, fd->file_name);
                 giggle_iter_destroy(&gqi);
             } else if (c_is_set == 1) {
                 printf("#%s\t"
