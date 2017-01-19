@@ -1,7 +1,7 @@
 var heatmap = null;
 
-var giggleUrl            = "http://potter.genetics.utah.edu:8080/";
-var giggleUCSCBrowserUrl = "http://potter.genetics.utah.edu:8081/";
+var giggleUrl            = "http://localhost:8080/";
+var giggleUCSCBrowserUrl = "http://localhost:8081/";
 var ucscBrowserUrl       = "https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19";
 
 var sourceFileMap = {};	
@@ -298,6 +298,8 @@ function initBedUploadForm() {
 
 	    var url = giggleUrl + "filepost";
 
+            console.log(giggleUrl, giggleUCSCBrowserUrl, url)
+
 	  
 	    $.ajax({
 	        url         : url,
@@ -325,6 +327,9 @@ function initBedUploadForm() {
 function getGiggleUrls() {
 	giggleUrl = $('#giggle-url').val();
 	giggleUCSCBrowserUrl = $('#giggle-tracks-url').val();
+
+	giggleUrl += '/'
+	giggleUCSCBrowserUrl += '/'
 }
 
 
