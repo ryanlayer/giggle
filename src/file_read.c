@@ -59,11 +59,11 @@ struct input_file *input_file_init(char *file_name)
         if (i->kstr == NULL)
             err(1, "calloc error in input_file_init().");
 
-        if ( bgzf_is_bgzf(file_name) !=1 )
-            errx(1,"Not a BGZF file '%s'\n", file_name);
-
         if ((i->bed_fp = bgzf_open(file_name, "r")) == 0)
             err(1,"Could not open file '%s'\n", file_name);
+
+        if ( bgzf_compression(i->bed_fp) != bgzf )
+            errx(1,"Not a BGZF file '%s'\n", file_name);
 
         if ( !i->bed_fp->is_compressed )
             err(1,"Not a bgzip compressed file '%s'\n", file_name);
