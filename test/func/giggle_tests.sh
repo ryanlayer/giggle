@@ -39,7 +39,7 @@ then
         -i ../data/many_i \
         -v 
     assert_exit_code 0
-    assert_equal 0 $(diff <(grep -v "#" $STDOUT_FILE | sort) <(cat bt.out | sort) | wc -l)
+    assert_equal 0 $(diff <(grep -v "#" $STDOUT_FILE | cut -f1-3 | sort) <(cat bt.out | cut -f1-3 | sort) | wc -l)
     rm -f bt.out
 fi
 
