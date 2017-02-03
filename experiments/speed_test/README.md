@@ -1,4 +1,26 @@
+Get files
+    git clone https://github.com/arq5x/bedtools2.git
+    cd bedtools2 
+    git checkout 61143078ebe6194689c8542e13d668480592b830
+    make
+    BEDTOOLS_ROOT=`pwd`
+    cd ..
+
+    git clone https://github.com/samtools/htslib.git
+    cd htslib
+    git checkout d8d0323bca21cfd131e2f183d12c9dd31a5ed75b
+    make
+    HTSLIB_ROOT=`pwd`
+    cd ..
+
+    git clone https://github.com/ryanlayer/giggle.git
+    cd giggle
+    git checkout a4d826e2a739ebad77cb688a9f61b3c0e75638d5
+    make
+    GIGGLE_ROOT=`pwd`
+
 Roadmap database with subsets for testing
+
 
     mkdir data
     cd data
@@ -9,21 +31,40 @@ Roadmap database with subsets for testing
 
     pip install toolshed
 
-    python ../../../examples/rme/rename.py \
-        ../../../examples/rme/states.txt \
-        ../../../examples/rme/EDACC_NAME.txt \
+    python $GIGGLE_ROOT/examples/rme/rename.py \
+        $GIGGLE_ROOT/examples/rme/states.txt \
+        $GIGGLE_ROOT/examples/rme/EDACC_NAME.txt \
         "orig/*gz" \
         "split/"
 
     cd split
-
-    ls *.bed | xargs -I {} -P 10 sh -c "bgzip {}"
-    ls *.bed.gz | xargs -I {} -P 10 sh -c "tabix {}"
+    ls *.bed | xargs -I {} -P 10 bash -c "bgzip {}"
     cd ..
-    
-    SIZE=`ls -l split/*gz | awk 'BEGIN {sum=0} {sum += $5;} END {print sum}'`
 
-    ls -l split/*gz \
+    $GIGGLE_ROOT/scripts/sort_bed "split/*gz" split_sort/ 30
+
+    cd split_sort
+    time ls *.bed.gz | xargs -I {} bash -c "tabix {}"
+
+    real    2m12.584s
+    user    1m27.827s
+    sys     0m22.229s
+
+    cd ..
+
+    time $GIGGLE_ROOT/bin/giggle index \
+        -i "split_sort/*gz" \
+        -o split_sort_b \
+        -f -s
+    Indexed 55605005 intervals.
+
+    real    1m22.409s
+    user    1m18.907s
+    sys     0m3.379s
+
+    SIZE=`ls -l split_sort/*gz | awk 'BEGIN {sum=0} {sum += $5;} END {print sum}'`
+
+    ls -l split_sort/*gz \
     | awk '{OFS="\t"; print rand(),$5,$9;}' \
     | sort -g \
     | awk -v t=$SIZE '
@@ -41,33 +82,28 @@ Roadmap database with subsets for testing
         }'\
     > batches_sizes.txt
 
-    # 0 -> 1/4 the data, 1 -> 1/2, 2 -> 3/4, 3 full data set
+    # 1 -> 1/2, 3 full data set
 
-    mkdir split_s0
-    cd split_s0
-    cat ../batches_sizes.txt \
-        | awk '$1<=0' \
-        | cut -f3 \
-        | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
-    cd ..
-
-    mkdir split_s1
-    cd split_s1
+    mkdir split_sort_s1
+    cd split_sort_s1
     cat ../batches_sizes.txt \
         | awk '$1<=1' \
         | cut -f3 \
         | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
     cd ..
 
-    mkdir split_s2
-    cd split_s2
-    cat ../batches_sizes.txt \
-        | awk '$1<=2' \
-        | cut -f3 \
-        | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
-    cd ..
+    time $GIGGLE_ROOT/bin/giggle index \
+        -i "split_sort_s1/*gz" \
+        -o split_sort_s1_b \
+        -f -s
+    Indexed 27858577 intervals.
 
-    ln -s split split_s3
+    real    0m38.561s
+    user    0m36.584s
+    sys     0m1.946s
+
+    ln -s split_sort split_sort_s3
+    ln -s split_sort_b split_sort_b_s3
 
     cd ..
 
@@ -80,7 +116,7 @@ Random query sets
     | uniq > rme_chrm_order.txt
 
     for s in `cat rme_chrm_order.txt`; do
-        grep -w $s ../../../data/human.hg19.genome
+        grep -w $s $GIGGLE_ROOT/data/human.hg19.genome
     done \
     > rme.human.hg19.genome
 
@@ -119,27 +155,14 @@ SQLITE / UCSC
 
     gcc -o ucsc_idx ucsc_idx.c
     gcc -o reg2query reg2query.c
-    ./ucsc_build.sh ../data/split_s0 ucsc_s0.db
-    ./ucsc_build.sh ../data/split_s1 ucsc_s1.db
-    ./ucsc_build.sh ../data/split_s2 ucsc_s2.db
-    ./ucsc_build.sh ../data/split_s3 ucsc_s3.db
-
-    cd ..
-
-GIGGLE
-
-    cd data 
-
-    giggle index -i "split_s0/*gz" -o split_s0_b
-    giggle index -i "split_s1/*gz" -o split_s1_b
-    giggle index -i "split_s2/*gz" -o split_s2_b
-    giggle index -i "split_s3/*gz" -o split_s3_b
+    ./ucsc_build.sh ../data/split_sort_s1 ucsc_s1.db
+    ./ucsc_build.sh ../data/split_sort_s3 ucsc_s3.db
 
     cd ..
 
 Speed tests
     
-    for database in 0 1 2 3; do
+    for database in 1 3; do
         for query in 10 100 1000 10000 100000 1000000; do
             ./speed_test.sh $query $database
         done
