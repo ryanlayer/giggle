@@ -82,6 +82,8 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                "overlaps\t"
                "odds_ratio\t"
                "fishers_two_tail\t"
+               "fishers_left_tail\t"
+               "fishers_rigth_tail\t"
                "combo_score\n");
     }
 
@@ -131,11 +133,14 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                                            &two);
 
                 double ratio = 
-                        (((double)n11/(double)MAX(1,n12)) / ((double)n21/(double)n22));
+                        (((double)n11/(double)MAX(1,n12)) / 
+                         ((double)n21/(double)n22));
 
                 printf("%s\t"
                        "%u\t"
                        "%u\t"
+                       "%f\t"
+                       "%f\t"
                        "%f\t"
                        "%f\t"
                        "%f\t"
@@ -144,6 +149,8 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        fd->num_intervals,
                        file_counts,
                        ratio,
+                       two,
+                       left,
                        right,
                        log2fc(ratio) * neglog10p(two));
                 /*
