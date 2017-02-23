@@ -1167,6 +1167,7 @@ void  test_wah_leading_repair(void)
     cache.add(domain,
               cache.seen(domain),
               ld,
+              sizeof(struct wah_bpt_leading_data),
               &wah_leading_cache_handler );
 
     struct wah_bpt_non_leading_data *nld = wah_new_non_leading(domain);
@@ -1177,6 +1178,7 @@ void  test_wah_leading_repair(void)
     cache.add(domain,
               cache.seen(domain),
               nld,
+              sizeof(struct wah_bpt_non_leading_data),
               &wah_non_leading_cache_handler );
 
     nld = wah_new_non_leading(domain);
@@ -1187,6 +1189,7 @@ void  test_wah_leading_repair(void)
     cache.add(domain,
               cache.seen(domain),
               nld,
+              sizeof(struct wah_bpt_non_leading_data),
               &wah_non_leading_cache_handler );
 
     nld = wah_new_non_leading(domain);
@@ -1201,6 +1204,7 @@ void  test_wah_leading_repair(void)
     cache.add(domain,
               cache.seen(domain),
               nld,
+              sizeof(struct wah_bpt_non_leading_data),
               &wah_non_leading_cache_handler );
 
 
@@ -1219,6 +1223,7 @@ void  test_wah_leading_repair(void)
     cache.add(domain,
               cache.seen(domain),
               nld,
+              sizeof(struct wah_bpt_non_leading_data),
               &wah_non_leading_cache_handler );
 
     nld = wah_new_non_leading(domain);
@@ -1229,6 +1234,7 @@ void  test_wah_leading_repair(void)
     cache.add(domain,
               cache.seen(domain),
               nld,
+              sizeof(struct wah_bpt_non_leading_data),
               &wah_non_leading_cache_handler );
 
     wah_leading_repair(domain, n1, n2);

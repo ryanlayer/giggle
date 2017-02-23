@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <pthread.h>
+#include <htslib/khash.h>
 #include "disk_store.h"
 #include "lists.h"
 
@@ -31,6 +32,7 @@ struct cache_def {
     void (*add)(uint32_t domain,
                 uint32_t key,
                 void *data,
+                uint64_t data_size,
                 struct cache_handler *handler);
     void *(*get)(uint32_t domain,
                  uint32_t key,
@@ -51,17 +53,30 @@ struct value_cache_handler_pair
 {
     void *value;
     struct cache_handler *handler;
+    struct lru_ll_element *lru_node;
 };
 
 struct cache_def simple_cache_def;
 
+struct lru_ll_element
+{
+    uint32_t domain, key;
+    uint64_t size;
+    struct lru_ll_element *prev, *next;
+};
+
 struct simple_cache
 {
     struct indexed_list **ils;
+    struct hash_list **hashls;
     uint32_t *sizes, *nums, *seens, num_domains;
     char **index_file_names, **data_file_names;
     struct disk_store **dss;
     pthread_mutex_t mutex;
+
+    struct lru_ll_element *lru_head, *lru_tail;
+    uint64_t max_bytes, curr_bytes;
+    uint32_t dirty;
 };
 
 void *simple_cache_init(uint32_t size,
@@ -75,6 +90,7 @@ void simple_cache_remove(uint32_t key);
 void simple_cache_add(uint32_t domain,
                       uint32_t key,
                       void *value,
+                      uint64_t value_size,
                       struct cache_handler *handler);
 void simple_cache_store(uint32_t domain,
                         uint32_t *disk_id_order);

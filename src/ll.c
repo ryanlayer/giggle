@@ -928,7 +928,11 @@ void uint32_t_ll_leading_repair(uint32_t domain,
 
         if (d->B != NULL) {
             uint32_t v_id = cache.seen(domain) + 1;
-            cache.add(domain, v_id - 1, d, &uint32_t_ll_leading_cache_handler);
+            cache.add(domain,
+                      v_id - 1,
+                      d,
+                      sizeof(struct uint32_t_ll_bpt_leading_data),
+                      &uint32_t_ll_leading_cache_handler);
 
             BPT_LEADING(b) = v_id;
         } else {

@@ -2,6 +2,7 @@
 #define __LISTS_H__
 
 #include <stdint.h>
+#include <htslib/khash.h>
 #include "disk_store.h"
 
 // BITMAP
@@ -42,6 +43,30 @@ struct offset_size_pair
     long offset;
     uint32_t size;
 };
+
+// HASH LIST
+
+struct hash_list
+{
+    void *hash;
+};
+
+struct hash_list *hash_list_init();
+
+uint32_t hash_list_add(struct hash_list *il,
+                       uint32_t index,
+                       void *data,
+                       uint32_t data_size);
+
+void *hash_list_get(struct hash_list *il,
+                    uint32_t index);
+
+void *hash_list_remove(struct hash_list *il,
+                       uint32_t index);
+
+void hash_list_destroy(struct hash_list **hashl);
+
+void hash_list_value_cache_handler_pair_destroy(struct hash_list **hashl);
 
 // UNORDERD LIST
 struct unordered_list
