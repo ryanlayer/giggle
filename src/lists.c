@@ -6,6 +6,7 @@
 #include <err.h>
 #include <sysexits.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "lists.h"
 #include "util.h"
@@ -221,8 +222,165 @@ struct indexed_list *indexed_list_load(FILE *f, char *file_name)
     return il;
 }
 //}}}
-
 //}}}
+
+//{{{ hash_list
+
+//{{{ struct indexed_list *indexed_list_init(uint32_t init_size,
+KHASH_MAP_INIT_INT(hashl, uint8_t *)
+
+struct hash_list *hash_list_init()
+{
+    struct hash_list *hashl = (struct hash_list *)
+                             calloc(1,sizeof(struct hash_list));
+    if (hashl == NULL)
+        err(1, "calloc error in hash_list_init().\n");
+
+    hashl->hash = (void *)kh_init(hashl);
+    return hashl;
+}
+//}}}
+
+//{{{uint32_t hash_list_add(struct hash_list *il,
+uint32_t hash_list_add(struct hash_list *hashl,
+                       uint32_t index,
+                       void *data,
+                       uint32_t data_size)
+{
+    /*
+    struct lru_ll_element *e = (struct lru_ll_element *)
+            malloc(sizeof(struct lru_ll_element));
+    if (e == NULL)
+        errx(1, "Malloc error in lru_list_add");
+
+    e->prev = NULL;
+    e->next = NULL;
+
+    e->data = (uint8_t *) malloc(data_size);
+    if (e->data == NULL)
+        errx(1, "Malloc error in lru_list_add");
+
+    memcpy(e->data, data, data_size);
+
+    if (lrul->head == NULL) {
+        lrul->head = e;
+        lrul->tail = e;
+    } else {
+        lrul->tail->next = e;
+        e->prev = lrul->tail;
+        lrul->tail = e;
+    }
+    */
+
+    uint8_t *_data = (uint8_t *)malloc(data_size);
+    if (_data == NULL)
+        errx(1, "Malloc error in hash_list_add");
+    memcpy(_data, data, data_size);
+
+    khash_t(hashl) *hash = (khash_t(hashl)*)(hashl->hash);
+
+    int ret;
+    khiter_t k;
+    k = kh_put(hashl, hash, index, &ret);
+
+    if (ret == 0)
+        errx(1, "Index %u already in hash_list_add.", index);
+    else if (ret == -1)
+        errx(1, "Error adding %u to hash_list_add.", index);
+
+    kh_value(hash, k) = _data;
+
+    return 0;
+}
+//}}}
+
+//{{{void *hash_list_get(struct hash_list *hashl,
+void *hash_list_get(struct hash_list *hashl,
+                    uint32_t index)
+{
+    khash_t(hashl) *hash = (khash_t(hashl)*)(hashl->hash);
+
+    khiter_t k;
+    k = kh_get(hashl, hash, index);
+
+    if (k == kh_end(hash))
+        return NULL;
+
+    return (void *)kh_value(hash, k);
+}
+//}}}
+
+//{{{void *hash_list_remove(struct hash_list *hashl,
+void *hash_list_remove(struct hash_list *hashl,
+                       uint32_t index)
+{
+    khash_t(hashl) *hash = (khash_t(hashl)*)(hashl->hash);
+
+    khiter_t k;
+    k = kh_get(hashl, hash, index);
+
+    if (k == kh_end(hash))
+        return NULL;
+
+    void *v = (void *)kh_value(hash, k);
+    kh_del(hashl, hash, k);
+
+    return v;
+}
+//}}}
+
+
+//{{{ void hash_list_destroy(struct hash_list **hashl)
+void hash_list_destroy(struct hash_list **hashl)
+{
+    khash_t(hashl) *hash = (khash_t(hashl)*)((*hashl)->hash);
+
+    uint64_t key;
+    uint8_t *value;
+
+    if (*hashl != NULL) {
+        kh_foreach(hash, key, value, {
+            if (value != NULL) {
+                free(value);
+                value = NULL;
+            }
+        });
+
+        kh_destroy(hashl, hash);
+        free(*hashl);
+        *hashl = NULL;
+    }
+}
+//}}}
+
+//{{{void hash_list_value_cache_handler_pair_destroy(struct hash_list **hashl)
+void hash_list_value_cache_handler_pair_destroy(struct hash_list **hashl)
+{
+    khash_t(hashl) *hash = (khash_t(hashl)*)((*hashl)->hash);
+
+    uint64_t key;
+    uint8_t *value;
+
+    if (*hashl != NULL) {
+        kh_foreach(hash, key, value, {
+            struct value_cache_handler_pair *vh = 
+                (struct value_cache_handler_pair *)value;
+
+            if (vh != NULL) {
+                if ((vh->handler != NULL) && 
+                    (vh->handler->free_mem != NULL))
+                    vh->handler->free_mem(&(vh->value));
+                free(vh);
+                vh = NULL;
+            }
+        });
+
+        kh_destroy(hashl, hash);
+    }
+}
+//}}}
+
+//}}} 
 
 //{{{unordered_list
 //{{{struct unordered_list *unordered_list_init(uint32_t init_size)

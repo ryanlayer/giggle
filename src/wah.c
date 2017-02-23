@@ -497,7 +497,11 @@ void wah_leading_repair(uint32_t domain,
 
         if (d->B != NULL) {
             uint32_t v_id = cache.seen(domain) + 1;
-            cache.add(domain, v_id - 1, d, &wah_leading_cache_handler);
+            cache.add(domain,
+                      v_id - 1,
+                      d,
+                      sizeof(struct wah_bpt_leading_data),
+                      &wah_leading_cache_handler);
             BPT_LEADING(b) = v_id;
         } else {
             free(d);

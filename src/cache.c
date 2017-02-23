@@ -7,6 +7,7 @@
 #include <sysexits.h>
 #include <string.h>
 #include <unistd.h>
+#include <htslib/khash.h>
 
 #include "cache.h"
 #include "util.h"
@@ -21,7 +22,6 @@ struct cache_def cache;
 struct cache_handler uint32_t_cache_handler = {uint32_t_serialize, 
                                                uint32_t_deserialize,
                                                uint32_t_free_mem};
-
 //{{{ uint32_t_cache_handler
 //{{{uint64_t uint32_t_serialize(void *deserialized, void **serialized)
 uint64_t uint32_t_serialize(void *deserialized, void **serialized)
@@ -94,13 +94,30 @@ void *simple_cache_init(uint32_t size,
     cache = simple_cache_def;
 
     (void) pthread_mutex_init (&(sc->mutex), NULL);
+
     sc->num_domains = num_domains;
 
+    sc->dirty = 0;
 
+    char *max_bytes_env = getenv("GIGGLE_MAX_BYTES");
+    if (max_bytes_env != NULL) {
+        char *pend;
+        sc->max_bytes = strtoull(max_bytes_env, &pend, 10);
+    } else {
+        sc->max_bytes = 1000000000;
+    }
 
-    sc->ils = (struct indexed_list **)calloc(num_domains,
-                                             sizeof(struct indexed_list *));
-    if (sc->ils == NULL)
+    sc->curr_bytes = 0;
+    sc->lru_head = NULL;
+    sc->lru_tail = NULL;
+
+    //sc->ils = (struct indexed_list **)calloc(num_domains,
+                                             //sizeof(struct indexed_list *));
+    sc->hashls = (struct hash_list **)calloc(num_domains,
+                                           sizeof(struct hash_list *));
+    //if (sc->ils == NULL)
+        //err(1, "calloc error in simple_cache_init().");
+    if (sc->hashls == NULL)
         err(1, "calloc error in simple_cache_init().");
 
     sc->nums = (uint32_t *)calloc(num_domains, sizeof(uint32_t));
@@ -177,8 +194,10 @@ void *simple_cache_init(uint32_t size,
                 sc->sizes[i] = sc->sizes[i] * 2;
         }
 
-        sc->ils[i] = indexed_list_init(sc->sizes[i],
-                                       sizeof(struct value_cache_handler_pair));
+        //sc->ils[i] = indexed_list_init(sc->sizes[i],
+                                       //sizeof(struct value_cache_handler_pair));
+        uint64_t max_bytes = 10000000000; // 10GB
+        sc->hashls[i] = hash_list_init();
     }
 
     return sc;
@@ -200,16 +219,62 @@ uint32_t simple_cache_seen(uint32_t domain)
 void simple_cache_add(uint32_t domain,
                       uint32_t key,
                       void *value,
+                      uint64_t value_size,
                       struct cache_handler *handler)
 {
     if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
     struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
 
+    while (sc->max_bytes < sc->curr_bytes + value_size) {
+        struct lru_ll_element *lru_curr = sc->lru_head;
+
+        if (lru_curr == NULL)
+            errx(1, "Not enough memory to load current element into cache.");
+
+        struct value_cache_handler_pair *vh_curr = 
+                (struct value_cache_handler_pair *)
+                hash_list_remove(sc->hashls[lru_curr->domain], lru_curr->key);
+
+        if (vh_curr != NULL) {
+            if ((vh_curr->handler != NULL) && 
+                (vh_curr->handler->free_mem != NULL))
+                vh_curr->handler->free_mem(&(vh_curr->value));
+
+            free(vh_curr);
+        }
+
+        sc->curr_bytes -= lru_curr->size;
+
+        sc->lru_head = lru_curr->next;
+        free(lru_curr);
+    }
+
     struct value_cache_handler_pair vh;
     vh.value = value;
     vh.handler = handler;
-    indexed_list_add(sc->ils[domain], key, &vh);
+    vh.lru_node = (struct lru_ll_element *)
+            malloc(sizeof(struct lru_ll_element));
+    vh.lru_node->domain = domain;
+    vh.lru_node->key = domain;
+    vh.lru_node->size = value_size;
+    vh.lru_node->prev = NULL;
+    vh.lru_node->next = NULL;
+
+    if (sc->lru_head == NULL) {
+        sc->lru_head = vh.lru_node;
+        sc->lru_tail = vh.lru_node;
+    } else {
+        sc->lru_tail->next = vh.lru_node;
+        vh.lru_node->prev = sc->lru_tail;
+        sc->lru_tail = vh.lru_node;
+    }
+
+    //indexed_list_add(sc->ils[domain], key, &vh);
+    hash_list_add(sc->hashls[domain],
+                  key,
+                  &vh,
+                  sizeof(struct value_cache_handler_pair));
     sc->nums[domain] += 1;
     sc->seens[domain] += 1;
 }
@@ -223,17 +288,23 @@ void *simple_cache_get(uint32_t domain,
     if (_cache[CACHE_NAME_SPACE] == NULL)
         errx(1, "Cache has not been initialized.");
     struct simple_cache *sc = (struct simple_cache *)_cache[CACHE_NAME_SPACE];
-    struct value_cache_handler_pair *vh = indexed_list_get(sc->ils[domain],
-                                                           key);
+    //struct value_cache_handler_pair *vh = indexed_list_get(sc->ils[domain],
+                                                           //key);
+    struct value_cache_handler_pair *vh = hash_list_get(sc->hashls[domain],
+                                                       key);
 
     if (vh == NULL) {
         (void) pthread_mutex_lock (&(sc->mutex));
-        vh = indexed_list_get(sc->ils[domain],
-                              key);
+        //vh = indexed_list_get(sc->ils[domain],
+                              //key);
+        /*
+        vh = hash_list_get(sc->hashls[domain],
+                          key);
         if (vh != NULL) {
             (void) pthread_mutex_unlock (&(sc->mutex));
             return vh->value;
         }
+        */
 
         if ((sc->dss != NULL) && (sc->dss[domain] != NULL)) {
             uint64_t size;
@@ -241,13 +312,14 @@ void *simple_cache_get(uint32_t domain,
             if (raw == NULL)
                 return NULL;
 
+            sc->curr_bytes += size;
+
             void *v;
             uint64_t deserialized_size = handler->deserialize(raw,
                                                               size,
                                                               &v);
 
-
-            simple_cache_add(domain, key, v, handler);
+            simple_cache_add(domain, key, v, size, handler);
             free(raw);
             (void) pthread_mutex_unlock (&(sc->mutex));
             return v;
@@ -255,12 +327,29 @@ void *simple_cache_get(uint32_t domain,
             (void) pthread_mutex_unlock (&(sc->mutex));
             return NULL;
         }
-    } else 
+    } else { 
+        // move this to the tail
+        if (sc->lru_tail != vh->lru_node) {
+            // take out of the list
+            if (sc->lru_head == vh->lru_node) {
+                sc->lru_head = vh->lru_node->next;
+            } else {
+                vh->lru_node->next->prev = vh->lru_node->prev;
+                vh->lru_node->prev->next = vh->lru_node->next;
+            }
+
+            vh->lru_node->prev = sc->lru_tail;
+            sc->lru_tail->next = vh->lru_node;
+            sc->lru_tail = vh->lru_node;
+            sc->lru_tail->next = NULL;
+        }
+
         return vh->value;
+    }
 }
 //}}}
 
-//{{{void simple_cache_destroy(void **_sc)
+//{{{void simple_cache_destroy()
 void simple_cache_destroy()
 {
     if (_cache[CACHE_NAME_SPACE] == NULL)
@@ -272,21 +361,28 @@ void simple_cache_destroy()
     uint32_t i,j;
 
     for (i = 0; i < sc->num_domains; ++i) {
+#if 0
         for (j = 0; j <= sc->seens[i]; ++j) {
+            //struct value_cache_handler_pair *vh =
+                    //indexed_list_get(sc->ils[i], j);
             struct value_cache_handler_pair *vh =
-                    indexed_list_get(sc->ils[i], j);
+                    lru_list_get(sc->lruls[i],
+                                 j);
             if (vh != NULL) {
                 if ((vh->handler != NULL) && (vh->handler->free_mem != NULL))
                     vh->handler->free_mem(&(vh->value));
             }
         }
+#endif
+        hash_list_value_cache_handler_pair_destroy(&(sc->hashls[i]));
 
         if (sc->data_file_names != NULL)
             free(sc->data_file_names[i]);
+
         if (sc->index_file_names != NULL)
             free(sc->index_file_names[i]);
 
-        indexed_list_destroy(&(sc->ils[i]));
+        //indexed_list_destroy(&(sc->ils[i]));
     }
 
     if (sc->data_file_names != NULL)
@@ -294,7 +390,8 @@ void simple_cache_destroy()
     if (sc->index_file_names != NULL)
         free(sc->index_file_names);
 
-    free(sc->ils);
+    //free(sc->ils);
+    free(sc->hashls);
     free(sc->nums);
     free(sc->seens);
     if ( sc->dss != NULL) {
@@ -304,6 +401,15 @@ void simple_cache_destroy()
         free(sc->dss);
     }
     free(sc->sizes);
+
+
+    struct lru_ll_element *lru_tmp, *lru_curr = sc->lru_head;
+    while (lru_curr != NULL) {
+        lru_tmp = lru_curr->next;
+        free(lru_curr);
+        lru_curr = lru_tmp;
+    }
+
     free(sc);
     _cache[CACHE_NAME_SPACE] = NULL;
 }
@@ -342,7 +448,9 @@ void simple_cache_store(uint32_t domain,
         else
             mem_i = disk_i;
 
-        vh = indexed_list_get(sc->ils[domain], mem_i);
+        //FIXME
+        //vh = indexed_list_get(sc->ils[domain], mem_i);
+        vh = hash_list_get(sc->hashls[domain], mem_i);
         if (vh == NULL)
             errx(1, "Value missing from cache.");
 

@@ -312,19 +312,40 @@ void test_bpt_split_node_non_root_parent_has_room(void)
     // Put the data in the cache
     TEST_ASSERT_EQUAL(4, cache.seen(domain) + 1);
     BPT_POINTERS(l1)[0] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_0, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_0,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     BPT_POINTERS(l1)[1] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_1, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_1, 
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     BPT_POINTERS(l1)[2] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_2, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_2,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     BPT_POINTERS(l1)[3] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_3, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_3,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
+
 
     BPT_POINTERS(l1)[4] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_4, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_4,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
 
 
@@ -401,19 +422,39 @@ void test_bpt_split_node_root(void)
     BPT_KEYS(root)[4] = 5;
 
     BPT_POINTERS(root)[0] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_0, &uint32_t_cache_handler);
+    cache.add(domain,
+            cache.seen(domain),
+            V_0,
+            sizeof(uint32_t),
+            &uint32_t_cache_handler);
 
     BPT_POINTERS(root)[1] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_1, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_1,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     BPT_POINTERS(root)[2] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_2, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_2,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     BPT_POINTERS(root)[3] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_3, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_3,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     BPT_POINTERS(root)[4] = cache.seen(domain) + 1;
-    cache.add(domain, cache.seen(domain), V_4, &uint32_t_cache_handler);
+    cache.add(domain,
+              cache.seen(domain),
+              V_4,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     uint32_t lo_id, hi_id;
     int split;
@@ -509,7 +550,11 @@ void test_bpt_insert(void)
     uint32_t leaf_id;
     int pos;
     uint32_t V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_0, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_0,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
 
     //2
     uint32_t root_id = bpt_insert(domain,
@@ -532,7 +577,11 @@ void test_bpt_insert(void)
     // 4
     //  2,3 4,5,6
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_1, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_1,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          3,
@@ -544,7 +593,11 @@ void test_bpt_insert(void)
     TEST_ASSERT_EQUAL(1, pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_2, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_2,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          4,
@@ -556,7 +609,11 @@ void test_bpt_insert(void)
     TEST_ASSERT_EQUAL(2, pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_3, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_3,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          5,
@@ -568,7 +625,11 @@ void test_bpt_insert(void)
     TEST_ASSERT_EQUAL(3, pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_4, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_4,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          6,
@@ -604,7 +665,11 @@ void test_bpt_insert(void)
     // 4,6
     //  2,3 4,5 6,7,8
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_5, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_5,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          7,
@@ -614,7 +679,11 @@ void test_bpt_insert(void)
                          &pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_6, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_6,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          8,
@@ -662,7 +731,11 @@ void test_bpt_insert(void)
     //   4,6 8,10,12
     //     2,3 4,5 6,7 8,9 10,11 12,13,14
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_7, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_7,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          9,
@@ -672,7 +745,11 @@ void test_bpt_insert(void)
                          &pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_8, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_8,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          10,
@@ -682,7 +759,11 @@ void test_bpt_insert(void)
                          &pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_9, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_9,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          11,
@@ -692,7 +773,11 @@ void test_bpt_insert(void)
                          &pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_10, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_10,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          12,
@@ -702,7 +787,11 @@ void test_bpt_insert(void)
                          &pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_11, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_11,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          13,
@@ -712,7 +801,11 @@ void test_bpt_insert(void)
                          &pos);
 
     V_id = cache.seen(domain) + 1;
-    cache.add(domain, V_id - 1, V_12, &uint32_t_cache_handler);
+    cache.add(domain,
+              V_id - 1,
+              V_12,
+              sizeof(uint32_t),
+              &uint32_t_cache_handler);
     root_id = bpt_insert(domain,
                          root_id,
                          14,

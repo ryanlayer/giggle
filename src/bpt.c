@@ -120,7 +120,11 @@ struct bpt_node *bpt_new_node(uint32_t domain)
     // zero is null for a bpt, so the ids start at one the cache number starts
     // at zero so add or subtract one to get the one/zero-based numbering 
     BPT_ID(n) = cache.seen(domain) + 1;
-    cache.add(domain, BPT_ID(n) - 1, n, &bpt_node_cache_handler);
+    cache.add(domain,
+              BPT_ID(n) - 1,
+              n,
+              sizeof(struct bpt_node),
+              &bpt_node_cache_handler);
 
     return n;
 }
@@ -466,7 +470,11 @@ uint32_t bpt_insert_new_value(uint32_t domain,
 #endif
 
     *value_id = cache.seen(domain) + 1;
-    cache.add(domain, *value_id - 1, value, handler);
+    cache.add(domain,
+              *value_id - 1,
+              value,
+              sizeof(void *),
+              handler);
     return bpt_insert(domain,
                       root_id,
                       key,

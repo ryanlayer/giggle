@@ -266,6 +266,7 @@ uint32_t giggle_insert(uint32_t domain,
                 cache.add(domain,
                           v_id - 1,
                           d,
+                          sizeof(void *),
                           &giggle_data_handler.leading_cache_handler);
                 giggle_data_handler.leading_B_add_scalar(domain, d, &id);
                 BPT_LEADING(curr_leaf) = v_id; 
@@ -1626,6 +1627,7 @@ void giggle_write_tree_leaf_data(void *giggle_index)
                 cache.add(domain,
                           data_id - 1,
                           lf,
+                          sizeof(struct leaf_data),
                           &leaf_data_cache_handler);
 
                 p = (struct uint_pair *) malloc(sizeof(struct uint_pair));
