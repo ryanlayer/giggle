@@ -85,6 +85,19 @@ int uint32_t_cmp(const void *_a, const void *_b)
         return 0;
 }
 
+int uint64_t_cmp(const void *_a, const void *_b)
+{
+    uint64_t *a = (uint64_t *)_a;
+    uint64_t *b = (uint64_t *)_b;
+
+    if (*a < *b)
+        return -1;
+    else if (*a > *b)
+        return 1;
+    else
+        return 0;
+}
+
 int char_p_cmp(const void *_a, const void *_b)
 {
     return strcmp(*(char **)_a, *(char **)_b);

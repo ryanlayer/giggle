@@ -133,7 +133,7 @@ uint32_t giggle_insert(uint32_t domain,
                        uint32_t *root_id,
                        uint32_t start,
                        uint32_t end,
-                       uint32_t id);
+                       uint64_t id);
 
 void *giggle_search(uint32_t domain,
                     uint32_t root_id,
@@ -217,7 +217,7 @@ uint32_t giggle_index_file(struct giggle_index *gi,
  *              giggle_init(23,
  *                          NULL,
  *                          0,
- *                          uint32_t_ll_giggle_set_data_handler);
+ *                          uint64_t_ll_giggle_set_data_handler);
  *      char *path_name = "../data/many/\*bed.gz";
  *      uint32_t r = giggle_index_directory(gi, path_name, 0); 
  *      giggle_index_destroy(&gi);
@@ -240,7 +240,7 @@ void *giggle_query_region(struct giggle_index *gi,
  * will not be saved
  * @param force 1 to overwrite any existing index in output_dir, 0 to not
  * @param giggle_set_data_handler defines how to organize the data.
- * uint32_t_ll_giggle_set_data_handler is good for building the index from
+ * uint64_t_ll_giggle_set_data_handler is good for building the index from
  * scratch.
  *
  * @retval an initialize GIGGLE index
@@ -250,7 +250,7 @@ void *giggle_query_region(struct giggle_index *gi,
  *              giggle_init(23,
  *                          "giggle_i",
  *                          0,
- *                          uint32_t_ll_giggle_set_data_handler);
+ *                          uint64_t_ll_giggle_set_data_handler);
  *
  *      giggle_index_destroy(&gi);
  *      cache.destroy();
@@ -321,7 +321,7 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
                                                 int pos_end_id,
                                                 uint32_t domain,
                                                 void **r);
-
+#if 0
 void giggle_merge_leaf_key(struct bpt_node *node,
                            struct leaf_data *data,
                            uint32_t key_i,
@@ -354,20 +354,22 @@ uint32_t giggle_merge_chrm_union(struct giggle_index *gi_0,
 uint32_t giggle_merge_add_file_index(struct giggle_index *gi,
                                      struct indexed_list *file_index_id_map,
                                      struct unordered_list *merged_file_index);
+#endif
+
 
 int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
                                       uint32_t key_val,
                                       struct disk_store *ds,
                                       jsw_avltree_t *avl,
-                                      struct uint32_t_array *leading,
-                                      struct uint32_t_array *starts,
-                                      struct uint32_t_array *ends);
+                                      struct uint64_t_array *leading,
+                                      struct uint64_t_array *starts,
+                                      struct uint64_t_array *ends);
 
 void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
                                         struct disk_store *ds,
-                                        struct uint32_t_array *leading,
-                                        struct uint32_t_array *starts,
-                                        struct uint32_t_array *ends);
+                                        struct uint64_t_array *leading,
+                                        struct uint64_t_array *starts,
+                                        struct uint64_t_array *ends);
 
 void giggle_bulk_insert_set_starts_ends(struct bpt_node *bpn,
                                         uint32_t new_starts,

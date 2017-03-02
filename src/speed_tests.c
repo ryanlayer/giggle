@@ -49,13 +49,13 @@ int main(int argc, char **argv)
         fprintf(stderr, "%lu\n", report());
     } else if (argv[2][0] == 'l') {
      
-        struct uint32_t_ll *l_1 = NULL;
-        struct uint32_t_ll *l_2 = NULL;
+        struct uint64_t_ll *l_1 = NULL;
+        struct uint64_t_ll *l_2 = NULL;
 
         start();
         for (i = 0; i < size; ++i) {
             W_1[i] = rand();
-            uint32_t_ll_append(&l_1, W_1[i]);
+            uint64_t_ll_append(&l_1, W_1[i]);
         }
         stop();
         fprintf(stderr, "%lu\t", report());
@@ -63,15 +63,15 @@ int main(int argc, char **argv)
         start();
         for (i = 0; i < size; ++i) {
             W_2[i] = rand();
-            uint32_t_ll_append(&l_2, W_2[i]);
+            uint64_t_ll_append(&l_2, W_2[i]);
         }
         stop();
         fprintf(stderr, "%lu\t", report());
 
         start();
-        struct uint32_t_ll_node *curr = l_1->head;
+        struct uint64_t_ll_node *curr = l_1->head;
         while (curr != NULL) {
-            uint32_t_ll_uniq_append(&l_2, curr->val);
+            uint64_t_ll_uniq_append(&l_2, curr->val);
             curr = curr->next;
         }
         stop();

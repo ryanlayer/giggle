@@ -61,7 +61,7 @@ int main(int argc, char **argv)
                                                 1);
 
     struct giggle_index *gi = giggle_load(index_path,
-                                          uint32_t_ll_giggle_set_data_handler);
+                                          uint64_t_ll_giggle_set_data_handler);
 
     giggle_data_handler.giggle_collect_intersection =
         giggle_collect_intersection_data_in_block;

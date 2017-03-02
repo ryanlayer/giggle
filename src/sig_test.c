@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     struct giggle_index *gi;
 
     gi = giggle_load(index_dir,
-                     uint32_t_ll_giggle_set_data_handler);
+                     uint64_t_ll_giggle_set_data_handler);
 
     uint32_t *file_counts = (uint32_t *)
             calloc(gi->file_idx->index->num, sizeof(uint32_t));
@@ -63,13 +63,13 @@ int main(int argc, char **argv)
         num_intervals += 1;
         mean_interval_size += end - start;
 
-        struct uint32_t_ll *R =
-                (struct uint32_t_ll *)giggle_query_region(gi,
+        struct uint64_t_ll *R =
+                (struct uint64_t_ll *)giggle_query_region(gi,
                                                           chrm,
                                                           start,
                                                           end);
         if (R != NULL) {
-            struct uint32_t_ll_node *curr = R->head;
+            struct uint64_t_ll_node *curr = R->head;
 
             while (curr != NULL) {
                 /*
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
                 curr = curr->next;
             }
-            uint32_t_ll_free((void **)&R);
+            uint64_t_ll_free((void **)&R);
         }
     }
 

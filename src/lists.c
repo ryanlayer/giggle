@@ -1063,3 +1063,62 @@ uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index)
 }
 //}}}
 //}}}
+
+//{{{ uint64_t_array
+//{{{ struct uint64_t_array *uint64_t_array_init(uint64_t init_size)
+struct uint64_t_array *uint64_t_array_init(uint64_t init_size)
+{
+    struct uint64_t_array *ua = 
+            (struct uint64_t_array *) malloc(sizeof(struct uint64_t_array));
+    if (ua == NULL)
+        err(1, "alloc error in uint64_t_array_init().\n");
+
+    ua->size = init_size;
+    ua->data = (uint64_t *)malloc(init_size * sizeof(uint64_t));
+    if (ua->data == NULL)
+        err(1, "alloc error in uint64_t_array_init().\n");
+
+    ua->num = 0;
+    return ua;
+}
+//}}}
+
+//{{{void uint64_t_array_destroy(struct uint64_t_array **ua);
+void uint64_t_array_destroy(struct uint64_t_array **ua)
+{
+    free((*ua)->data);
+    free(*ua);
+    *ua = NULL;
+}
+//}}}
+
+//{{{uint64_t uint64_t_array_add(struct uint64_t_array *oi)
+uint64_t uint64_t_array_add(struct uint64_t_array *ua, uint64_t val)
+{
+    if (ua->num == ua->size) {
+        ua->size = ua->size * 2;
+        ua->data = (uint64_t *)
+                realloc(ua->data, ua->size * sizeof(uint64_t));
+
+        if (ua->data == NULL)
+            err(1, "alloc error in uint64_t_array_add().\n");
+
+        memset(ua->data + ua->num, 0, (ua->size - ua->num) * sizeof(uint64_t));
+    }
+
+    ua->data[ua->num] = val;
+    ua->num = ua->num + 1;
+    return ua->num - 1;
+}
+//}}}
+
+//{{{uint64_t *uint64_t_array_get(struct uint64_t_array *ua, uint64_t index)
+uint64_t *uint64_t_array_get(struct uint64_t_array *ua, uint64_t index)
+{
+    if (index > ua->size)
+        return NULL;
+    else
+        return &(ua->data[index]);
+}
+//}}}
+//}}}

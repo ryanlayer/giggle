@@ -75,12 +75,12 @@ void offset_index_destroy(struct offset_index **oi)
 //}}}
 
 //{{{uint32_t offset_index_add(struct offset_index *oi)
-uint32_t offset_index_add(struct offset_index *oi,
+uint64_t offset_index_add(struct offset_index *oi,
                           long offset,
                           kstring_t *line,
                           uint32_t file_id)
 {
-    uint32_t id = oi->index->num;
+    uint64_t id = oi->index->num;
     oi->index->num = oi->index->num + 1;
 
     if (oi->index->num == oi->index->size) {

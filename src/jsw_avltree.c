@@ -476,3 +476,34 @@ void uint_rel_f( void *p )
 }
 
 
+int uint64_cmp_f ( const void *p1, const void *p2 )
+{
+    uint64_t *a = (uint64_t *)p1;
+    uint64_t *b = (uint64_t *)p2;
+
+    if (*a < *b)
+        return -1;
+    else if (*a > *b)
+        return 1;
+    else 
+        return 0;
+}
+
+void *uint64_dup_f( void *p )
+{
+    uint64_t *o = (uint64_t *)p;
+    uint64_t *a = (uint64_t *)malloc(sizeof(uint64_t));
+    if (a == NULL)
+        err(1, "malloc error in uint_dup_f()");
+
+    *a = *o;
+
+    return a;
+}
+
+void uint64_rel_f( void *p )
+{
+    free(p);
+}
+
+

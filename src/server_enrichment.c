@@ -849,7 +849,7 @@ int main(int argc, char **argv)
     arg->upload_dir = upload_dir_name;
 
     arg->gi = giggle_load(index_dir_name,
-                          uint32_t_ll_giggle_set_data_handler);
+                          uint64_t_ll_giggle_set_data_handler);
 
 #if BLOCK_STORE
     giggle_data_handler.giggle_collect_intersection =

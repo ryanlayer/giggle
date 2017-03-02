@@ -37,6 +37,10 @@ int uint_cmp_f ( const void *p1, const void *p2 );
 void *uint_dup_f( void *p );
 void uint_rel_f( void *p );
 
+int uint64_cmp_f ( const void *p1, const void *p2 );
+void *uint64_dup_f( void *p );
+void uint64_rel_f( void *p );
+
 /* AVL tree functions */
 jsw_avltree_t *jsw_avlnew ( cmp_f cmp, dup_f dup, rel_f rel );
 void           jsw_avldelete ( jsw_avltree_t *tree );
