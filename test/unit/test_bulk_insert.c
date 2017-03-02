@@ -214,10 +214,10 @@ void test_giggle_bulk_insert_base(void)
 
     // These will be used to create the leaf data for each node
     uint32_t num_leading = 0, num_starts = 0, num_ends = 0;
-    struct uint32_t_array *leading, *starts, *ends;
-    leading = uint32_t_array_init(100);
-    starts = uint32_t_array_init(100);
-    ends = uint32_t_array_init(100);
+    struct uint64_t_array *leading, *starts, *ends;
+    leading = uint64_t_array_init(100);
+    starts = uint64_t_array_init(100);
+    ends = uint64_t_array_init(100);
 
     // This tree will track intervals that have begun and not yet ended and
     // will be used to populate the leading value of nodes
@@ -259,7 +259,7 @@ void test_giggle_bulk_insert_base(void)
             // The key didnt' change, so append the current
             // interval id to the end of the leaf data starts
 
-            uint32_t idx = uint32_t_array_add(starts, pqd_start->interval_id);
+            uint64_t idx = uint64_t_array_add(starts, pqd_start->interval_id);
             // bump starts 
             giggle_bulk_insert_set_starts(bpn, idx);
 
@@ -289,8 +289,8 @@ void test_giggle_bulk_insert_base(void)
                 if (curr_pos == pri_end.pos)  {
                     // The key didnt' change, so append the current
                     // interval id to the end of the leaf data ends
-                    uint32_t idx = 
-                            uint32_t_array_add(ends,
+                    uint64_t idx = 
+                            uint64_t_array_add(ends,
                                                pqd_end->interval_id);
                     // bump ends
                     giggle_bulk_insert_set_ends(bpn, idx);
@@ -316,8 +316,8 @@ void test_giggle_bulk_insert_base(void)
                                                             starts,
                                                             ends);
 
-                    uint32_t idx =
-                            uint32_t_array_add(ends,
+                    uint64_t idx =
+                            uint64_t_array_add(ends,
                                                pqd_end->interval_id);
                     // bump ends
                     giggle_bulk_insert_set_ends(bpn, idx);
@@ -416,7 +416,7 @@ void test_giggle_bulk_insert_base(void)
                                                     leading,
                                                     starts,
                                                     ends);
-            uint32_t idx = uint32_t_array_add(starts, pqd_start->interval_id);
+            uint64_t idx = uint64_t_array_add(starts, pqd_start->interval_id);
             // bump starts
             giggle_bulk_insert_set_starts(bpn, idx);
 
@@ -499,7 +499,7 @@ void test_giggle_bulk_insert_base(void)
         //fprintf(stderr, "%s e:%u\n", pri_end.chrm, pri_end.pos);
 
         if (curr_pos == pri_end.pos)  {
-            uint32_t idx = uint32_t_array_add(ends, pqd_end->interval_id);
+            uint64_t idx = uint64_t_array_add(ends, pqd_end->interval_id);
             // bump ends
             giggle_bulk_insert_set_ends(bpn, idx);
 
@@ -532,7 +532,7 @@ void test_giggle_bulk_insert_base(void)
                                                     leading,
                                                     starts,
                                                     ends);
-            uint32_t idx = uint32_t_array_add(ends, curr_pos); 
+            uint64_t idx = uint64_t_array_add(ends, curr_pos); 
             // bump ends
             giggle_bulk_insert_set_ends(bpn, idx);
 
@@ -735,9 +735,9 @@ void test_giggle_bulk_insert_base(void)
     //frees
     free(chrm);
     free(pqd_starts);
-    uint32_t_array_destroy(&leading);
-    uint32_t_array_destroy(&starts);
-    uint32_t_array_destroy(&ends);
+    uint64_t_array_destroy(&leading);
+    uint64_t_array_destroy(&starts);
+    uint64_t_array_destroy(&ends);
     free(bpn->data);
     free(bpn);
     offset_index_destroy(&offset_idx);
@@ -1184,22 +1184,22 @@ void test_giggle_bulk_insert_build_leaf_levels_few(void)
                               {60,61,65,71,72},
                               {76,80,81,85,91},
                               {92,96,101,106,301}};
-    uint32_t A_starts_ens[6][5][2] = {{{2,0}, {3,0}, {4,0}, {5,1}, {5,2}},
-                                      {{1,0}, {2,0}, {2,1}, {2,2}, {3,2}},
-                                      {{1,0}, {2,0}, {2,1}, {2,2}, {2,3}},
-                                      {{1,0}, {2,0}, {3,0}, {3,1}, {3,2}},
-                                      {{0,1}, {1,1}, {2,1}, {3,1}, {3,2}},
-                                      {{0,1}, {0,2}, {0,3}, {0,4}, {0,5}}};
+    uint32_t A_starts_ens[6][5][2] = { {{2,0}, {3,0}, {4,0}, {5,1}, {5,2}},
+                                       {{1,0}, {2,0}, {2,1}, {2,2}, {3,2}},
+                                       {{1,0}, {2,0}, {2,1}, {2,2}, {2,3}},
+                                       {{1,0}, {2,0}, {3,0}, {3,1}, {3,2}},
+                                       {{0,1}, {1,1}, {2,1}, {3,1}, {3,2}},
+                                       {{0,1}, {0,2}, {0,3}, {0,4}, {0,5}} };
 
     uint32_t A_leaf_sizes[6][3] = {{0,5,2}, {3,3,2}, {4,2,3}, {3,3,2} ,
                                    {4,3,2,}, {5,0,5}};
 
-    uint32_t A_leading_vals_1[3] = {0,1,2};
-    uint32_t A_leading_vals_2[4] = {0,1,2,7};
-    uint32_t A_leading_vals_3[3] = {0,1,2};
-    uint32_t A_leading_vals_4[4] = {0,1,2,12};
-    uint32_t A_leading_vals_5[5] = {0,1,2,14,15};
-    uint32_t *A_leading_vals[6] = {NULL,
+    uint64_t A_leading_vals_1[3] = {0,1,2};
+    uint64_t A_leading_vals_2[4] = {0,1,2,7};
+    uint64_t A_leading_vals_3[3] = {0,1,2};
+    uint64_t A_leading_vals_4[4] = {0,1,2,12};
+    uint64_t A_leading_vals_5[5] = {0,1,2,14,15};
+    uint64_t *A_leading_vals[6] = {NULL,
                                    A_leading_vals_1,
                                    A_leading_vals_2,
                                    A_leading_vals_3,
@@ -1423,7 +1423,7 @@ void test_giggle_bulk_insert_few(void)
 
     struct giggle_index *gi =
                 giggle_load(output_path_name,
-                            uint32_t_ll_giggle_set_data_handler);
+                            uint64_t_ll_giggle_set_data_handler);
     giggle_data_handler.giggle_collect_intersection =
             giggle_collect_intersection_data_in_block;
     giggle_data_handler.map_intersection_to_offset_list =
@@ -2018,7 +2018,7 @@ void test_giggle_bulk_insert_fews(void)
                                                     1);
         struct giggle_index *gi =
                     giggle_load(output_path_name,
-                                uint32_t_ll_giggle_set_data_handler);
+                                uint64_t_ll_giggle_set_data_handler);
         giggle_data_handler.giggle_collect_intersection =
                 giggle_collect_intersection_data_in_block;
         giggle_data_handler.map_intersection_to_offset_list =
@@ -2049,7 +2049,7 @@ void test_giggle_bulk_insert(void)
 
     struct giggle_index *gi =
                 giggle_load(output_path_name,
-                            uint32_t_ll_giggle_set_data_handler);
+                            uint64_t_ll_giggle_set_data_handler);
     giggle_data_handler.giggle_collect_intersection =
             giggle_collect_intersection_data_in_block;
     giggle_data_handler.map_intersection_to_offset_list =

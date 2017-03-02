@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 
     struct giggle_index *gi;
     gi = giggle_load(index_dir,
-                     uint32_t_ll_giggle_set_data_handler);
+                     uint64_t_ll_giggle_set_data_handler);
 
 
 #if 0
@@ -46,10 +46,10 @@ int main(int argc, char **argv)
     struct giggle_index *gi;
     if (i_type[0] == 'i') {
         gi = giggle_load(index_dir,
-                         uint32_t_ll_giggle_set_data_handler);
+                         uint64_t_ll_giggle_set_data_handler);
 
-        struct uint32_t_ll *R =
-                (struct uint32_t_ll *)giggle_query_region(gi,
+        struct uint64_t_ll *R =
+                (struct uint64_t_ll *)giggle_query_region(gi,
                                                           chrm,
                                                           start,
                                                           end);

@@ -35,6 +35,7 @@ int unlink_cb(const char *fpath,
               struct FTW *ftwbuf);
 int rmrf(char *path);
 int uint32_t_cmp(const void *_a, const void *_b);
+int uint64_t_cmp(const void *_a, const void *_b);
 int char_p_cmp(const void *_a, const void *_b);
 uint32_t bin_char_to_int(char *bin);
 int long_cmp(const void *_a, const void *_b);

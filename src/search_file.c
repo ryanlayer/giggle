@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     struct giggle_index *gi;
 
     gi = giggle_load(index_dir,
-                     uint32_t_ll_giggle_set_data_handler);
+                     uint64_t_ll_giggle_set_data_handler);
 
     struct long_ll **offsets = (struct long_ll **)
             calloc(gi->file_idx->index->num, sizeof(struct long_ll *));
@@ -62,13 +62,13 @@ int main(int argc, char **argv)
                                                &end,
                                                &offset,
                                                &line) >= 0 ) {
-        struct uint32_t_ll *R =
-                (struct uint32_t_ll *)giggle_query_region(gi,
+        struct uint64_t_ll *R =
+                (struct uint64_t_ll *)giggle_query_region(gi,
                                                           chrm,
                                                           start,
                                                           end);
         if (R != NULL) {
-            struct uint32_t_ll_node *curr = R->head;
+            struct uint64_t_ll_node *curr = R->head;
 
             uint32_t count = 0;
             while (curr != NULL) {
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
                 curr = curr->next;
             }
-            uint32_t_ll_free((void **)&R);
+            uint64_t_ll_free((void **)&R);
             R=NULL;
         } 
         num_intervals += 1;
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
             printf("0\n");
             continue;
         } else {
-            printf("%u\n", offsets[i]->len);
+            printf("%llu\n", offsets[i]->len);
         }
 
        

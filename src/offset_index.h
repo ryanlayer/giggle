@@ -37,7 +37,7 @@ struct offset_index
 struct offset_index *offset_index_init(uint32_t init_size, char *file_name);
 void offset_index_destroy(struct offset_index **oi);
 void offset_index_store(struct offset_index *oi);
-uint32_t offset_index_add(struct offset_index *oi,
+uint64_t offset_index_add(struct offset_index *oi,
                           long offset,
                           kstring_t *line,
                           uint32_t file_id);

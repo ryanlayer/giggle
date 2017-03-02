@@ -8,7 +8,8 @@
 
 struct pq_data
 {
-    uint32_t file_id, interval_id;
+    uint32_t file_id;
+    uint64_t interval_id;
 };
 
 typedef struct

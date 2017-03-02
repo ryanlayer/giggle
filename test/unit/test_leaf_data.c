@@ -32,7 +32,7 @@ void test_get_leaf_data(void)
 {
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-    uint32_t_ll_giggle_set_data_handler();
+    uint64_t_ll_giggle_set_data_handler();
     struct giggle_index *gi = giggle_init_index(30);
     char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t ret = giggle_index_file(gi, file_name);
@@ -66,10 +66,10 @@ void test_get_leaf_data(void)
                                              &starts_ends_offsets);
  
             if (BPT_LEADING(curr) != 0) {
-                struct uint32_t_ll_bpt_leading_data *ld =
+                struct uint64_t_ll_bpt_leading_data *ld =
                     cache.get(i,
                               BPT_LEADING(curr) - 1,
-                              &uint32_t_ll_leading_cache_handler);
+                              &uint64_t_ll_leading_cache_handler);
                 TEST_ASSERT_EQUAL(ld->B->len, lf->num_leading);
             } else {
                 TEST_ASSERT_EQUAL(0, lf->num_leading);
@@ -80,10 +80,10 @@ void test_get_leaf_data(void)
             uint32_t j;
             for (j = 0; j < BPT_NUM_KEYS(curr) ; ++j) {
                 if (BPT_POINTERS(curr)[j] != 0) {
-                    struct uint32_t_ll_bpt_non_leading_data *nld =
+                    struct uint64_t_ll_bpt_non_leading_data *nld =
                             cache.get(i,
                                       BPT_POINTERS(curr)[j] - 1,
-                                      &uint32_t_ll_non_leading_cache_handler);
+                                      &uint64_t_ll_non_leading_cache_handler);
                     s_len += (nld->SA == NULL) ? 0 : nld->SA->len;
                     e_len += (nld->SE == NULL) ? 0 : nld->SE->len;
 
@@ -96,7 +96,7 @@ void test_get_leaf_data(void)
                          k < starts_ends_offsets[j*2];
                          ++k) {
                         TEST_ASSERT_EQUAL(1,
-                                          uint32_t_ll_contains(nld->SA,
+                                          uint64_t_ll_contains(nld->SA,
                                                                lf->starts[k]));
                     }
 
@@ -109,7 +109,7 @@ void test_get_leaf_data(void)
                          k < starts_ends_offsets[j*2+1];
                          ++k) {
                         TEST_ASSERT_EQUAL(1,
-                                          uint32_t_ll_contains(nld->SE,
+                                          uint64_t_ll_contains(nld->SE,
                                                                lf->ends[k]));
                     }
                 }
@@ -132,7 +132,7 @@ void test_leaf_data_cache_handler(void)
 {
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-    uint32_t_ll_giggle_set_data_handler();
+    uint64_t_ll_giggle_set_data_handler();
     struct giggle_index *gi = giggle_init_index(30);
     char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t ret = giggle_index_file(gi, file_name);
@@ -192,7 +192,7 @@ void test_leaf_data_ops(void)
                 23,
                 "tmp",
                 1,
-                uint32_t_ll_giggle_set_data_handler);
+                uint64_t_ll_giggle_set_data_handler);
 
     giggle_data_handler.write_tree = &giggle_write_tree_leaf_data;
 
@@ -245,7 +245,7 @@ void test_leaf_data_ops(void)
     cache.destroy();
 
     gi = giggle_load("tmp",
-        uint32_t_ll_giggle_set_data_handler);
+        uint64_t_ll_giggle_set_data_handler);
 
     struct leaf_data_result *R = NULL;
 
@@ -436,7 +436,7 @@ void test_leaf_data_ops(void)
 //                23,
 //                "tmp",
 //                1,
-//                uint32_t_ll_giggle_set_data_handler);
+//                uint64_t_ll_giggle_set_data_handler);
 //
 //    giggle_data_handler.write_tree = &giggle_write_tree;
 //
@@ -448,7 +448,7 @@ void test_leaf_data_ops(void)
 //    uint32_t start = 100000;
 //    uint32_t end = 10000000;
 //
-//    struct uint32_t_ll *R  = giggle_search(domain,
+//    struct uint64_t_ll *R  = giggle_search(domain,
 //                                           gi->root_ids[domain],
 //                                           start,
 //                                           end);
@@ -460,7 +460,7 @@ void test_leaf_data_ops(void)
 //    cache.destroy();
 //
 //    gi = giggle_load("tmp",
-//                     uint32_t_ll_giggle_set_data_handler);
+//                     uint64_t_ll_giggle_set_data_handler);
 //
 //    uint32_t leaf_start_id;
 //    int pos_start_id;
@@ -669,7 +669,7 @@ void test_leaf_data_ops(void)
 //#endif 
 //
 //    /*
-//    struct uint32_t_ll *R = (struct uint32_t_ll *)giggle_query_region(gi,
+//    struct uint64_t_ll *R = (struct uint64_t_ll *)giggle_query_region(gi,
 //                                                                      "1",
 //                                                                      1000,
 //                                                                      3000000);

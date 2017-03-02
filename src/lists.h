@@ -45,27 +45,22 @@ struct offset_size_pair
 };
 
 // HASH LIST
-
 struct hash_list
 {
     void *hash;
 };
 
 struct hash_list *hash_list_init();
-
 uint32_t hash_list_add(struct hash_list *il,
                        uint32_t index,
                        void *data,
                        uint32_t data_size);
-
 void *hash_list_get(struct hash_list *il,
                     uint32_t index);
-
+void hash_list_write(struct indexed_list *il, FILE *f, char *file_name);
 void *hash_list_remove(struct hash_list *il,
                        uint32_t index);
-
 void hash_list_destroy(struct hash_list **hashl);
-
 void hash_list_value_cache_handler_pair_destroy(struct hash_list **hashl);
 
 // UNORDERD LIST
@@ -198,6 +193,8 @@ void byte_array_destory(struct byte_array **ba);
 void byte_array_append(struct byte_array *ba, void *data, uint32_t size);
 void byte_array_append_zeros(struct byte_array *ba, uint32_t size);
 
+
+// UINT32 ARRAY
 struct uint32_t_array
 {
     uint32_t num, size, *data;
@@ -207,5 +204,16 @@ struct uint32_t_array *uint32_t_array_init(uint32_t init_size);
 void uint32_t_array_destroy(struct uint32_t_array **ua);
 uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val);
 uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index);
+
+// UINT64 ARRAY
+struct uint64_t_array
+{
+    uint64_t num, size, *data;
+};
+
+struct uint64_t_array *uint64_t_array_init(uint64_t init_size);
+void uint64_t_array_destroy(struct uint64_t_array **ua);
+uint64_t uint64_t_array_add(struct uint64_t_array *ua, uint64_t val);
+uint64_t *uint64_t_array_get(struct uint64_t_array *ua, uint64_t index);
 
 #endif

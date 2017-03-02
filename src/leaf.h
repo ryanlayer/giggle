@@ -25,13 +25,13 @@
 #define LEAF_DATA_LEADING_END(node) (node->num_leading)
 
 struct leaf_data {
-    uint32_t num_leading, num_starts, num_ends;
-    uint32_t *leading, *starts, *ends, *data;
+    uint64_t num_leading, num_starts, num_ends;
+    uint64_t *leading, *starts, *ends, *data;
 };
 
 struct leaf_data_result {
-    uint32_t len;
-    uint32_t *data;
+    uint64_t len;
+    uint64_t *data;
     struct leaf_data_result *next;
 };
 
@@ -45,8 +45,8 @@ uint32_t leaf_data_get_starts_ends(struct bpt_node *node,
                                    struct leaf_data *data,
                                    uint32_t from,
                                    uint32_t to,
-                                   uint32_t **starts,
-                                   uint32_t *starts_size,
-                                   uint32_t **ends,
-                                   uint32_t *ends_size);
+                                   uint64_t **starts,
+                                   uint64_t *starts_size,
+                                   uint64_t **ends,
+                                   uint64_t *ends_size);
 #endif

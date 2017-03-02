@@ -545,7 +545,7 @@ void wah_giggle_set_data_handler()
         giggle_collect_intersection_data_in_pointers;
 
     wah_giggle_data_handler.map_intersection_to_offset_list =
-        uint32_t_ll_map_intersection_to_offset_list;
+        uint64_t_ll_map_intersection_to_offset_list;
 
     giggle_data_handler = wah_giggle_data_handler;
 }
@@ -581,7 +581,7 @@ void wah_non_leading_SA_add_scalar(uint32_t domain,
                                      void *_id)
 {
 #if DEBUG
-    fprintf(stderr, "uint32_t_ll_non_leading_SA_add_scalar\n");
+    fprintf(stderr, "uint64_t_ll_non_leading_SA_add_scalar\n");
 #endif
     struct wah_bpt_non_leading_data *nld =
             (struct wah_bpt_non_leading_data *)_nld;
@@ -602,7 +602,7 @@ void wah_non_leading_SE_add_scalar(uint32_t domain,
                                      void *_id)
 {
 #if DEBUG
-    fprintf(stderr, "uint32_t_ll_non_leading_SA_add_scalar\n");
+    fprintf(stderr, "uint64_t_ll_non_leading_SA_add_scalar\n");
 #endif
     struct wah_bpt_non_leading_data *nld =
             (struct wah_bpt_non_leading_data *)_nld;
@@ -623,7 +623,7 @@ void wah_leading_B_add_scalar(uint32_t domain,
                                 void *_id)
 {
 #if DEBUG
-    fprintf(stderr, "uint32_t_ll_non_leading_SA_add_scalar\n");
+    fprintf(stderr, "uint64_t_ll_non_leading_SA_add_scalar\n");
 #endif
     struct wah_bpt_leading_data *ld =
             (struct wah_bpt_leading_data *)_ld;

@@ -18,7 +18,6 @@ void tearDown(void) { }
 void test_hash_list_init(void)
 {
     struct hash_list *hashl = hash_list_init(100000);
-    TEST_ASSERT_EQUAL(0, hashl->dirty);
 
     uint64_t *ret = (uint64_t *)hash_list_get(hashl, 1);
     TEST_ASSERT_EQUAL(NULL, ret);
