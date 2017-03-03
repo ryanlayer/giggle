@@ -715,7 +715,8 @@ void *giggle_collect_intersection_data_in_pointers(uint32_t leaf_start_id,
 //}}}
 
 //{{{struct giggle_index *giggle_init_index(uint32_t init_size);
-struct giggle_index *giggle_init_index(uint32_t init_size)
+struct giggle_index *giggle_init_index(uint32_t init_size,
+                                       char *offset_file_name)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
@@ -732,7 +733,7 @@ struct giggle_index *giggle_init_index(uint32_t init_size)
     gi->chrm_idx = chrm_index_init(init_size, NULL);
     gi->file_idx = file_index_init(3, NULL);
 
-    gi->offset_idx = offset_index_init(1000, NULL);
+    gi->offset_idx = offset_index_init(1000, offset_file_name);
     gi->root_ids_file_name = NULL;
 
     return gi;
@@ -896,41 +897,46 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                                  uint32_t force,
                                  void (*giggle_set_data_handler)(void))
 {
+    if (data_dir == NULL)
+        errx(1,"giggle_init: data_dir cannot be NULL.");
 
     char **cache_names = NULL;
 
-    struct giggle_index *gi = giggle_init_index(num_chrms);
-
-    if (data_dir != NULL) {
-        gi->data_dir = strdup(data_dir);
-
-        struct stat st = {0};
-        if (stat(data_dir, &st) == -1) {
-            mkdir(data_dir, 0700);
-        } else if (force == 1) {
-            rmrf(data_dir);
-            mkdir(data_dir, 0700);
-        } else {
-            fprintf(stderr,
-                    "The directory '%s' already exists. "
-                    "Use the force option to overwrite.\n",
-                    data_dir);
-            return NULL;
-        }
-
-        cache_names = (char **)calloc(num_chrms, sizeof(char *));
-        if (cache_names == NULL)
-            err(1, "calloc error in giggle_init()");
-
-        uint32_t i, ret;
-        for (i = 0; i < num_chrms; ++i) {
-            ret = asprintf(&(cache_names[i]),
-                           "%s/%s%u",
-                           data_dir,
-                           CACHE_FILE_NAME_PREFIX,
-                           i);
-        }
+    struct stat st = {0};
+    if (stat(data_dir, &st) == -1) {
+        mkdir(data_dir, 0700);
+    } else if (force == 1) {
+        rmrf(data_dir);
+        mkdir(data_dir, 0700);
+    } else {
+        fprintf(stderr,
+                "The directory '%s' already exists. "
+                "Use the force option to overwrite.\n",
+                data_dir);
+        return NULL;
     }
+
+    cache_names = (char **)calloc(num_chrms, sizeof(char *));
+    if (cache_names == NULL)
+        err(1, "calloc error in giggle_init()");
+
+    uint32_t i, ret;
+    for (i = 0; i < num_chrms; ++i) {
+        ret = asprintf(&(cache_names[i]),
+                       "%s/%s%u",
+                       data_dir,
+                       CACHE_FILE_NAME_PREFIX,
+                       i);
+    }
+
+    char *offset_idx_name = NULL;
+    ret = asprintf(&offset_idx_name,
+                   "%s/%s",
+                   data_dir,
+                   OFFSET_INDEX_FILE_NAME);
+
+    struct giggle_index *gi = giggle_init_index(num_chrms, offset_idx_name);
+    gi->data_dir = strdup(data_dir);
 
     struct simple_cache *sc = simple_cache_init(1000,
                                                 num_chrms,
@@ -939,36 +945,26 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
     //uint64_t_ll_giggle_set_data_handler();
     giggle_set_data_handler();
 
+    ret = asprintf(&(gi->chrm_idx->file_name),
+                   "%s/%s",
+                   data_dir,
+                   CHRM_INDEX_FILE_NAME);
 
-    if (data_dir != NULL) {
-        int ret = asprintf(&(gi->chrm_idx->file_name),
-                           "%s/%s",
-                           data_dir,
-                           CHRM_INDEX_FILE_NAME);
+    ret = asprintf(&(gi->file_idx->file_name),
+                   "%s/%s",
+                   data_dir,
+                   FILE_INDEX_FILE_NAME);
 
-        ret = asprintf(&(gi->file_idx->file_name),
-                       "%s/%s",
-                       data_dir,
-                       FILE_INDEX_FILE_NAME);
+    ret = asprintf(&(gi->root_ids_file_name),
+                   "%s/%s",
+                   data_dir,
+                   ROOT_IDS_FILE_NAME);
 
-        ret = asprintf(&(gi->offset_idx->file_name),
-                       "%s/%s",
-                       data_dir,
-                       OFFSET_INDEX_FILE_NAME);
+    for (i = 0; i < num_chrms; ++i)
+        free(cache_names[i]);
+    free(cache_names);
 
-        ret = asprintf(&(gi->root_ids_file_name),
-                       "%s/%s",
-                       data_dir,
-                       ROOT_IDS_FILE_NAME);
-    }
-
-    if (cache_names != NULL) {
-        uint32_t i;
-        for (i = 0; i < num_chrms; ++i)
-            free(cache_names[i]);
-        free(cache_names);
-    }
-
+    free(offset_idx_name);
 
     return gi;
 }

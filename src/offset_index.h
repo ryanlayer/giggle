@@ -14,7 +14,6 @@ struct file_id_offset_pair
 {
     uint32_t file_id;
     long offset;
-    //uint32_t interval_id;
 };
 void *file_id_offset_pair_load(FILE *f, char *file_name);
 void file_id_offset_pair_store(void *v, FILE *f, char *file_name);

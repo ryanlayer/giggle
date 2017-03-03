@@ -149,7 +149,7 @@ void test_offset_index_add_no_data(void)
             offset_index_init(100,
                               "tmp.test_offset_index_add");
     uint32_t intrv_id;
-    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
+    TEST_ASSERT_EQUAL(on_disk, offset_idx->type);
 
     while (i->input_file_get_next_interval(i,
                                            &chrm,
@@ -409,7 +409,7 @@ void test_offset_index_add_data(void)
     struct offset_index *offset_idx = 
             offset_index_init(100,
                               "tmp.test_offset_index_add");
-    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
+    TEST_ASSERT_EQUAL(on_disk, offset_idx->type);
     uint32_t intrv_id;
 
     while (i->input_file_get_next_interval(i,
@@ -464,6 +464,15 @@ void offset_data_append_data_test_func_larger(uint8_t *dest, kstring_t *line)
     a.flt = atof(line->s + fields[6]);
     memset(&a.concat, 0, 20);
     int ret = sprintf(a.concat, "%u %.6f", a.uint, a.flt);
+
+    /*
+    fprintf(stderr,
+            "offset_data_append_data_test_func_larger: dest:%p line:%s uint:%u flt:%f\n",
+            dest,
+            line->s,
+            a.uint,
+            a.flt);
+    */
 
     memcpy(dest, &a, sizeof(struct offset_data_append_data_test_struct_larger));
 
@@ -806,7 +815,7 @@ void test_offset_index_add_data_larger(void)
     struct offset_index *offset_idx = 
             offset_index_init(100,
                               "tmp.test_offset_index_add");
-    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
+    TEST_ASSERT_EQUAL(on_disk, offset_idx->type);
     uint32_t intrv_id;
 
     while (i->input_file_get_next_interval(i,
@@ -1184,7 +1193,7 @@ void test_offset_index_store_load_data(void)
     struct offset_index *offset_idx = 
             offset_index_init(10,
                               "tmp.test_offset_index_add");
-    TEST_ASSERT_EQUAL(in_memory, offset_idx->type);
+    TEST_ASSERT_EQUAL(on_disk, offset_idx->type);
     uint32_t intrv_id;
 
     while (i->input_file_get_next_interval(i,

@@ -41,13 +41,8 @@ OBJS=$(addprefix $(OBJ)/, $(LIB))
 .SECONDARY: $(OBJS)
 
 
-PROG=index_search \
-     search_file \
-     test \
-     sig_test \
-     speed_tests \
-     api_test \
-     giggle
+PROG=giggle \
+     api_test
 
 LIST=$(addprefix $(BIN)/, $(PROG))
 

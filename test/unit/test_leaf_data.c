@@ -33,7 +33,8 @@ void test_get_leaf_data(void)
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
     uint64_t_ll_giggle_set_data_handler();
-    struct giggle_index *gi = giggle_init_index(30);
+    struct giggle_index *gi =
+            giggle_init_index(30, "test_get_leaf_data_offset.idx");
     char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t ret = giggle_index_file(gi, file_name);
 
@@ -124,6 +125,7 @@ void test_get_leaf_data(void)
     }
     giggle_index_destroy(&gi);
     cache.destroy();
+    remove("test_get_leaf_data_offset.idx");
 }
 //}}}
 
@@ -133,7 +135,9 @@ void test_leaf_data_cache_handler(void)
     ORDER = 10;
     struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
     uint64_t_ll_giggle_set_data_handler();
-    struct giggle_index *gi = giggle_init_index(30);
+    struct giggle_index *gi = 
+            giggle_init_index(30,
+                              "test_leaf_data_cache_handler_offset.idx");
     char *file_name = "../data/1k.unsort.bed.gz";
     uint32_t ret = giggle_index_file(gi, file_name);
 
@@ -181,7 +185,9 @@ void test_leaf_data_cache_handler(void)
 
     giggle_index_destroy(&gi);
     cache.destroy();
+    remove("test_leaf_data_cache_handler_offset.idx");
 }
+
 //}}}
 
 //{{{void test_leaf_data_ops(void)
@@ -417,266 +423,6 @@ void test_leaf_data_ops(void)
     free(R);
     giggle_index_destroy(&gi);
     cache.destroy();
+    rmrf("tmp");
 }
-
-//        //uint8_t *output = (uint8_t *)malloc(
-//                           //2*leaf_data_size * sizeof(uint32_t));
-//
-//        //int cs = fastlz_compress(lf->data,
-//                            //leaf_data_size * sizeof(uint32_t),
-//                            //output);
-//    giggle_index_destroy(&gi);
-//    cache.destroy();
-
-
-//{{{ void test_giggle_init_store_load(void)
-//void test_giggle_init_store_load(void)
-//{
-//    struct giggle_index *gi = giggle_init(
-//                23,
-//                "tmp",
-//                1,
-//                uint64_t_ll_giggle_set_data_handler);
-//
-//    giggle_data_handler.write_tree = &giggle_write_tree;
-//
-//    char *path_name = "../data/many/*bed.gz";
-//
-//    uint32_t r = giggle_index_directory(gi, path_name, 0);
-//
-//    uint32_t domain = 0;
-//    uint32_t start = 100000;
-//    uint32_t end = 10000000;
-//
-//    struct uint64_t_ll *R  = giggle_search(domain,
-//                                           gi->root_ids[domain],
-//                                           start,
-//                                           end);
-//    fprintf(stderr, "%u\n", (R==NULL) ? 0 : R->len);
-//
-//    giggle_store(gi);
-//
-//    giggle_index_destroy(&gi);
-//    cache.destroy();
-//
-//    gi = giggle_load("tmp",
-//                     uint64_t_ll_giggle_set_data_handler);
-//
-//    uint32_t leaf_start_id;
-//    int pos_start_id;
-//
-//    uint32_t nld_start_id = bpt_find(domain,
-//                                     gi->root_ids[domain],
-//                                     &leaf_start_id, 
-//                                     &pos_start_id,
-//                                     start);
-//    struct bpt_node *leaf_start = cache.get(domain,
-//                                            leaf_start_id - 1,
-//                                            &bpt_node_cache_handler);
-//
-//    if ((pos_start_id == 0) && (BPT_KEYS(leaf_start)[0] != start))
-//        pos_start_id = -1;
-//    else if ( (pos_start_id >=0) && 
-//              (pos_start_id < BPT_NUM_KEYS(leaf_start)) &&
-//              (BPT_KEYS(leaf_start)[pos_start_id] > start))
-//        pos_start_id -= 1;
-//
-//    uint32_t leaf_end_id;
-//    int pos_end_id;
-//
-//    uint32_t nld_end_id = bpt_find(domain,
-//                                   gi->root_ids[domain],
-//                                   &leaf_end_id, 
-//                                   &pos_end_id,
-//                                   end);
-//
-//    struct bpt_node *leaf_end = cache.get(domain,
-//                                          leaf_end_id - 1,
-//                                          &bpt_node_cache_handler);
-//
-//    if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
-//        pos_end_id = -1;
-//    else if ( (pos_end_id >=0) && 
-//              (pos_end_id < BPT_NUM_KEYS(leaf_end)) &&
-//              (BPT_KEYS(leaf_end)[pos_end_id] > end))
-//        pos_end_id -= 1;
-//
-//
-//    fprintf(stderr,
-//            "sl:%u\tsp:%d\tel:%u\tep:%d\n",
-//            leaf_start_id, pos_start_id,
-//            leaf_end_id, pos_end_id);
-//#if 0
-////{{{ void *giggle_search(uint32_t domain,
-////void *giggle_search(uint32_t domain,
-//                    uint32_t root_id,
-//                    uint32_t start,
-//                    uint32_t end)
-//{
-//#if DEBUG
-//    fprintf(stderr, "giggle_search\n");
-//    fprintf(stderr, "start:%u\tend:%u\n", start, end);
-//#endif
-//
-//    if (root_id == 0)
-//        return 0;
-//
-//    uint32_t leaf_start_id;
-//    int pos_start_id;
-//
-//    uint32_t nld_start_id = bpt_find(domain,
-//                                     root_id,
-//                                     &leaf_start_id, 
-//                                     &pos_start_id,
-//                                     start);
-//    struct bpt_node *leaf_start = cache.get(domain,
-//                                            leaf_start_id - 1,
-//                                            &bpt_node_cache_handler);
-//    if ((pos_start_id == 0) && (BPT_KEYS(leaf_start)[0] != start))
-//        pos_start_id = -1;
-//    else if ( (pos_start_id >=0) && 
-//              (pos_start_id < BPT_NUM_KEYS(leaf_start)) &&
-//              (BPT_KEYS(leaf_start)[pos_start_id] > start))
-//        pos_start_id -= 1;
-//
-//
-//#if DEBUG
-//    fprintf(stderr,
-//            "leaf_start_id:%u\tpos_start_id:%d\n",
-//            leaf_start_id,
-//            pos_start_id);
-//#endif
-//
-//    uint32_t leaf_end_id;
-//    int pos_end_id;
-//
-//    void *r = NULL;
-//
-//    uint32_t nld_end_id = bpt_find(domain,
-//                                   root_id,
-//                                   &leaf_end_id, 
-//                                   &pos_end_id,
-//                                   end);
-//
-//    struct bpt_node *leaf_end = cache.get(domain,
-//                                          leaf_end_id - 1,
-//                                          &bpt_node_cache_handler);
-//
-//    /*
-//     * BPT_POINTERS_BLOCK(leaf_start)
-//     * BPT_POINTERS_BLOCK(leaf_end))
-//     */
-//
-//#if DEBUG
-//    fprintf(stderr,
-//            "leaf_end_id:%u\tpos_end_id:%u\t\n",
-//            leaf_end_id,
-//            pos_end_id);
-//#endif
-//
-//    if ((pos_end_id == 0) && (BPT_KEYS(leaf_end)[0] != end))
-//        pos_end_id = -1;
-//    else if ( (pos_end_id >=0) && 
-//              (pos_end_id < BPT_NUM_KEYS(leaf_end)) &&
-//              (BPT_KEYS(leaf_end)[pos_end_id] > end))
-//        pos_end_id -= 1;
-//
-//#if DEBUG
-//    fprintf(stderr,
-//            "leaf_end_id:%u\tpos_end_id:%u\t\n",
-//            leaf_end_id,
-//            pos_end_id);
-//#endif
-//
-//#if DEBUG
-//    fprintf(stderr, "pos_end_id:%d %u\n", pos_end_id,
-//            ( ((pos_end_id >=0)&&(pos_end_id<BPT_NUM_KEYS(leaf_end))) ?
-//              BPT_KEYS(leaf_end)[pos_end_id] : 0)
-//            );
-//#endif
-//
-//    if ((leaf_start_id == leaf_end_id) && (pos_start_id > pos_end_id))
-//        return r;
-//
-//#if DEBUG
-//    if (BPT_LEADING(leaf_start) == 0)
-//        fprintf(stderr, "BPT_LEADING(leaf_start) == 0\n");
-//
-//#endif
-//
-//    // get everything in the leading value
-//    if (BPT_LEADING(leaf_start) != 0) {
-//        void *ld = cache.get(domain,
-//                             BPT_LEADING(leaf_start) - 1,
-//                             &giggle_data_handler.leading_cache_handler);
-//
-//        giggle_data_handler.leading_union_with_B(domain, &r, ld);
-//    }
-//
-//    // add any SA and remove any that are an SE up to and including this point
-//    int i;
-//    for (i = 0; (i < BPT_NUM_KEYS(leaf_start)) && (i <= pos_start_id); ++i) {
-//#if DEBUG
-//        fprintf(stderr,
-//                "BPT_KEY(leaf_start)[%u] == %u\n",
-//                i,
-//                BPT_KEYS(leaf_start)[i]);
-//#endif
-//        void *nld = cache.get(domain,
-//                              BPT_POINTERS(leaf_start)[i] - 1,
-//                              &giggle_data_handler.non_leading_cache_handler);
-//        giggle_data_handler.
-//                non_leading_union_with_SA_subtract_SE(domain,&r, nld);
-//    }
-//
-//    // now process everything in between the start and end
-//    struct bpt_node *leaf_curr = leaf_start;
-//    int pos_curr_id = pos_start_id + 1;
-//
-//    // any intermediate leaves
-//    while (BPT_ID(leaf_curr) != leaf_end_id) {
-//        // do from pos_curr to the last key
-//        for (i = pos_curr_id; i < BPT_NUM_KEYS(leaf_curr); ++i) {
-//            void *nld = cache.get(
-//                    domain,
-//                    BPT_POINTERS(leaf_curr)[i] - 1,
-//                    &giggle_data_handler.non_leading_cache_handler);
-//            giggle_data_handler.non_leading_union_with_SA(domain, &r, nld);
-//        }
-//
-//        leaf_curr = cache.get(domain,
-//                              BPT_NEXT(leaf_curr) - 1,
-//                              &bpt_node_cache_handler);
-//        pos_curr_id = 0;
-//    }
-//
-//    if (BPT_ID(leaf_curr) == leaf_end_id) {
-//        // add all SA's from here to either the end point
-//        for ( i = pos_curr_id;
-//             (i < BPT_NUM_KEYS(leaf_curr)) && (i <= pos_end_id); 
-//              ++i) {
-//            void *nld = cache.get(
-//                    domain,
-//                    BPT_POINTERS(leaf_curr)[i] - 1,
-//                    &giggle_data_handler.non_leading_cache_handler);
-//            giggle_data_handler.non_leading_union_with_SA(domain, &r, nld);
-//        }
-//    }
-//
-//    return r;
-//}
-////}}}
-//#endif 
-//
-//    /*
-//    struct uint64_t_ll *R = (struct uint64_t_ll *)giggle_query_region(gi,
-//                                                                      "1",
-//                                                                      1000,
-//                                                                      3000000);
-//    */ 
-//}
-////}}}
-//
-//void test_LAST(void)
-//{
-//}
+//}}}
