@@ -167,11 +167,7 @@ void offset_index_store(struct offset_index *oi)
                         sizeof(uint64_t) + sizeof(uint32_t) + 
                         oi->index->num * oi->width);
     if ( ret != 0 )
-        err(1,
-            "offset_index_store: Could not trucate %s from %llu to %llu",
-            oi->file_name,
-            oi->index->size * oi->width,
-            oi->index->num * oi->width);
+        err(1, "offset_index_store: Could not truncate.");
  
 /*
     if (oi->file_name == NULL)
