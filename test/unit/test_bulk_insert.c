@@ -745,6 +745,7 @@ void test_giggle_bulk_insert_base(void)
     file_index_destroy(&file_idx);
     priq_free(pq_start);
     priq_free(pq_end);
+    remove("test_bulk_insert.offset.idx");
 }
 //}}}
 
@@ -788,7 +789,6 @@ void test_giggle_bulk_insert_prime_pq(void)
     char *input_path_name = "../data/many/*gz";
     char *output_path_name = "tmp_test_giggle_bulk_insert_open_files";
 
-    /*
     struct stat st = {0};
     if (stat(output_path_name, &st) == -1) {
         mkdir(output_path_name, 0700);
@@ -796,7 +796,6 @@ void test_giggle_bulk_insert_prime_pq(void)
         rmrf(output_path_name);
         mkdir(output_path_name, 0700);
     }
-    */
 
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
@@ -1541,46 +1540,6 @@ void test_giggle_bulk_insert_build_tree_on_leaves_few_order_4(void)
     // build trees
     giggle_bulk_insert_build_tree_on_leaves(gi);
 
-    /*
-    ret = asprintf(&(gi->root_ids_file_name),
-                   "%s/%s",
-                   gi->data_dir,
-                   ROOT_IDS_FILE_NAME);
-
-    FILE *f = fopen(gi->root_ids_file_name, "wb");
-
-    if (fwrite(&(gi->len), sizeof(uint32_t), 1, f) != 1)
-        err(EX_IOERR, "Error writing len for root_ids'%s'.",
-            gi->root_ids_file_name);
-
-    if (fwrite(&(gi->num), sizeof(uint32_t), 1, f) != 1)
-        err(EX_IOERR, "Error writing num for root_ids'%s'.",
-            gi->root_ids_file_name);
-
-    if (fwrite(gi->root_ids, sizeof(uint32_t), gi->len, f) != gi->len)
-        err(EX_IOERR, "Error writing root_ids '%s'.",
-            gi->root_ids_file_name);
-    fclose(f);
-
-    chrm_index_store(gi->chrm_idx);
-    file_index_store(gi->file_idx);
-    offset_index_store(gi->offset_idx);
-
-    uint64_t num_intervals = gi->offset_idx->index->num;
-
-    if (gi->root_ids_file_name != NULL)
-        free(gi->root_ids_file_name);
-    if (gi->data_dir != NULL)
-        free(gi->data_dir);
-
-    free(gi->root_ids);
-    file_index_destroy(&(gi->file_idx));
-    offset_index_destroy(&(gi->offset_idx));
-    chrm_index_destroy(&(gi->chrm_idx));
-    free(gi);
-    gi = NULL;
-    */
-
 
     uint32_t root_id = gi->root_ids[0];
 
@@ -1740,47 +1699,6 @@ void test_giggle_bulk_insert_build_tree_on_leaves_few_order_3(void)
 
     // build trees
     giggle_bulk_insert_build_tree_on_leaves(gi);
-
-    /*
-    ret = asprintf(&(gi->root_ids_file_name),
-                   "%s/%s",
-                   gi->data_dir,
-                   ROOT_IDS_FILE_NAME);
-
-    FILE *f = fopen(gi->root_ids_file_name, "wb");
-
-    if (fwrite(&(gi->len), sizeof(uint32_t), 1, f) != 1)
-        err(EX_IOERR, "Error writing len for root_ids'%s'.",
-            gi->root_ids_file_name);
-
-    if (fwrite(&(gi->num), sizeof(uint32_t), 1, f) != 1)
-        err(EX_IOERR, "Error writing num for root_ids'%s'.",
-            gi->root_ids_file_name);
-
-    if (fwrite(gi->root_ids, sizeof(uint32_t), gi->len, f) != gi->len)
-        err(EX_IOERR, "Error writing root_ids '%s'.",
-            gi->root_ids_file_name);
-    fclose(f);
-
-    chrm_index_store(gi->chrm_idx);
-    file_index_store(gi->file_idx);
-    offset_index_store(gi->offset_idx);
-
-    uint64_t num_intervals = gi->offset_idx->index->num;
-
-    if (gi->root_ids_file_name != NULL)
-        free(gi->root_ids_file_name);
-    if (gi->data_dir != NULL)
-        free(gi->data_dir);
-
-    free(gi->root_ids);
-    file_index_destroy(&(gi->file_idx));
-    offset_index_destroy(&(gi->offset_idx));
-    chrm_index_destroy(&(gi->chrm_idx));
-    free(gi);
-    gi = NULL;
-    */
-
 
     uint32_t root_id = gi->root_ids[0];
 

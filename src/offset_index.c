@@ -8,6 +8,7 @@
 #include <htslib/kstring.h>
 #include <err.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "offset_index.h"
 #include "util.h"
@@ -34,17 +35,42 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 
     oi->index->num = 0;
     oi->index->size = init_size;
+    /*
     oi->index->vals = (struct file_id_offset_pair *)
             calloc(oi->index->size, oi->width);
+    */
 
     oi->file_name = NULL;
     if (file_name != NULL) {
         oi->file_name = strdup(file_name);
     }
 
-    oi->f = NULL;
+    //oi->f = NULL;
 
-    oi->type = in_memory;
+    //oi->type = in_memory;
+    
+    oi->f = fopen(oi->file_name, "w+");
+    if (oi->f == NULL)
+        err(1, "Could not open %s.", oi->file_name);
+
+    int ret = ftruncate(fileno(oi->f),
+                        sizeof(uint64_t) + sizeof(uint32_t) +
+                        (oi->index->size * oi->width));
+    if ( ret != 0 )
+        err(1, "Could not extend %s.", oi->file_name);
+
+    oi->index->vals = (struct file_id_offset_pair *)
+            mmap(0,
+                 oi->index->size * oi->width,
+                 PROT_WRITE | PROT_READ,
+                 MAP_SHARED,
+                 fileno(oi->f),
+                 0);
+
+    if (oi->index->vals == MAP_FAILED)
+        err(1, "Error mmapping file.");
+ 
+    oi->type = on_disk;
 
     return oi;
 }
@@ -61,6 +87,7 @@ void offset_index_destroy(struct offset_index **oi)
 
     if ((*oi)->f != NULL) {
         munmap((*oi)->index->vals, 
+               sizeof(uint64_t) + sizeof(uint32_t) + 
                (*oi)->index->size * (*oi)->width);
         fclose((*oi)->f);
     } else {
@@ -85,6 +112,32 @@ uint64_t offset_index_add(struct offset_index *oi,
 
     if (oi->index->num == oi->index->size) {
         oi->index->size = oi->index->size * 2;
+
+        int ret = munmap(oi->index->vals, 
+                         sizeof(uint64_t) + sizeof(uint32_t) + 
+                         oi->index->num * oi->width);
+        if ( ret != 0 )
+            err(1, "offset_index_add: Could not munmap %s.", oi->file_name);
+
+        ret = ftruncate(fileno(oi->f), 
+                        sizeof(uint64_t) + sizeof(uint32_t) +
+                        oi->index->size * oi->width);
+        if ( ret != 0 )
+            err(1, "offset_index_add:Could not extend %s.", oi->file_name);
+
+        oi->index->vals = (struct file_id_offset_pair *)
+                mmap(0,
+                     sizeof(uint64_t) + sizeof(uint32_t) +
+                        oi->index->size * oi->width,
+                     PROT_WRITE | PROT_READ,
+                     MAP_SHARED,
+                     fileno(oi->f),
+                     0);
+
+        if (oi->index->vals == MAP_FAILED)
+            err(1, "Error mmapping file.");
+
+        /*
         oi->index->vals = (struct file_id_offset_pair *)
                 realloc(oi->index->vals, oi->index->size * oi->width);
         if (oi->index->vals == NULL)
@@ -92,7 +145,8 @@ uint64_t offset_index_add(struct offset_index *oi,
         memset((uint8_t *)oi->index->vals + (oi->index->num * oi->width),
                0,
                oi->index->num * oi->width);
-    }
+        */
+    } 
     OFFSET_INDEX_PAIR(oi, id)->offset = offset;
     OFFSET_INDEX_PAIR(oi, id)->file_id = file_id;
 
@@ -106,7 +160,20 @@ uint64_t offset_index_add(struct offset_index *oi,
 //{{{void offset_index_store(struct offset_index *oi)
 void offset_index_store(struct offset_index *oi)
 {
-
+    
+    ( (uint64_t *) oi->index->vals)[0] = oi->index->num;
+    ( (uint32_t *) oi->index->vals)[2] = oi->width;
+    int ret = ftruncate(fileno(oi->f), 
+                        sizeof(uint64_t) + sizeof(uint32_t) + 
+                        oi->index->num * oi->width);
+    if ( ret != 0 )
+        err(1,
+            "offset_index_store: Could not trucate %s from %llu to %llu",
+            oi->file_name,
+            oi->index->size * oi->width,
+            oi->index->num * oi->width);
+ 
+/*
     if (oi->file_name == NULL)
         errx(1,"No output file given for offset_index.");
 
@@ -130,6 +197,7 @@ void offset_index_store(struct offset_index *oi)
         err(EX_IOERR, "Error writing file_id offset pairs to '%s'.",
             oi->file_name);
     fclose(f);
+*/
 }
 //}}}
 
@@ -159,17 +227,6 @@ struct offset_index *offset_index_load(char *file_name)
     check_file_read(oi->file_name, oi->f, 1, fr);
 
     oi->index->size = oi->index->num;
-
-    /*
-    oi->index->vals = (struct file_id_offset_pair *)
-            malloc(oi->index->size * oi->width);
-    fr = fread(oi->index->vals,
-               oi->width,
-               oi->index->num,
-               f);
-    check_file_read(oi->file_name, f, oi->index->num, fr);
-    fclose(f);
-    */
 
     off_t filesize = lseek(fileno(oi->f), 0, SEEK_END);
     rewind(oi->f);
