@@ -61,7 +61,7 @@ struct offset_index *offset_index_init(uint32_t init_size, char *file_name)
 
     oi->index->vals = (struct file_id_offset_pair *)
             mmap(0,
-                 oi->index->size * oi->width,
+                 (oi->index->size * oi->width),
                  PROT_WRITE | PROT_READ,
                  MAP_SHARED,
                  fileno(oi->f),
@@ -246,7 +246,7 @@ struct offset_index *offset_index_load(char *file_name)
 
 //{{{struct file_id_offset_pair offset_index_get(struct offset_index *oi,
 struct file_id_offset_pair offset_index_get(struct offset_index *oi,
-                                            uint32_t id)
+                                            uint64_t id)
 {
     return *(OFFSET_INDEX_PAIR(oi, id));
 }

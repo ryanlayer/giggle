@@ -289,9 +289,12 @@ void *giggle_search(uint32_t domain,
                     uint32_t start,
                     uint32_t end)
 {
-#if DEBUG_GIGGLE_SEARCH
-    fprintf(stderr, "giggle_search\n");
-    fprintf(stderr, "start:%u\tend:%u\n", start, end);
+#if GIGGLE_QUERY_TRACE
+    fprintf(stderr,
+	    "giggle_search\tdomain:%u\tstart:%u\tend:%u\n",
+	    domain,
+	    start,
+	    end);
 #endif
 
     if (root_id == 0)
@@ -316,7 +319,7 @@ void *giggle_search(uint32_t domain,
         pos_start_id -= 1;
 
 
-#if DEBUG_GIGGLE_SEARCH
+#if GIGGLE_QUERY_TRACE
     fprintf(stderr,
             "leaf_start_id:%u\tpos_start_id:%d\n",
             leaf_start_id,
@@ -343,14 +346,14 @@ void *giggle_search(uint32_t domain,
               (BPT_KEYS(leaf_end)[pos_end_id] > end))
         pos_end_id -= 1;
 
-#if DEBUG_GIGGLE_SEARCH
+#if GIGGLE_QUERY_TRACE
     fprintf(stderr,
             "leaf_end_id:%u\tpos_end_id:%u\t\n",
             leaf_end_id,
             pos_end_id);
 #endif
 
-#if DEBUG_GIGGLE_SEARCH
+#if GIGGLE_QUERY_TRACE
     fprintf(stderr, "pos_end_id:%d %u\n", pos_end_id,
             ( ((pos_end_id >=0)&&(pos_end_id<BPT_NUM_KEYS(leaf_end))) ?
               BPT_KEYS(leaf_end)[pos_end_id] : 0)
@@ -361,7 +364,7 @@ void *giggle_search(uint32_t domain,
     if ((leaf_start_id == leaf_end_id) && (pos_start_id > pos_end_id))
         return NULL;
 
-#if DEBUG_GIGGLE_SEARCH
+#if GIGGLE_QUERY_TRACE
     if (BPT_LEADING(leaf_start) == 0)
         fprintf(stderr, "BPT_LEADING(leaf_start) == 0\n");
 #endif
@@ -395,8 +398,11 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
                                                    pos_end_id,
                                                    domain);
 
-#if DEBUG
-    fprintf(stderr, "I_size:%u\n", I_size);
+#if GIGGLE_QUERY_TRACE
+    fprintf(stderr,
+	    "giggle_collect_intersection_data_in_block\t"
+	    "I_size:%u\n",
+	    I_size);
 #endif
 
     uint64_t *I = (uint64_t *)calloc(I_size, sizeof(uint64_t));
@@ -420,6 +426,30 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
             LEAF_DATA_STARTS_END(leaf_start, pos_start_id) +
             LEAF_DATA_ENDS_END(leaf_start,  pos_start_id);
 
+#if GIGGLE_QUERY_TRACE
+    fprintf(stderr,
+	    "giggle_collect_intersection_data_in_block\t"
+	    "leaf_start_data->num_leading:%u "
+	    "leaf_start_data->num_starts:%u "
+	    "leaf_start_data->num_ends:%u\n",
+    	    leaf_start_data->num_leading,
+    	    leaf_start_data->num_starts,
+    	    leaf_start_data->num_ends);
+#endif
+
+#if GIGGLE_QUERY_TRACE
+    fprintf(stderr,
+	    "giggle_collect_intersection_data_in_block\t"
+	    "leaf_start_data->num_leading:%u "
+    	    "LEAF_DATA_STARTS_END(leaf_start, pos_start_id):%u "
+    	    "LEAF_DATA_ENDS_END(leaf_start,  pos_start_id):%u "
+    	    "buff_size:%u\n",
+    	    leaf_start_data->num_leading,
+    	    LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
+    	    LEAF_DATA_ENDS_END(leaf_start,  pos_start_id),
+            buff_size);
+#endif
+
     uint64_t *buff = (uint64_t *)calloc(buff_size, sizeof(uint64_t));
     if (buff == NULL)
         err(1, "calloc error in giggle_collect_intersection_data_in_block()");
@@ -428,23 +458,46 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
            leaf_start_data->leading,
            leaf_start_data->num_leading * sizeof(uint64_t));
 
+    uint32_t j;
+#if GIGGLE_QUERY_TRACE
+    for (j = 0; j < leaf_start_data->num_leading; ++j)
+        fprintf(stderr,
+                "leading\t%llu\n",
+                leaf_start_data->leading[j]);
+#endif
+
     memcpy(buff + leaf_start_data->num_leading,
            leaf_start_data->starts,
            LEAF_DATA_STARTS_END(leaf_start, pos_start_id)*sizeof(uint64_t));
+
+#if GIGGLE_QUERY_TRACE
+    for (j = 0; j < LEAF_DATA_STARTS_END(leaf_start, pos_start_id); ++j)
+        fprintf(stderr,
+                "starts\t%llu\n",
+                leaf_start_data->starts[j]);
+#endif
 
     memcpy(buff + leaf_start_data->num_leading + 
                 LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
            leaf_start_data->ends,
            LEAF_DATA_ENDS_END(leaf_start, pos_start_id)*sizeof(uint64_t));
 
+#if GIGGLE_QUERY_TRACE
+    for (j = 0; j < LEAF_DATA_ENDS_END(leaf_start, pos_start_id); ++j)
+        fprintf(stderr,
+                "ends\t%llu\n",
+                leaf_start_data->ends[j]);
+#endif
+
     qsort(buff, buff_size, sizeof(uint64_t), uint64_t_cmp);
 
     uint32_t i, I_i = 0;
     for (i = 0; i < buff_size; ++i) {
-        if ( ((i + 1) == buff_size) || (buff[i] != buff[i+1]))
+        if ( ((i + 1) == buff_size) || (buff[i] != buff[i+1])) {
             I[I_i++] =  buff[i];
-        else
+        } else {
             i+=1;
+        }
     }
     free(buff);
 
@@ -497,6 +550,14 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
     ldr->len = I_size;
     ldr->data = I;
     ldr->next = NULL;
+
+#if GIGGLE_QUERY_TRACE
+    for (i = 0; i < I_i; ++i)
+        fprintf(stderr,
+	        "giggle_collect_intersection_data_in_block\t"
+                "i:%u I[i]:%llu\n",
+                i, I[i]);
+#endif
 
     if ((r == NULL) || (*r == NULL)) {
         return ldr;
@@ -1155,7 +1216,7 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
                                         uint32_t end,
                                         struct giggle_query_result *_gqr)
 {
-#if DEBUG_GIGGLE_QUERY
+#if GIGGLE_QUERY_TRACE
     fprintf(stderr, "giggle_query\t%s\t%u\t%u\n", chrm, start, end);
 #endif
 
@@ -1166,9 +1227,20 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
     void *R = NULL;
     struct str_uint_pair *r = chrm_index_get(gi->chrm_idx, chrm + off);
 
+#if GIGGLE_QUERY_TRACE
+    fprintf(stderr,
+	    "giggle_query\tstr_uint_pair->str:%s\tstr_uint_pair->uint:%u\n",
+	    r->str,
+	    r->uint);
+#endif
+
     if (r != NULL) {
         uint32_t chr_id = giggle_get_chrm_id(gi, chrm + off);
-        
+#if GIGGLE_QUERY_TRACE
+    fprintf(stderr,
+	    "giggle_query\tchr_id:%u\n",
+	    chr_id);
+#endif
         // HERE R COULD BE A LIST
         R = giggle_search(chr_id,
                           gi->root_ids[chr_id],
@@ -1891,8 +1963,11 @@ void leaf_data_map_intersection_to_offset_list(struct giggle_index *gi,
     if (R != NULL) {
         gqr->num_hits += R->len;
 
-#ifdef DEBUG
-        fprintf(stderr, "R->len:%u\n", R->len);
+#ifdef GIGGLE_QUERY_TRACE
+        fprintf(stderr,
+                "leaf_data_map_intersection_to_offset_list\t"
+                "R->len:%u\n",
+                R->len);
 #endif
 
         uint32_t i;
