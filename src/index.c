@@ -94,11 +94,10 @@ int index_main(int argc, char **argv, char *full_cmd)
                                                     f_is_set);
         fprintf(stderr, "Indexed %" PRIu64 " intervals.\n", num_intervals);
     } else {
-        if (i_type[0] == 'i')
-            gi = giggle_init(num_chrms,
-                             output_dir_name,
-                             f_is_set,
-                             uint64_t_ll_giggle_set_data_handler);
+        gi = giggle_init(num_chrms,
+                         output_dir_name,
+                         f_is_set,
+                         uint64_t_ll_giggle_set_data_handler);
         if (gi == NULL)
             return EX_DATAERR;
 

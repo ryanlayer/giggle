@@ -874,15 +874,19 @@ void long_ll_free(void **_ll)
 //{{{void long_uint_ll_append(struct long_uint_ll **ll, long long_val, uint64_t
 void long_uint_ll_append(struct long_uint_ll **ll, long long_val, uint64_t uint_val)
 {
+#if GIGGLE_QUERY_TRACE
     fprintf(stderr,
             "long_uint_ll_append\tlong_val:%lu\tuint_val:%llu\n",
             long_val,
             uint_val);
+#endif
     struct long_uint_ll_node *n = (struct long_uint_ll_node *)
         malloc(sizeof(struct long_uint_ll_node));
+#if GIGGLE_QUERY_TRACE
     fprintf(stderr,
             "long_uint_ll_append\tn:%p\n",
             n);
+#endif
     if (n == NULL)
         err(1, "malloc error in long_uint_ll_append().\n");
 
