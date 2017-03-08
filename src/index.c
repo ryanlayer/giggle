@@ -99,12 +99,6 @@ int index_main(int argc, char **argv, char *full_cmd)
                              output_dir_name,
                              f_is_set,
                              uint64_t_ll_giggle_set_data_handler);
-        else
-            gi = giggle_init(num_chrms,
-                             output_dir_name,
-                             f_is_set,
-                             uint64_t_ll_wah_giggle_set_data_handler);
-
         if (gi == NULL)
             return EX_DATAERR;
 

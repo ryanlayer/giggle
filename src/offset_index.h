@@ -42,7 +42,7 @@ uint64_t offset_index_add(struct offset_index *oi,
                           uint32_t file_id);
 struct offset_index *offset_index_load(char *file_name);
 struct file_id_offset_pair offset_index_get(struct offset_index *oi,
-                                            uint32_t id);
+                                            uint64_t id);
 
 
 #define OFFSET_INDEX_PAIR(offset_index, i) \
