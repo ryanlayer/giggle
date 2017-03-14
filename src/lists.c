@@ -1053,6 +1053,27 @@ uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val)
 }
 //}}}
 
+//{{{uint32_t uint32_t_array_set(
+uint32_t uint32_t_array_set(struct uint32_t_array *ua,
+                            uint32_t val,
+                            uint32_t index)
+{
+    while (ua->size < index) {
+        ua->size = ua->size * 2;
+        ua->data = (uint32_t *)
+                realloc(ua->data, ua->size * sizeof(uint32_t));
+        if (ua->data == NULL)
+            err(1, "alloc error in uint32_t_array_add().\n");
+        memset(ua->data + ua->num, 0, (ua->size - ua->num) * sizeof(uint32_t));
+    }
+
+    ua->data[index] = val;
+    if (index + 1 > ua->num)
+        ua->num = index + 1;
+    return index;
+}
+//}}}
+
 //{{{uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index)
 uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index)
 {

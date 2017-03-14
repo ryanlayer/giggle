@@ -27,168 +27,169 @@
 void setUp(void) { }
 void tearDown(void) { }
 
-//{{{ void test_get_leaf_data(void)
-void test_get_leaf_data(void)
-{
-    ORDER = 10;
-    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-    uint64_t_ll_giggle_set_data_handler();
-    struct giggle_index *gi =
-            giggle_init_index(30, "test_get_leaf_data_offset.idx");
-    char *file_name = "../data/1k.unsort.bed.gz";
-    uint32_t ret = giggle_index_file(gi, file_name);
-
-    uint32_t i;
-    for (i = 0; i < gi->num; ++i) {
-        struct bpt_node *curr = cache.get(i,
-                                          gi->root_ids[i] - 1,
-                                          &bpt_node_cache_handler);
-
-        while (BPT_IS_LEAF(curr) != 1) {
-            curr = cache.get(i,
-                             BPT_POINTERS(curr)[0] - 1,
-                             &bpt_node_cache_handler);
-        }
-
-        uint32_t id = BPT_ID(curr);
-        uint32_t len = 0;
-        while (id != 0) {
-            curr = cache.get(i,
-                             id - 1,
-                             &bpt_node_cache_handler);
-
-            struct leaf_data *lf = NULL;
-            uint16_t *starts_ends_offsets = NULL;
-                uint32_t leaf_data_size = 
-                        giggle_get_leaf_data(gi,
-                                             i,
-                                             BPT_ID(curr),
-                                             &lf,
-                                             &starts_ends_offsets);
- 
-            if (BPT_LEADING(curr) != 0) {
-                struct uint64_t_ll_bpt_leading_data *ld =
-                    cache.get(i,
-                              BPT_LEADING(curr) - 1,
-                              &uint64_t_ll_leading_cache_handler);
-                TEST_ASSERT_EQUAL(ld->B->len, lf->num_leading);
-            } else {
-                TEST_ASSERT_EQUAL(0, lf->num_leading);
-            }
-
-            uint32_t s_len = 0;
-            uint32_t e_len = 0;
-            uint32_t j;
-            for (j = 0; j < BPT_NUM_KEYS(curr) ; ++j) {
-                if (BPT_POINTERS(curr)[j] != 0) {
-                    struct uint64_t_ll_bpt_non_leading_data *nld =
-                            cache.get(i,
-                                      BPT_POINTERS(curr)[j] - 1,
-                                      &uint64_t_ll_non_leading_cache_handler);
-                    s_len += (nld->SA == NULL) ? 0 : nld->SA->len;
-                    e_len += (nld->SE == NULL) ? 0 : nld->SE->len;
-
-                    TEST_ASSERT_EQUAL((nld->SA == NULL) ? 0 : nld->SA->len,
-                                      starts_ends_offsets[j*2] -
-                                      ((j==0) ? 0 
-                                              : starts_ends_offsets[j*2-2]));
-                    uint32_t k;
-                    for (k = (j==0)? 0 : starts_ends_offsets[j*2-2];
-                         k < starts_ends_offsets[j*2];
-                         ++k) {
-                        TEST_ASSERT_EQUAL(1,
-                                          uint64_t_ll_contains(nld->SA,
-                                                               lf->starts[k]));
-                    }
-
-                    TEST_ASSERT_EQUAL((nld->SE == NULL) ? 0 : nld->SE->len,
-                                      starts_ends_offsets[j*2+1] -
-                                      ((j==0) ? 0 
-                                              : starts_ends_offsets[j*2-1]));
-
-                    for (k = (j==0)? 0 : starts_ends_offsets[j*2-1];
-                         k < starts_ends_offsets[j*2+1];
-                         ++k) {
-                        TEST_ASSERT_EQUAL(1,
-                                          uint64_t_ll_contains(nld->SE,
-                                                               lf->ends[k]));
-                    }
-                }
-            }
-            TEST_ASSERT_EQUAL(s_len, lf->num_starts);
-            TEST_ASSERT_EQUAL(e_len, lf->num_ends);
-
-            id = BPT_NEXT(curr);
-            leaf_data_free_mem((void **)&lf);
-            free(starts_ends_offsets);
-        }
-    }
-    giggle_index_destroy(&gi);
-    cache.destroy();
-    remove("test_get_leaf_data_offset.idx");
-}
-//}}}
-
-//{{{ void test_get_leaf_data(void)
-void test_leaf_data_cache_handler(void)
-{
-    ORDER = 10;
-    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
-    uint64_t_ll_giggle_set_data_handler();
-    struct giggle_index *gi = 
-            giggle_init_index(30,
-                              "test_leaf_data_cache_handler_offset.idx");
-    char *file_name = "../data/1k.unsort.bed.gz";
-    uint32_t ret = giggle_index_file(gi, file_name);
-
-    uint32_t i;
-    for (i = 0; i < gi->num; ++i) {
-        struct bpt_node *curr = cache.get(i,
-                                          gi->root_ids[i] - 1,
-                                          &bpt_node_cache_handler);
-
-        while (BPT_IS_LEAF(curr) != 1) {
-            curr = cache.get(i,
-                             BPT_POINTERS(curr)[0] - 1,
-                             &bpt_node_cache_handler);
-        }
-
-        uint32_t id = BPT_ID(curr);
-        uint32_t len = 0;
-        while (id != 0) {
-            curr = cache.get(i,
-                             id - 1,
-                             &bpt_node_cache_handler);
-
-            struct leaf_data *lf = NULL;
-            uint16_t *starts_ends_offsets = NULL;
-                uint32_t leaf_data_size = 
-                        giggle_get_leaf_data(gi,
-                                             i,
-                                             BPT_ID(curr),
-                                             &lf,
-                                             &starts_ends_offsets);
-
-            /*
-            leaf_data_deserialize(void *serialized,
-                               uint64_t serialized_size,
-                               void **deserialized);
-            leaf_data_serialize(void *deserialized, void **serialized);
-
-
-            */
-            id = BPT_NEXT(curr);
-            leaf_data_free_mem((void **)&lf);
-            free(starts_ends_offsets);
-        }
-    }
-
-    giggle_index_destroy(&gi);
-    cache.destroy();
-    remove("test_leaf_data_cache_handler_offset.idx");
-}
-
-//}}}
+//
+////{{{ void test_get_leaf_data(void)
+//void test_get_leaf_data(void)
+//{
+//    ORDER = 10;
+//    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+//    uint64_t_ll_giggle_set_data_handler();
+//    struct giggle_index *gi =
+//            giggle_init_index(30, "test_get_leaf_data_offset.idx");
+//    char *file_name = "../data/1k.unsort.bed.gz";
+//    uint32_t ret = giggle_index_file(gi, file_name);
+//
+//    uint32_t i;
+//    for (i = 0; i < gi->num; ++i) {
+//        struct bpt_node *curr = cache.get(i,
+//                                          gi->root_ids[i] - 1,
+//                                          &bpt_node_cache_handler);
+//
+//        while (BPT_IS_LEAF(curr) != 1) {
+//            curr = cache.get(i,
+//                             BPT_POINTERS(curr)[0] - 1,
+//                             &bpt_node_cache_handler);
+//        }
+//
+//        uint32_t id = BPT_ID(curr);
+//        uint32_t len = 0;
+//        while (id != 0) {
+//            curr = cache.get(i,
+//                             id - 1,
+//                             &bpt_node_cache_handler);
+//
+//            struct leaf_data *lf = NULL;
+//            uint16_t *starts_ends_offsets = NULL;
+//                uint32_t leaf_data_size = 
+//                        giggle_get_leaf_data(gi,
+//                                             i,
+//                                             BPT_ID(curr),
+//                                             &lf,
+//                                             &starts_ends_offsets);
+// 
+//            if (BPT_LEADING(curr) != 0) {
+//                struct uint64_t_ll_bpt_leading_data *ld =
+//                    cache.get(i,
+//                              BPT_LEADING(curr) - 1,
+//                              &uint64_t_ll_leading_cache_handler);
+//                TEST_ASSERT_EQUAL(ld->B->len, lf->num_leading);
+//            } else {
+//                TEST_ASSERT_EQUAL(0, lf->num_leading);
+//            }
+//
+//            uint32_t s_len = 0;
+//            uint32_t e_len = 0;
+//            uint32_t j;
+//            for (j = 0; j < BPT_NUM_KEYS(curr) ; ++j) {
+//                if (BPT_POINTERS(curr)[j] != 0) {
+//                    struct uint64_t_ll_bpt_non_leading_data *nld =
+//                            cache.get(i,
+//                                      BPT_POINTERS(curr)[j] - 1,
+//                                      &uint64_t_ll_non_leading_cache_handler);
+//                    s_len += (nld->SA == NULL) ? 0 : nld->SA->len;
+//                    e_len += (nld->SE == NULL) ? 0 : nld->SE->len;
+//
+//                    TEST_ASSERT_EQUAL((nld->SA == NULL) ? 0 : nld->SA->len,
+//                                      starts_ends_offsets[j*2] -
+//                                      ((j==0) ? 0 
+//                                              : starts_ends_offsets[j*2-2]));
+//                    uint32_t k;
+//                    for (k = (j==0)? 0 : starts_ends_offsets[j*2-2];
+//                         k < starts_ends_offsets[j*2];
+//                         ++k) {
+//                        TEST_ASSERT_EQUAL(1,
+//                                          uint64_t_ll_contains(nld->SA,
+//                                                               lf->starts[k]));
+//                    }
+//
+//                    TEST_ASSERT_EQUAL((nld->SE == NULL) ? 0 : nld->SE->len,
+//                                      starts_ends_offsets[j*2+1] -
+//                                      ((j==0) ? 0 
+//                                              : starts_ends_offsets[j*2-1]));
+//
+//                    for (k = (j==0)? 0 : starts_ends_offsets[j*2-1];
+//                         k < starts_ends_offsets[j*2+1];
+//                         ++k) {
+//                        TEST_ASSERT_EQUAL(1,
+//                                          uint64_t_ll_contains(nld->SE,
+//                                                               lf->ends[k]));
+//                    }
+//                }
+//            }
+//            TEST_ASSERT_EQUAL(s_len, lf->num_starts);
+//            TEST_ASSERT_EQUAL(e_len, lf->num_ends);
+//
+//            id = BPT_NEXT(curr);
+//            leaf_data_free_mem((void **)&lf);
+//            free(starts_ends_offsets);
+//        }
+//    }
+//    giggle_index_destroy(&gi);
+//    cache.destroy();
+//    remove("test_get_leaf_data_offset.idx");
+//}
+////}}}
+//
+////{{{ void test_get_leaf_data(void)
+//void test_leaf_data_cache_handler(void)
+//{
+//    ORDER = 10;
+//    struct simple_cache *sc = simple_cache_init(1000, 30, NULL);
+//    uint64_t_ll_giggle_set_data_handler();
+//    struct giggle_index *gi = 
+//            giggle_init_index(30,
+//                              "test_leaf_data_cache_handler_offset.idx");
+//    char *file_name = "../data/1k.unsort.bed.gz";
+//    uint32_t ret = giggle_index_file(gi, file_name);
+//
+//    uint32_t i;
+//    for (i = 0; i < gi->num; ++i) {
+//        struct bpt_node *curr = cache.get(i,
+//                                          gi->root_ids[i] - 1,
+//                                          &bpt_node_cache_handler);
+//
+//        while (BPT_IS_LEAF(curr) != 1) {
+//            curr = cache.get(i,
+//                             BPT_POINTERS(curr)[0] - 1,
+//                             &bpt_node_cache_handler);
+//        }
+//
+//        uint32_t id = BPT_ID(curr);
+//        uint32_t len = 0;
+//        while (id != 0) {
+//            curr = cache.get(i,
+//                             id - 1,
+//                             &bpt_node_cache_handler);
+//
+//            struct leaf_data *lf = NULL;
+//            uint16_t *starts_ends_offsets = NULL;
+//                uint32_t leaf_data_size = 
+//                        giggle_get_leaf_data(gi,
+//                                             i,
+//                                             BPT_ID(curr),
+//                                             &lf,
+//                                             &starts_ends_offsets);
+//
+//            /*
+//            leaf_data_deserialize(void *serialized,
+//                               uint64_t serialized_size,
+//                               void **deserialized);
+//            leaf_data_serialize(void *deserialized, void **serialized);
+//
+//
+//            */
+//            id = BPT_NEXT(curr);
+//            leaf_data_free_mem((void **)&lf);
+//            free(starts_ends_offsets);
+//        }
+//    }
+//
+//    giggle_index_destroy(&gi);
+//    cache.destroy();
+//    remove("test_leaf_data_cache_handler_offset.idx");
+//}
+//
+////}}}
 
 //{{{void test_leaf_data_ops(void)
 void test_leaf_data_ops(void)
@@ -303,8 +304,6 @@ void test_leaf_data_ops(void)
                                                   pos_end_id,
                                                   domain,
                                                   NULL);
-
-
     // 2,11 : 1,2,3,4,5,6,7
     TEST_ASSERT_EQUAL(7, R->len);
     uint32_t A_2_11[7] = {1,2,3,4,5,6,7};
@@ -426,3 +425,4 @@ void test_leaf_data_ops(void)
     rmrf("tmp");
 }
 //}}}
+

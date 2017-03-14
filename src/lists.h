@@ -203,6 +203,9 @@ struct uint32_t_array
 struct uint32_t_array *uint32_t_array_init(uint32_t init_size);
 void uint32_t_array_destroy(struct uint32_t_array **ua);
 uint32_t uint32_t_array_add(struct uint32_t_array *ua, uint32_t val);
+uint32_t uint32_t_array_set(struct uint32_t_array *ua,
+                            uint32_t val,
+                            uint32_t index);
 uint32_t *uint32_t_array_get(struct uint32_t_array *ua, uint32_t index);
 
 // UINT64 ARRAY

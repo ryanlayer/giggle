@@ -422,9 +422,14 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
     // The first step is to take the leading and the starts up to 
     // and including pos_start_id and remove ends up to and including 
     // pos_start_id
-    uint32_t buff_size = leaf_start_data->num_leading +
-            LEAF_DATA_STARTS_END(leaf_start, pos_start_id) +
-            LEAF_DATA_ENDS_END(leaf_start,  pos_start_id);
+    uint32_t buff_size = leaf_start_data->num_leading 
+                         + leaf_data_starts_end(leaf_start_data,
+                                                leaf_start,
+                                                pos_start_id) 
+                         + leaf_data_ends_end(leaf_start_data,
+                                              leaf_start,
+                                              pos_start_id);
+
 
 #if GIGGLE_QUERY_TRACE
     fprintf(stderr,
@@ -441,12 +446,12 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
     fprintf(stderr,
 	    "giggle_collect_intersection_data_in_block\t"
 	    "leaf_start_data->num_leading:%u "
-    	    "LEAF_DATA_STARTS_END(leaf_start, pos_start_id):%u "
-    	    "LEAF_DATA_ENDS_END(leaf_start,  pos_start_id):%u "
+    	    "leaf_data_starts_end:%u "
+    	    "leaf_data_ends_end:%u "
     	    "buff_size:%u\n",
     	    leaf_start_data->num_leading,
-    	    LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
-    	    LEAF_DATA_ENDS_END(leaf_start,  pos_start_id),
+    	    leaf_data_starts_end(leaf_start_data, leaf_start, pos_start_id),
+    	    leaf_data_ends_end(leaf_start_data, leaf_start,  pos_start_id),
             buff_size);
 #endif
 
@@ -468,22 +473,30 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
 
     memcpy(buff + leaf_start_data->num_leading,
            leaf_start_data->starts,
-           LEAF_DATA_STARTS_END(leaf_start, pos_start_id)*sizeof(uint64_t));
+           leaf_data_starts_end(leaf_start_data,
+                                leaf_start,
+                                pos_start_id)*sizeof(uint64_t));
 
 #if GIGGLE_QUERY_TRACE
-    for (j = 0; j < LEAF_DATA_STARTS_END(leaf_start, pos_start_id); ++j)
+    for (j = 0;
+         j < leaf_data_starts_end(leaf_start_data, leaf_start, pos_start_id);
+         ++j)
         fprintf(stderr,
                 "starts\t%llu\n",
                 leaf_start_data->starts[j]);
 #endif
 
     memcpy(buff + leaf_start_data->num_leading + 
-                LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
+                leaf_data_starts_end(leaf_start_data, leaf_start, pos_start_id),
            leaf_start_data->ends,
-           LEAF_DATA_ENDS_END(leaf_start, pos_start_id)*sizeof(uint64_t));
+           leaf_data_ends_end(leaf_start_data,
+                              leaf_start,
+                              pos_start_id)*sizeof(uint64_t));
 
 #if GIGGLE_QUERY_TRACE
-    for (j = 0; j < LEAF_DATA_ENDS_END(leaf_start, pos_start_id); ++j)
+    for (j = 0;
+         j < leaf_data_ends_end(leaf_start_data,leaf_start, pos_start_id);
+         ++j)
         fprintf(stderr,
                 "ends\t%llu\n",
                 leaf_start_data->ends[j]);
@@ -510,16 +523,18 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
     // any intermediate leaves
     while (BPT_ID(leaf_curr) != leaf_end_id) {
         // do from pos_curr to the last key
-        curr_size = LEAF_DATA_STARTS_END(leaf_curr,
-                                         BPT_NUM_KEYS(leaf_curr) - 1) -
-                     LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
-
         ld = cache.get(domain,
                        BPT_POINTERS_BLOCK(leaf_curr) - 1,
                        &leaf_data_cache_handler);
 
+        curr_size = leaf_data_starts_end(ld,
+                                         leaf_curr,
+                                         BPT_NUM_KEYS(leaf_curr) - 1) 
+                                         - leaf_data_starts_start(ld,
+                                                                  leaf_curr,
+                                                                  pos_curr_id);
         memcpy(I + I_i,
-               ld->starts + LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
+               ld->starts + leaf_data_starts_start(ld, leaf_curr, pos_curr_id),
                curr_size * sizeof(uint64_t));
 
         I_i += curr_size;
@@ -535,11 +550,11 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
                    &leaf_data_cache_handler);
 
 
-    curr_size = LEAF_DATA_STARTS_END(leaf_curr, pos_end_id) - 
-                LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+    curr_size = leaf_data_starts_end(ld, leaf_curr, pos_end_id) - 
+                leaf_data_starts_start(ld, leaf_curr, pos_curr_id);
 
     memcpy(I + I_i,
-           ld->starts + LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
+           ld->starts + leaf_data_starts_start(ld, leaf_curr, pos_curr_id),
            curr_size * sizeof(uint64_t));
 
     struct leaf_data_result *ldr = (struct leaf_data_result *)
@@ -578,8 +593,7 @@ uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
                                                 uint32_t domain)
 {
 #if DEBUG
-    fprintf(stderr, "giggle_leaf_data_get_intersection_size\n");
-    fprintf(stderr,
+    fprintf(stderr, "giggle_leaf_data_get_intersection_size\t"
             "leaf_start_id:%u\t"
             "pos_start_id:%d\t"
             "leaf_end_id:%u\t"
@@ -605,25 +619,25 @@ uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
     uint32_t i_size = leaf_start_data->num_leading;
 #if DEBUG
     fprintf(stderr,
-            "leaf_start_data->num_leading:%u\t"
-            "->num_starts:%u\t"
-            "->num_ends:%u\n",
+            "leaf_start_data->num_leading:%llu\t"
+            "->num_starts:%llu\t"
+            "->num_ends:%llu\n",
             leaf_start_data->num_leading,
             leaf_start_data->num_starts,
             leaf_start_data->num_ends);
 #endif
-//
+
     uint32_t i;
 
-    i_size += LEAF_DATA_STARTS_END(leaf_start, pos_start_id);
-    i_size -= LEAF_DATA_ENDS_END(leaf_start,  pos_start_id);
+    i_size += leaf_data_starts_end(leaf_start_data, leaf_start, pos_start_id);
+    i_size -= leaf_data_ends_end(leaf_start_data, leaf_start,  pos_start_id);
 
 #if DEBUG
     fprintf(stderr,
-            "LEAF_DATA_STARTS_END(leaf_start, pos_start_id):%u\t"
-            "LEAF_DATA_ENDS_END(leaf_start,  pos_start_id):%u\n",
-            LEAF_DATA_STARTS_END(leaf_start, pos_start_id),
-            LEAF_DATA_ENDS_END(leaf_start,  pos_start_id));
+            "leaf_data_starts_end:%u\t"
+            "leaf_data_ends_end:%u\n",
+            leaf_data_starts_end(leaf_start_data, leaf_start, pos_start_id),
+            leaf_data_ends_end(leaf_start_data, leaf_start,  pos_start_id));
             
     fprintf(stderr,
             "i_size:%u\n",
@@ -632,6 +646,7 @@ uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
 
     // now process everything in between the start and end
     struct bpt_node *leaf_curr = leaf_start;
+    struct leaf_data *leaf_curr_data = leaf_start_data;
     int pos_curr_id = pos_start_id + 1;
 
     // any intermediate leaves
@@ -641,21 +656,30 @@ uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
                 "leaf_curr:%u\t"
                 "BPT_NUM_KEYS(leaf_curr):%u\t"
                 "pos_curr_id:%u\t"
-                "LEAF_DATA_STARTS_END(leaf_curr,BPT_NUM_KEYS(leaf_curr)-1):%u\t"
-                "LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id):%u\t%u\n",
+                "leaf_data_starts_end:%u\t"
+                "leaf_data_starts_start:%u\t%u\n",
                 BPT_ID(leaf_curr),
                 BPT_NUM_KEYS(leaf_curr),
                 pos_curr_id,
-                LEAF_DATA_STARTS_END(leaf_curr,BPT_NUM_KEYS(leaf_curr)-1),
-                LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
-                LEAF_DATA_STARTS_END(leaf_curr,BPT_NUM_KEYS(leaf_curr)-1) -
-                LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id));
+                leaf_data_starts_end(leaf_curr_data,
+                                     leaf_curr,
+                                     BPT_NUM_KEYS(leaf_curr)-1),
+                leaf_data_starts_start(leaf_curr_data, leaf_curr, pos_curr_id),
+                leaf_data_starts_end(leaf_curr_data,
+                                     leaf_curr,
+                                     BPT_NUM_KEYS(leaf_curr)-1)
+                - leaf_data_starts_start(leaf_curr_data,
+                                         leaf_curr,
+                                         pos_curr_id));
 #endif
 
         // do from pos_curr to the last key
-        i_size += LEAF_DATA_STARTS_END(leaf_curr,
-                                       BPT_NUM_KEYS(leaf_curr) - 1) -
-                  LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+        i_size += leaf_data_starts_end(leaf_curr_data,
+                                       leaf_curr,
+                                       BPT_NUM_KEYS(leaf_curr) - 1)
+                  - leaf_data_starts_start(leaf_curr_data,
+                                           leaf_curr,
+                                           pos_curr_id);
 
 #if DEBUG
         fprintf(stderr,
@@ -666,31 +690,17 @@ uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
         leaf_curr = cache.get(domain,
                               BPT_NEXT(leaf_curr) - 1,
                               &bpt_node_cache_handler);
+        leaf_curr_data = 
+            cache.get(domain,
+                      BPT_POINTERS_BLOCK(leaf_curr) - 1,
+                      &leaf_data_cache_handler);
+
         pos_curr_id = 0;
     }
 
-    i_size += LEAF_DATA_STARTS_END(leaf_curr, pos_end_id) - 
-                  LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id);
+    i_size += leaf_data_starts_end(leaf_curr_data, leaf_curr, pos_end_id)
+              - leaf_data_starts_start(leaf_curr_data, leaf_curr, pos_curr_id);
 
-#if DEBUG
-    fprintf(stderr,
-            "pos_end_id:%d BPT_POINTERS(node)[i]:%u\tBPT_NUM_KEYS(node)%u\n",
-            pos_end_id,
-            BPT_POINTERS(leaf_curr)[pos_end_id],
-            BPT_NUM_KEYS(leaf_curr));
-
-    fprintf(stderr,
-            "LEAF_DATA_STARTS_END(leaf_curr, pos_end_id):%u\t"
-            "LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id):%u\t%u\n",
-            LEAF_DATA_STARTS_END(leaf_curr, pos_end_id),
-            LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id),
-            LEAF_DATA_STARTS_END(leaf_curr, pos_end_id) - 
-            LEAF_DATA_STARTS_START(leaf_curr, pos_curr_id));
-
-    fprintf(stderr,
-            "i_size:%u\n",
-            i_size);
-#endif
     return i_size;
 }
 //}}}
@@ -1674,13 +1684,13 @@ void giggle_write_tree_leaf_data(void *giggle_index)
                 // get the leaf data, then add it to the cache so we can
                 // grab it later
                 struct leaf_data *lf = NULL;
-                uint16_t *starts_ends_offsets = NULL;
+                //uint16_t *starts_ends_offsets = NULL;
                 uint32_t leaf_data_size = 
                         giggle_get_leaf_data(gi,
                                              domain,
                                              curr_id,
-                                             &lf,
-                                             &starts_ends_offsets);
+                                             &lf);
+                                             //&starts_ends_offsets);
                 if (leaf_data_size == 0)
                     errx(1, "Could not get leaf data.");
 
@@ -1716,15 +1726,6 @@ void giggle_write_tree_leaf_data(void *giggle_index)
                 fifo_q_push(&leaf_q, id);
 
                 BPT_POINTERS_BLOCK(to_write_node) = p->second;
-
-                uint32_t i, a, b;
-                for (i = 0; i < BPT_NUM_KEYS(to_write_node); ++i) {
-                    a = (uint32_t)starts_ends_offsets[i*2];
-                    b = (uint32_t)starts_ends_offsets[i*2+1];
-                    BPT_POINTERS(to_write_node)[i] = (a << 16) + b;
-                }
-                free(starts_ends_offsets);
-
 
                 uint8_t *ds_node;
                 uint64_t d_size = bpt_node_serialize(to_write_node,
@@ -1794,8 +1795,7 @@ struct cache_handler leaf_data_cache_handler = {leaf_data_serialize,
 uint32_t giggle_get_leaf_data(struct giggle_index *gi,
                               uint32_t domain,
                               uint32_t leaf_id,
-                              struct leaf_data **lf,
-                              uint16_t **starts_ends_offsets)
+                              struct leaf_data **lf)
 {
     // cache is zero-based, while bpt is one-based
     struct bpt_node *curr_node = cache.get(domain,
@@ -1808,8 +1808,9 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
         if (*lf == NULL)
             err(1, "calloc error in giggle_get_leaf_data()");
 
-
         // Do one scan to find the sizes
+        
+        // Get the number of leading values
         if (BPT_LEADING(curr_node) != 0) {
             struct uint64_t_ll_bpt_leading_data *ld = 
                     cache.get(domain,
@@ -1820,6 +1821,7 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
 
         uint32_t j, k;
 
+        // Get the number of starts and ends
         for (j = 0; j <= BPT_NUM_KEYS(curr_node) - 1; ++j) {
             struct uint64_t_ll_bpt_non_leading_data *nld = 
                     cache.get(domain,
@@ -1833,7 +1835,8 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
         // Allocate the memory and put in helper pointers
         (*lf)->data = (uint64_t *)calloc(
                 (*lf)->num_leading + (*lf)->num_starts + (*lf)->num_ends,
-                sizeof(uint64_t));
+                LEAF_LEADING_STARTS_ENDS_SIZE);
+
         if ((*lf)->data == NULL)
             err(1, "calloc error in giggle_get_leaf_data()");
 
@@ -1852,21 +1855,23 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
         else
             (*lf)->ends = NULL;
 
-        //track the end of each array for each pointer
-        *starts_ends_offsets = 
-            (uint16_t *)calloc(BPT_NUM_KEYS(curr_node)*2, sizeof(uint16_t));
-        if (starts_ends_offsets == NULL)
-            err(1, "calloc error in giggle_get_leaf_data()");
+        (*lf)->starts_pointers = (uint32_t *)calloc(ORDER, LEAF_POINTERS_SIZE);
+        if ((*lf)->starts_pointers == NULL)
+            err(1, "calloc error in giggle_get_leaf_data().\n");
+
+        (*lf)->ends_pointers = (uint32_t *)calloc(ORDER, LEAF_POINTERS_SIZE);
+        if ((*lf)->ends_pointers == NULL)
+            err(1, "calloc error in giggle_get_leaf_data().\n");
 
         // Do a second scan to get the data into the array
         uint32_t leading_i = 0, starts_i = 0, ends_i = 0;
 
+        // Copy data into leading buffer
         if (BPT_LEADING(curr_node) != 0) {
             struct uint64_t_ll_bpt_leading_data *ld = 
                     cache.get(domain,
                               BPT_LEADING(curr_node) - 1,
                               &uint64_t_ll_leading_cache_handler);
-            
             k = leading_i;
             if (ld->B->len > 0) {
                 struct uint64_t_ll_node *curr = ld->B->head;
@@ -1883,6 +1888,7 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
             leading_i = k;
         }
 
+        // Copy data into starts and ends buffer
         for (j = 0; j <= BPT_NUM_KEYS(curr_node) - 1; ++j) {
             struct uint64_t_ll_bpt_non_leading_data *nld = 
                     cache.get(domain,
@@ -1902,12 +1908,13 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
                       sizeof(uint64_t),
                       uint64_t_cmp);
 
-                (*starts_ends_offsets)[j*2] = 
-                    (( j == 0) ? 0 : (*starts_ends_offsets)[j*2-2]) +
-                    nld->SA->len;
+                (*lf)->starts_pointers[j] = 
+                    (j == 0) ? nld->SA->len 
+                             : (*lf)->starts_pointers[j-1] + nld->SA->len;
+                
             } else {
-                (*starts_ends_offsets)[j*2] = 
-                    ( j == 0) ? 0 : (*starts_ends_offsets)[j*2-2];
+                (*lf)->starts_pointers[j] = 
+                    (j == 0) ? 0 : (*lf)->starts_pointers[j-1];
             }
 
             starts_i = k;
@@ -1925,12 +1932,12 @@ uint32_t giggle_get_leaf_data(struct giggle_index *gi,
                       sizeof(uint64_t),
                       uint64_t_cmp);
 
-                (*starts_ends_offsets)[j*2+1] = 
-                    (( j == 0) ? 0 : (*starts_ends_offsets)[j*2+1-2]) +
-                    nld->SE->len;
-            }else {
-                (*starts_ends_offsets)[j*2+1] = 
-                    ( j == 0) ? 0 : (*starts_ends_offsets)[j*2+1-2];
+                (*lf)->ends_pointers[j] = 
+                    (j == 0) ? nld->SE->len 
+                             : (*lf)->ends_pointers[j-1] + nld->SE->len;
+            } else {
+                (*lf)->ends_pointers[j] = 
+                    (j == 0) ? 0 : (*lf)->ends_pointers[j-1];
             }
 
             ends_i = k;
@@ -2458,6 +2465,10 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
     starts = uint64_t_array_init(100);
     ends = uint64_t_array_init(100);
 
+    struct uint32_t_array *starts_pointers, *ends_pointers;
+    starts_pointers = uint32_t_array_init(100);
+    ends_pointers = uint32_t_array_init(100);
+
     // This tree will track intervals that have begun and not yet ended and
     // will be used to populate the leading value of nodes
     jsw_avltree_t *avl = jsw_avlnew(uint64_cmp_f, uint64_dup_f, uint64_rel_f);
@@ -2469,7 +2480,9 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                             avl,
                                             leading,
                                             starts,
-                                            ends);
+                                            ends,
+                                            starts_pointers,
+                                            ends_pointers);
 
     // These will be used to read intervals from files
     int chrm_len = 50;
@@ -2511,13 +2524,19 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
 
             uint64_t idx = uint64_t_array_add(starts, pqd_start->interval_id);
             // bump starts 
-            //giggle_bulk_insert_set_starts(bpn, idx + 1);
-            giggle_bulk_insert_set_starts_ends(bpn, starts->num, ends->num);
-
+            uint32_t_array_set(starts_pointers,
+                               (uint32_t)(starts->num),
+                               BPT_NUM_KEYS(bpn) - 1);
+            uint32_t_array_set(ends_pointers,
+                               (uint32_t)(ends->num),
+                               BPT_NUM_KEYS(bpn) - 1);
+            if (starts_pointers->num > ORDER)
+                errx(1, "too many start pointers");
+             
             // Add interval to tree to track intervals for leading value
 #if DEBUG
             fprintf(stderr,
-                    "-> %s %u %u\n",
+                    "-> %s %u %llu\n",
                     pri_start.chrm,
                     pri_start.pos,
                     pqd_start->interval_id);
@@ -2535,7 +2554,6 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                      (pri_end.pos < pri_start.pos)) ) { // < the start we saw
 
                 pqd_end = (struct pq_data *)priq_pop(*pq_end, &pri_end);
-                //fprintf(stderr, "%s e:%u\n", pri_end.chrm, pri_end.pos);
 
                 if (curr_pos == pri_end.pos)  {
                     // The key didnt' change, so append the current
@@ -2544,10 +2562,16 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                             uint64_t_array_add(ends,
                                                pqd_end->interval_id);
                     // bump ends
-                    //giggle_bulk_insert_set_ends(bpn, idx + 1);
-                    giggle_bulk_insert_set_starts_ends(bpn,
-                                                       starts->num,
-                                                       ends->num);
+                    uint32_t_array_set(starts_pointers,
+                                       (uint32_t)(starts->num),
+                                       BPT_NUM_KEYS(bpn) - 1);
+                    uint32_t_array_set(ends_pointers,
+                                       (uint32_t)(ends->num),
+                                       BPT_NUM_KEYS(bpn) - 1);
+
+
+                    if (starts_pointers->num > ORDER)
+                        errx(1, "too many start pointers");
 
                     // remove end from tree tracking leading values
 #if DEBUG
@@ -2568,16 +2592,24 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                             avl,
                                                             leading,
                                                             starts,
-                                                            ends);
+                                                            ends,
+                                                            starts_pointers,
+                                                            ends_pointers);
+
 
                     uint64_t idx =
                             uint64_t_array_add(ends,
                                                pqd_end->interval_id);
                     // bump ends
-                    //giggle_bulk_insert_set_ends(bpn, idx + 1);
-                    giggle_bulk_insert_set_starts_ends(bpn,
-                                                       starts->num,
-                                                       ends->num);
+                    uint32_t_array_set(starts_pointers,
+                                       (uint32_t)(starts->num),
+                                       BPT_NUM_KEYS(bpn) - 1);
+                    uint32_t_array_set(ends_pointers,
+                                       (uint32_t)(ends->num),
+                                       BPT_NUM_KEYS(bpn) - 1);
+                    if (starts_pointers->num > ORDER)
+                        errx(1, "too many start pointers");
+
                     // remove end from tree tracking leading values
 #if DEBUG
                     fprintf(stderr,
@@ -2589,7 +2621,6 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                     ret = jsw_avlerase(avl, &(pqd_end->interval_id));
                     if (ret == 0)
                         errx(1, "Error removing element from tree.");
-
 
                     curr_pos = pri_end.pos;
                 }
@@ -2611,7 +2642,9 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                        curr_ds,
                                                        leading,
                                                        starts,
-                                                       ends);
+                                                       ends,
+                                                       starts_pointers,
+                                                       ends_pointers);
                     // Reset the bpt node
                     memset(bpn->data, 0, BPT_NODE_SIZE);
                     BPT_ID(bpn) =  1;
@@ -2658,12 +2691,20 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                     avl,
                                                     leading,
                                                     starts,
-                                                    ends);
+                                                    ends,
+                                                    starts_pointers,
+                                                    ends_pointers);
             uint64_t idx = uint64_t_array_add(starts, pqd_start->interval_id);
             // bump starts
-            //giggle_bulk_insert_set_starts(bpn, idx + 1);
-            giggle_bulk_insert_set_starts_ends(bpn, starts->num, ends->num);
+            uint32_t_array_set(starts_pointers,
+                               (uint32_t)(starts->num),
+                               BPT_NUM_KEYS(bpn) - 1);
+            uint32_t_array_set(ends_pointers,
+                               (uint32_t)(ends->num),
+                               BPT_NUM_KEYS(bpn) - 1);
 
+            if (starts_pointers->num > ORDER)
+                errx(1, "too many start pointers");
             // add to tree tracking the leading values
 #if DEBUG
             fprintf(stderr,
@@ -2726,10 +2767,16 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
         if (curr_pos == pri_end.pos)  {
             uint64_t idx = uint64_t_array_add(ends, pqd_end->interval_id);
             // bump ends
-            //giggle_bulk_insert_set_ends(bpn, idx + 1);
-            giggle_bulk_insert_set_starts_ends(bpn,
-                                               starts->num,
-                                               ends->num);
+            uint32_t_array_set(starts_pointers,
+                               (uint32_t)(starts->num),
+                               BPT_NUM_KEYS(bpn) - 1);
+            uint32_t_array_set(ends_pointers,
+                               (uint32_t)(ends->num),
+                               BPT_NUM_KEYS(bpn) - 1);
+
+
+            if (starts_pointers->num > ORDER)
+                errx(1, "too many start pointers");
 
             // remove from tree tracking leading values
 #if DEBUG
@@ -2751,14 +2798,21 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                     avl,
                                                     leading,
                                                     starts,
-                                                    ends);
+                                                    ends,
+                                                    starts_pointers,
+                                                    ends_pointers);
             uint64_t idx = uint64_t_array_add(ends, pqd_end->interval_id);
             // bump ends
-            //giggle_bulk_insert_set_ends(bpn, idx + 1);
-            giggle_bulk_insert_set_starts_ends(bpn,
-                                               starts->num,
-                                               ends->num);
+            uint32_t_array_set(starts_pointers,
+                               (uint32_t)(starts->num),
+                               BPT_NUM_KEYS(bpn) - 1);
+            uint32_t_array_set(ends_pointers,
+                               (uint32_t)(ends->num),
+                               BPT_NUM_KEYS(bpn) - 1);
 
+
+            if (starts_pointers->num > ORDER)
+                errx(1, "too many start pointers");
 #if DEBUG
             fprintf(stderr,
                     "-> %s %u %u\n",
@@ -2785,7 +2839,9 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                            curr_ds,
                                            leading,
                                            starts,
-                                           ends);
+                                           ends,
+                                           starts_pointers,
+                                           ends_pointers);
     }
 
     disk_store_sync(curr_ds);
@@ -2798,6 +2854,8 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
     uint64_t_array_destroy(&leading);
     uint64_t_array_destroy(&starts);
     uint64_t_array_destroy(&ends);
+    uint32_t_array_destroy(&starts_pointers);
+    uint32_t_array_destroy(&ends_pointers);
     free(chrm);
 }
 //}}}
@@ -2935,7 +2993,9 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
                                       jsw_avltree_t *avl,
                                       struct uint64_t_array *leading,
                                       struct uint64_t_array *starts,
-                                      struct uint64_t_array *ends)
+                                      struct uint64_t_array *ends,
+                                      struct uint32_t_array *starts_pointers,
+                                      struct uint32_t_array *ends_pointers)
 {
 #if DEBUG
    fprintf(stderr,
@@ -2946,9 +3006,6 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
 
     int ret = 0;
     if (BPT_NUM_KEYS(bpn) == ORDER) {
-        //fprintf(stderr,
-                //"giggle_bulk_insert_append_bpt_key: store full node\n");
-                
         BPT_POINTERS_BLOCK(bpn) = (ds->num + 1) + 1;//1-based
         BPT_NEXT(bpn) = (ds->num + 2) + 1;//1-based
 
@@ -2956,7 +3013,9 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
                                            ds,
                                            leading,
                                            starts,
-                                           ends);
+                                           ends,
+                                           starts_pointers,
+                                           ends_pointers);
 
         // Reset the bpt node
         memset(bpn->data, 0, BPT_NODE_SIZE);
@@ -2997,8 +3056,60 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
                                         struct disk_store *ds,
                                         struct uint64_t_array *leading,
                                         struct uint64_t_array *starts,
-                                        struct uint64_t_array *ends)
+                                        struct uint64_t_array *ends,
+                                        struct uint32_t_array *starts_pointers,
+                                        struct uint32_t_array *ends_pointers)
 {
+#ifdef LEAF_CHECK
+//{{{
+    uint64_t *_leading_starts =
+            (uint64_t *)
+            malloc((starts->num + ends->num)*sizeof(uint64_t));
+    memcpy(_leading_starts,
+           leading->data,
+           leading->num * sizeof(uint64_t));
+    memcpy(_leading_starts + leading->num,
+           starts->data,
+           starts->num * sizeof(uint64_t));
+
+    qsort(_leading_starts,
+          starts->num + ends->num,
+          sizeof(uint64_t),
+          uint64_t_cmp);
+
+    uint32_t j, found = 0;
+    for (j = 0; j < ends->num; ++j) {
+        uint64_t *ret = bsearch(&(ends->data[j]),
+                                _leading_starts,
+                                starts->num + ends->num,
+                                sizeof(uint64_t),
+                                uint64_t_cmp);
+        if (ret == NULL)
+            errx(1, "Error: end with no matching start/n");
+        else
+            found += 1;
+    }
+    free(_leading_starts);
+//}}}
+#endif
+
+#if DEBUG_GIGGLE_BULK_INSERT_WRITE_LEAF_NODE
+    fprintf(stderr,
+            "giggle_bulk_insert_write_leaf_node\t"
+            "ORDER:%u "
+            "leading->num:%llu "
+            "starts->num:%llu "
+            "ends->num:%llu "
+            "starts_pointers->num:%u "
+            "ends_pointers->num:%u\n",
+            ORDER,
+            leading->num,
+            starts->num,
+            ends->num,
+            starts_pointers->num,
+            ends_pointers->num);
+#endif
+
     // Write the node out to disk
     void *v;
     uint64_t serialized_size = bpt_node_serialize((void *)bpn, &v);
@@ -3017,13 +3128,17 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
     ld->num_starts = starts->num;
     ld->num_ends = ends->num;
 
-#if DEBUG
-    fprintf(stderr, 
-            "ld->num_leading\t%u\tld->num_starts\t%u\tld->num_ends\t%u\n",
-            ld->num_leading,
-            ld->num_starts,
-            ld->num_ends);
-#endif
+    ld->starts_pointers = (uint32_t *)calloc(ORDER, LEAF_POINTERS_SIZE);
+    if (ld->starts_pointers == NULL)
+        err(1, "calloc error in giggle_bulk_insert_write_leaf_node.\n");
+    memcpy(ld->starts_pointers,
+           starts_pointers->data,
+           starts_pointers->num*sizeof(uint32_t));
+
+    ld->ends_pointers = (uint32_t *)calloc(ORDER, sizeof(uint32_t));
+    memcpy(ld->ends_pointers,
+           ends_pointers->data,
+           ends_pointers->num*sizeof(uint32_t));
 
     ld->data = (uint64_t *) 
             malloc((ld->num_leading + ld->num_starts + ld->num_ends) * 
@@ -3031,12 +3146,13 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
     if (ld->data == NULL)
         err(1, "malloc error in giggle_bulk_insert_write_leaf_node()");
 
+
     ld->leading = ld->data;
     ld->starts = ld->data + ld->num_leading;
     ld->ends = ld->data + ld->num_leading + ld->num_starts;
     memcpy(ld->leading, leading->data, ld->num_leading * sizeof(uint64_t));
 
-    qsort(ld->leading, ld->num_leading, sizeof(uint64_t), uint32_t_cmp);
+    qsort(ld->leading, ld->num_leading, sizeof(uint64_t), uint64_t_cmp);
 
     memcpy(ld->starts, starts->data, ld->num_starts * sizeof(uint64_t));
     memcpy(ld->ends, ends->data, ld->num_ends * sizeof(uint64_t));
@@ -3053,40 +3169,12 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
     leading->num = 0;
     starts->num = 0;
     ends->num = 0;
-}
-//}}}
 
-//{{{uint32_t giggle_bulk_insert_set_starts(struct bpt_node *bpn,
-void giggle_bulk_insert_set_starts_ends(struct bpt_node *bpn,
-                                        uint32_t new_starts,
-                                        uint32_t new_ends)
-{
-    uint32_t new_starts_ends = (new_starts << 16) | new_ends;
-    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
-}
-//}}}
+    memset(starts_pointers->data, 0, starts_pointers->num * sizeof(uint32_t));
+    starts_pointers->num = 0;
 
-//{{{uint32_t giggle_bulk_insert_set_starts(struct bpt_node *bpn,
-void giggle_bulk_insert_set_starts(struct bpt_node *bpn,
-                                   uint32_t new_starts)
-{
-    uint32_t curr_starts_ends =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1];
-    uint32_t curr_starts = curr_starts_ends >> 16;
-    uint32_t curr_ends = curr_starts_ends & 65535;
-    uint32_t new_starts_ends = (new_starts << 16) | curr_ends;
-    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
-}
-//}}}
-
-//{{{uint32_t giggle_bulk_insert_set_ends(struct bpt_node *bpn,
-void giggle_bulk_insert_set_ends(struct bpt_node *bpn,
-                                 uint32_t new_ends)
-{
-    uint32_t curr_starts_ends =  BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1];
-    uint16_t curr_starts = curr_starts_ends >> 16;
-    uint16_t curr_ends = curr_starts_ends & 65535;
-    uint32_t new_starts_ends = (curr_starts << 16) | new_ends;
-    BPT_POINTERS(bpn)[BPT_NUM_KEYS(bpn) - 1] = new_starts_ends;
+    memset(ends_pointers->data, 0, ends_pointers->num * sizeof(uint32_t));
+    ends_pointers->num = 0;
 }
 //}}}
 
@@ -3191,7 +3279,6 @@ uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
     return curr_row_len;
 }
 //}}}
-
 
 #if 0
 //{{{ uint32_t giggle_merge_chrom(char *chrm_string,
