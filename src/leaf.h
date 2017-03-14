@@ -3,29 +3,16 @@
 
 #include "bpt.h"
 
-#define LEAF_DATA_STARTS_START(node, i) \
-    ( i >= BPT_NUM_KEYS(node) \
-      ? BPT_POINTERS(node)[BPT_NUM_KEYS(node)-1] >> 16 \
-      : i == 0 ? 0 : BPT_POINTERS(node)[i-1] >> 16)
-
-#define LEAF_DATA_STARTS_END(node, i) \
-    ( i == BPT_NUM_KEYS(node) ? BPT_POINTERS(node)[i-1] >> 16 : \
-        i == -1 ? 0 : BPT_POINTERS(node)[i] >> 16)
-
-#define LEAF_DATA_ENDS_START(node, i) \
-    (i >= BPT_NUM_KEYS(node) \
-      ? BPT_POINTERS(node)[BPT_NUM_KEYS(node)-1] & 65535 \
-      : i == 0 ? 0:BPT_POINTERS(node)[i-1] & 65535)
-
-#define LEAF_DATA_ENDS_END(node, i) \
-    ( i == BPT_NUM_KEYS(node) ? BPT_POINTERS(node)[i-1] & 65535 : \
-    i == -1 ? 0 : BPT_POINTERS(node)[i] & 65535)
-
 #define LEAF_DATA_LEADING_START(node) (0)
 #define LEAF_DATA_LEADING_END(node) (node->num_leading)
 
+uint64_t LEAF_POINTERS_SIZE;
+uint64_t LEAF_NUMS_SIZE;
+uint64_t LEAF_LEADING_STARTS_ENDS_SIZE;
+
 struct leaf_data {
     uint64_t num_leading, num_starts, num_ends;
+    uint32_t *starts_pointers, *ends_pointers;
     uint64_t *leading, *starts, *ends, *data;
 };
 
@@ -41,12 +28,20 @@ uint64_t leaf_data_deserialize(void *serialized,
                                void **deserialized);
 uint64_t leaf_data_serialize(void *deserialized, void **serialized);
 
-uint32_t leaf_data_get_starts_ends(struct bpt_node *node,
-                                   struct leaf_data *data,
-                                   uint32_t from,
-                                   uint32_t to,
-                                   uint64_t **starts,
-                                   uint64_t *starts_size,
-                                   uint64_t **ends,
-                                   uint64_t *ends_size);
+uint32_t leaf_data_starts_start(struct leaf_data *ld,
+                                struct bpt_node *ln,
+                                int i);
+
+uint32_t leaf_data_starts_end(struct leaf_data *ld,
+                              struct bpt_node *ln,
+                              int i);
+
+uint32_t leaf_data_ends_start(struct leaf_data *ld,
+                              struct bpt_node *ln,
+                              int i);
+
+uint32_t leaf_data_ends_end(struct leaf_data *ld,
+                            struct bpt_node *ln,
+                            int i);
+
 #endif

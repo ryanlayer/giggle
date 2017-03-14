@@ -90,3 +90,13 @@ assert_equal 0 $(paste <(grep "^data" $STDOUT_FILE | cut -f2,3) \
                  | awk '$1 !=0 && $2 != 0.000000' \
                  | awk '($1 != $3) || ($2-$4 > 0.001)' \
                  | wc -l )
+
+run check_dense_index \
+    ../../bin/giggle index \
+        -s \
+        -i "../data/dense/*gz" \
+        -o ../data/dense_b \
+        -f \
+        -s \
+    2>/dev/null
+assert_exit_code 0
