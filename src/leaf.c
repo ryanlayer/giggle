@@ -328,3 +328,41 @@ uint32_t leaf_data_ends_end(struct leaf_data *ld,
     }
 }
 //}}}
+
+void leaf_data_print(struct leaf_data *ld)
+{
+    printf("num_leading:%llu\t"
+           "num_starts:%llu\t"
+           "num_ends:%llu\n",
+            ld->num_leading,
+            ld->num_starts,
+            ld->num_ends);
+
+    uint32_t i;
+
+    printf("leading: ");
+    for (i = 0; i < ld->num_leading; ++i)
+        printf("%llu ", ld->leading[i]);
+    printf("\n");
+
+
+    printf("starts: ");
+    for (i = 0; i < ld->num_starts; ++i)
+        printf("%llu ", ld->starts[i]);
+    printf("\n");
+
+    printf("ends: ");
+    for (i = 0; i < ld->num_ends; ++i)
+        printf("%llu ", ld->ends[i]);
+    printf("\n");
+
+    printf("starts_pointers: ");
+    for (i = 0; i < ORDER; ++i)
+        printf("%u ", ld->starts_pointers[i]);
+    printf("\n");
+
+    printf("ends_pointers: ");
+    for (i = 0; i < ORDER; ++i)
+        printf("%u ", ld->ends_pointers[i]);
+    printf("\n");
+}

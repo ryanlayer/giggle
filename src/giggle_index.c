@@ -508,6 +508,11 @@ void *giggle_collect_intersection_data_in_block(uint32_t leaf_start_id,
     for (i = 0; i < buff_size; ++i) {
         if ( ((i + 1) == buff_size) || (buff[i] != buff[i+1])) {
             I[I_i++] =  buff[i];
+            if (I_i > I_size) {
+                bpt_print_node(leaf_start);
+                leaf_data_print(leaf_start_data);
+                errx(1, "Error in giggle_collect_intersection_data_in_block. Exceeded intersection size.");
+            }
         } else {
             i+=1;
         }
@@ -3029,11 +3034,11 @@ int giggle_bulk_insert_append_bpt_key(struct bpt_node *bpn,
 
         // populate the leading values for the next leaf node
         jsw_avltrav_t *avl_t = jsw_avltnew();
-        uint32_t *id = (uint32_t *)jsw_avltfirst( avl_t, avl);
+        uint64_t *id = (uint64_t *)jsw_avltfirst( avl_t, avl);
 
         while (id != NULL) {
-            uint32_t idx = uint64_t_array_add(leading, *id);
-            id = (uint32_t *) jsw_avltnext(avl_t);
+            uint64_t idx = uint64_t_array_add(leading, *id);
+            id = (uint64_t *) jsw_avltnext(avl_t);
         }
 
         if (leading->num > 0)
