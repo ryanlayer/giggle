@@ -11,9 +11,9 @@ before_install:
     - git clone https://github.com/samtools/htslib.git
     - cd htslib
     - pwd
+    - ./configure --disable-bz2 --disable-lzma --enable-libcurl
     - make
     - cd $TRAVIS_BUILD_DIR
-
 
 script:
     - cd test/unit/
