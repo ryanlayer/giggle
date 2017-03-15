@@ -44,4 +44,6 @@ uint32_t leaf_data_ends_end(struct leaf_data *ld,
                             struct bpt_node *ln,
                             int i);
 
+void leaf_data_print(struct leaf_data *ld);
+
 #endif
