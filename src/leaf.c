@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <err.h>
+#include <inttypes.h>
 #include "leaf.h"
 
 uint64_t LEAF_POINTERS_SIZE = sizeof(uint32_t);
@@ -42,9 +43,9 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
 //{{{
     fprintf(stderr,
             "leaf_data_serialize\t"
-            "de->num_leading:%llu\t"
-            "de->num_starts:%llu\t"
-            "de->num_ends:%llu\n",
+            "de->num_leading:%" PRId64 "\t"
+            "de->num_starts:%" PRId64 "\t"
+            "de->num_ends:%" PRId64 "\n",
             de->num_leading,
             de->num_starts,
             de->num_ends);
@@ -54,14 +55,14 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
             "leaf_data_serialize\t"
             "starts: ");
     for (i = 0; i < de->num_starts; ++i)
-        fprintf(stderr, "%llu ", de->starts[i]);
+        fprintf(stderr, "%" PRId64 " ", de->starts[i]);
     fprintf(stderr, "\n");
 
     fprintf(stderr,
             "leaf_data_serialize\t"
             "ends: ");
     for (i = 0; i < de->num_ends; ++i)
-        fprintf(stderr, "%llu ", de->ends[i]);
+        fprintf(stderr, "%" PRId64 " ", de->ends[i]);
     fprintf(stderr, "\n");
 
     fprintf(stderr,
@@ -90,7 +91,7 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
 //{{{
     fprintf(stderr,
             "leaf_data_serialize\t"
-            "data_size:%llu\n",
+            "data_size:%" PRId64 "\n",
             data_size);
 //}}}
 #endif
@@ -160,7 +161,7 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
 
     fprintf(stderr,
             "leaf_data_serialize\t"
-            "serialized num_leading:%llu\n",
+            "serialized num_leading:%" PRId64 "\n",
             v);
 
     memcpy(&v,
@@ -169,7 +170,7 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
 
     fprintf(stderr,
             "leaf_data_serialize\t"
-            "serialized num_starts:%llu\n",
+            "serialized num_starts:%" PRId64 "\n",
             v);
 
     memcpy(&v,
@@ -178,7 +179,7 @@ uint64_t leaf_data_serialize(void *deserialized, void **serialized)
 
     fprintf(stderr,
             "leaf_data_serialize\t"
-            "serialized num_ends:%llu\n",
+            "serialized num_ends:%" PRId64 "\n",
             v);
 //}}}
 #endif
@@ -331,9 +332,9 @@ uint32_t leaf_data_ends_end(struct leaf_data *ld,
 
 void leaf_data_print(struct leaf_data *ld)
 {
-    printf("num_leading:%llu\t"
-           "num_starts:%llu\t"
-           "num_ends:%llu\n",
+    printf("num_leading:%" PRId64 "\t"
+           "num_starts:%" PRId64 "\t"
+           "num_ends:%" PRId64 "\n",
             ld->num_leading,
             ld->num_starts,
             ld->num_ends);
@@ -342,18 +343,18 @@ void leaf_data_print(struct leaf_data *ld)
 
     printf("leading: ");
     for (i = 0; i < ld->num_leading; ++i)
-        printf("%llu ", ld->leading[i]);
+        printf("%" PRId64 " ", ld->leading[i]);
     printf("\n");
 
 
     printf("starts: ");
     for (i = 0; i < ld->num_starts; ++i)
-        printf("%llu ", ld->starts[i]);
+        printf("%" PRId64 " ", ld->starts[i]);
     printf("\n");
 
     printf("ends: ");
     for (i = 0; i < ld->num_ends; ++i)
-        printf("%llu ", ld->ends[i]);
+        printf("%" PRId64 " ", ld->ends[i]);
     printf("\n");
 
     printf("starts_pointers: ");
