@@ -236,6 +236,13 @@ void simple_cache_add(uint32_t domain,
                 (struct value_cache_handler_pair *)
                 hash_list_remove(sc->hashls[lru_curr->domain], lru_curr->key);
 
+#ifdef DEBUG_CACHE
+    fprintf(stderr,
+            "simple_cache_add: remove element from cache domain:%u key:%u\n",
+            lru_curr->domain,
+            lru_curr->key);
+#endif
+
         if (vh_curr != NULL) {
             if ((vh_curr->handler != NULL) && 
                 (vh_curr->handler->free_mem != NULL))
@@ -256,7 +263,7 @@ void simple_cache_add(uint32_t domain,
     vh.lru_node = (struct lru_ll_element *)
             malloc(sizeof(struct lru_ll_element));
     vh.lru_node->domain = domain;
-    vh.lru_node->key = domain;
+    vh.lru_node->key = key;
     vh.lru_node->size = value_size;
     vh.lru_node->prev = NULL;
     vh.lru_node->next = NULL;
@@ -294,6 +301,13 @@ void *simple_cache_get(uint32_t domain,
                                                        key);
 
     if (vh == NULL) {
+#ifdef DEBUG_CACHE
+    fprintf(stderr,
+            "simple_cache_get: is not in cache domain:%u key:%u\n",
+            domain,
+            key);
+#endif
+
         (void) pthread_mutex_lock (&(sc->mutex));
         //vh = indexed_list_get(sc->ils[domain],
                               //key);
@@ -327,7 +341,18 @@ void *simple_cache_get(uint32_t domain,
             (void) pthread_mutex_unlock (&(sc->mutex));
             return NULL;
         }
+#ifdef DEBUG_CACHE
+    fprintf(stderr,
+            "simple_cache_get: added to cache\n");
+#endif
+
     } else { 
+#ifdef DEBUG_CACHE
+    fprintf(stderr,
+            "simple_cache_get: is in cache domain:%u key:%u\n",
+            domain,
+            key);
+#endif
         // move this to the tail
         if (sc->lru_tail != vh->lru_node) {
             // take out of the list
@@ -344,6 +369,10 @@ void *simple_cache_get(uint32_t domain,
             sc->lru_tail->next = NULL;
         }
 
+#ifdef DEBUG_CACHE
+    fprintf(stderr,
+            "simple_cache_get: LRU updatd\n");
+#endif
         return vh->value;
     }
 }
