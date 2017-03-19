@@ -204,6 +204,7 @@ int search_main(int argc, char **argv, char *full_cmd)
     char *i_type = "i";
 
     int i_is_set = 0,
+        l_is_set = 0,
         r_is_set = 0,
         q_is_set = 0,
         c_is_set = 0,
@@ -216,7 +217,7 @@ int search_main(int argc, char **argv, char *full_cmd)
 
     //{{{ cmd line param parsing
     //{{{ while((c = getopt (argc, argv, "i:r:q:cvf:h")) != -1) {
-    while((c = getopt (argc, argv, "i:r:q:csvof:g:h")) != -1) {
+    while((c = getopt (argc, argv, "i:r:q:csvof:g:lh")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -249,6 +250,9 @@ int search_main(int argc, char **argv, char *full_cmd)
             case 'g':
                 genome_size =  atof(optarg);
                 break;
+            case 'l':
+                l_is_set = 1;
+                break;
             case 'h':
                 return search_help(EX_OK);
             case '?':
@@ -274,6 +278,28 @@ int search_main(int argc, char **argv, char *full_cmd)
     if (i_is_set == 0) {
         fprintf(stderr, "Index directory is not set\n");
         return search_help(EX_USAGE);
+    } 
+
+    if (l_is_set == 1) {
+        char *file_index_file_name = NULL;
+        int ret = asprintf(&file_index_file_name,
+                           "%s/%s",
+                           index_dir_name,
+                           FILE_INDEX_FILE_NAME);
+        struct file_index *file_idx = file_index_load(file_index_file_name);
+        free(file_index_file_name);
+
+        uint32_t i;
+        printf("File name\tNumber of intervals\tMean interval size\n");
+        for (i = 0; i < file_idx->index->num; ++i) {
+            struct file_data *fd = file_index_get(file_idx, i);
+            printf("%s\t%u\t%f\n",
+                   fd->file_name,
+                   fd->num_intervals,
+                   fd->mean_interval_size);
+        }
+        file_index_destroy(&file_idx);
+        return EX_OK;
     } 
 
     if ( (s_is_set == 1) && (q_is_set ==0)) {
