@@ -401,4 +401,10 @@ void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi);
 uint64_t giggle_bulk_insert(char *input_path_name,
                             char *output_path_name,
                             uint32_t force);
+
+uint32_t giggle_get_indexed_files(char *index_dir_name,
+                                  char ***names,
+                                  uint32_t **num_intervals,
+                                  double **mean_interval_sizes);
+
 #endif

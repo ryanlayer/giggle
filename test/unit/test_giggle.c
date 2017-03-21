@@ -1824,3 +1824,110 @@ void test_giggle_query_bug_1(void)
     rmrf("tmp");
 }
 //}}}
+
+//{{{void test_giggle_bulk_insert(void)
+void test_giggle_bulk_insert(void)
+{
+    char *input_path_name = "../data/many/*gz";
+    char *output_path_name = "tmp_test_giggle_bulk_insert";
+
+    uint64_t indexed_intervals = giggle_bulk_insert(input_path_name,
+                                                    output_path_name,
+                                                    1);
+
+    char **names = NULL;
+    uint32_t *num_intervals = NULL;
+    double *mean_interval_sizes = NULL;
+    uint32_t num_files = giggle_get_indexed_files(output_path_name,
+                                                  &names,
+                                                  &num_intervals,
+                                                  &mean_interval_sizes);
+    /*
+     * ls ../data/many/ | wc -l
+     * ls ../data/many/ 
+     * ls ../data/many/  | xargs -I {} bash -c "gunzip -c {} | wc -l"
+     * ls ../data/many/  | xargs -I {} bash -c "gunzip -c {} | awk '{s += \$3-\$2} END {print s/NR;}'"
+     */
+    TEST_ASSERT_EQUAL(22, num_intervals);
+    
+    char *A_names[22] = {"../data/many/0.1.bed.gz",
+                         "../data/many/0.2.bed.gz",
+                         "../data/many/0.bed.gz",
+                         "../data/many/1.1.bed.gz",
+                         "../data/many/1.2.bed.gz",
+                         "../data/many/1.bed.gz",
+                         "../data/many/10.bed.gz",
+                         "../data/many/2.1.bed.gz",
+                         "../data/many/2.2.bed.gz",
+                         "../data/many/2.bed.gz",
+                         "../data/many/3.1.bed.gz",
+                         "../data/many/3.2.bed.gz",
+                         "../data/many/3.bed.gz",
+                         "../data/many/4.1.bed.gz",
+                         "../data/many/4.bed.gz",
+                         "../data/many/5.1.bed.gz",
+                         "../data/many/5.bed.gz",
+                         "../data/many/6.bed.gz",
+                         "../data/many/7.bed.gz",
+                         "../data/many/8.bed.gz",
+                         "../data/many/9.bed.gz",
+                         "../data/many/full_span.bed.gz"};
+
+    uint32_t A_num_intervals[22] = { 1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     1000,
+                                     24};
+    double A_mean_interval_sizes[22] = { 346.222,
+                                         346.222,
+                                         346.222,
+                                         417.531,
+                                         417.531,
+                                         417.531,
+                                         40.38,
+                                         416.819,
+                                         416.819,
+                                         416.819,
+                                         393.17,
+                                         393.17,
+                                         393.17,
+                                         318.024,
+                                         318.024,
+                                         368.418,
+                                         368.418,
+                                         204.66,
+                                         524.595,
+                                         283.845,
+                                         302.331,
+                                         128986557.833333};
+    uint32_t i;
+    for (i = 0; i < num_files; ++i) {
+        TEST_ASSERT_EQUAL(0,strcmp(A_names[i], names[i]));
+        TEST_ASSERT_EQUAL(A_num_intervals[i],num_intervals[i]);
+        TEST_ASSERT_EQUAL(A_mean_interval_sizes[i],mean_interval_sizes[i]);
+        free(names[i]);
+    }
+    free(names);
+    free(num_intervals);
+    free(mean_interval_sizes);
+
+    rmrf(output_path_name);
+}
+//}}}

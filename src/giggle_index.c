@@ -3285,6 +3285,38 @@ uint32_t giggle_bulk_insert_add_tree_level(struct disk_store *curr_ds,
 }
 //}}}
 
+//{{{uint32_t giggle_get_indexed_files(char *index_dir_name,
+uint32_t giggle_get_indexed_files(char *index_dir_name,
+                                  char ***names,
+                                  uint32_t **num_intervals,
+                                  double **mean_interval_sizes)
+{
+    char *file_index_file_name = NULL;
+    int ret = asprintf(&file_index_file_name,
+                       "%s/%s",
+                       index_dir_name,
+                       FILE_INDEX_FILE_NAME);
+    struct file_index *file_idx = file_index_load(file_index_file_name);
+    free(file_index_file_name);
+
+    uint32_t num = file_idx->index->num;
+    *names = (char **)malloc(num * sizeof(char *));
+    *num_intervals = (uint32_t *)malloc(num * sizeof(uint32_t));
+    *mean_interval_sizes = (double *)malloc(num * sizeof(double));
+
+    uint32_t i;
+    for (i = 0; i < file_idx->index->num; ++i) {
+        struct file_data *fd = file_index_get(file_idx, i);
+        (*names)[i] = strdup(fd->file_name);
+        (*num_intervals)[i] = fd->num_intervals;
+        (*mean_interval_sizes)[i] = fd->mean_interval_size;
+    }
+    file_index_destroy(&file_idx);
+
+    return num;
+}
+//}}}
+
 #if 0
 //{{{ uint32_t giggle_merge_chrom(char *chrm_string,
 uint32_t giggle_merge_chrom(char *chrm_string,

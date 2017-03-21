@@ -281,24 +281,25 @@ int search_main(int argc, char **argv, char *full_cmd)
     } 
 
     if (l_is_set == 1) {
-        char *file_index_file_name = NULL;
-        int ret = asprintf(&file_index_file_name,
-                           "%s/%s",
-                           index_dir_name,
-                           FILE_INDEX_FILE_NAME);
-        struct file_index *file_idx = file_index_load(file_index_file_name);
-        free(file_index_file_name);
-
+        char **names = NULL;
+        uint32_t *num_intervals = NULL;
+        double *mean_interval_sizes = NULL;
+        uint32_t num_files = giggle_get_indexed_files(index_dir_name,
+                                                      &names,
+                                                      &num_intervals,
+                                                      &mean_interval_sizes);
         uint32_t i;
         printf("File name\tNumber of intervals\tMean interval size\n");
-        for (i = 0; i < file_idx->index->num; ++i) {
-            struct file_data *fd = file_index_get(file_idx, i);
-            printf("%s\t%u\t%f\n",
-                   fd->file_name,
-                   fd->num_intervals,
-                   fd->mean_interval_size);
+        for (i = 0; i < num_files; ++i) {
+            printf("%s\t%u\t%lf\n",
+                   names[i],
+                   num_intervals[i],
+                   mean_interval_sizes[i]);
+            free(names[i]);
         }
-        file_index_destroy(&file_idx);
+        free(names);
+        free(num_intervals);
+        free(mean_interval_sizes);
         return EX_OK;
     } 
 
