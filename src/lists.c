@@ -376,6 +376,8 @@ void hash_list_value_cache_handler_pair_destroy(struct hash_list **hashl)
         });
 
         kh_destroy(hashl, hash);
+        free(*hashl);
+        *hashl = NULL;
     }
 }
 //}}}

@@ -1461,6 +1461,7 @@ void test_giggle_bulk_insert_few(void)
 
     giggle_query_result_destroy(&gqr);
     giggle_index_destroy(&gi);
+    cache.destroy();
     rmrf(output_path_name);
 }
 //}}}
@@ -1953,6 +1954,7 @@ void test_giggle_bulk_insert_fews(void)
 
         giggle_query_result_destroy(&gqr);
         giggle_index_destroy(&gi);
+        cache.destroy();
     }
     rmrf(output_path_name);
 }

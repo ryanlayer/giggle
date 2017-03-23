@@ -2282,11 +2282,6 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     }
 
     // save 
-    ret = asprintf(&(gi->root_ids_file_name),
-                   "%s/%s",
-                   gi->data_dir,
-                   ROOT_IDS_FILE_NAME);
-
     FILE *f = fopen(gi->root_ids_file_name, "wb");
 
     if (fwrite(&(gi->len), sizeof(uint32_t), 1, f) != 1)
@@ -3167,6 +3162,9 @@ void giggle_bulk_insert_write_leaf_node(struct bpt_node *bpn,
                               v,
                               serialized_size);         
     free(v);
+
+    free(ld->starts_pointers);
+    free(ld->ends_pointers);
     free(ld->data);
     free(ld);
 
