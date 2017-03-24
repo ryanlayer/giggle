@@ -1,35 +1,73 @@
-Get files
+Get source code 
+
     git clone https://github.com/arq5x/bedtools2.git
     cd bedtools2 
-    git checkout 61143078ebe6194689c8542e13d668480592b830
-    make
-    BEDTOOLS_ROOT=`pwd`
+    make -j 20
+    export BEDTOOLS_ROOT=`pwd`
     cd ..
 
     git clone https://github.com/samtools/htslib.git
     cd htslib
-    git checkout d8d0323bca21cfd131e2f183d12c9dd31a5ed75b
-    make
-    HTSLIB_ROOT=`pwd`
+    autoheader
+    autoconf
+    ./configure --disable-bz2 --disable-lzma --enable-libcurl 
+    make -j 20
+    export HTSLIB_ROOT=`pwd`
     cd ..
 
     git clone https://github.com/ryanlayer/giggle.git
     cd giggle
-    git checkout a4d826e2a739ebad77cb688a9f61b3c0e75638d5
-    make
-    GIGGLE_ROOT=`pwd`
+    make -j 20
+    export GIGGLE_ROOT=`pwd`
+    cd ..
 
-Roadmap database with subsets for testing
+    wget -O gsort https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_linux_amd64
 
+    chmod +x gsort
 
-    mkdir data
-    cd data
+Get UCSC data
+
+    mkdir ucsc_data
+    cd ucsc_data
+
+    rsync -a -P rsync://hgdownload.cse.ucsc.edu/goldenPath/hg19/database ./
+
+    mkdir parsed_tracks
+
+    ls database/*sql \
+    | xargs \
+        -I{} \
+        -P 30 \
+        bash -c "python $GIGGLE_ROOT/examples/ucsc/parse_sql.py {} parsed_tracks/"
+
+    mkdir parsed_tracks_sorted
+
+    $GIGGLE_ROOT/scripts/sort_bed "parsed_tracks/*gz" parsed_tracks_sorted 30
+
+    time $GIGGLE_ROOT/bin/giggle \
+        index \
+        -i "parsed_tracks_sorted/*gz" \
+        -o parsed_tracks_sorted_b \
+        -s \
+        -f
+    Indexed 6980993757 intervals.
+
+    real    268m46.033s
+    user    245m44.262s
+    sys     11m51.567s
+
+    cd ..
+
+Get Roadmap data, split it up for testing
+
+    mkdir rme_data
+    cd rme_data
     wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.mnemonics.bedFiles.tgz
     mkdir orig
     tar zxvf all.mnemonics.bedFiles.tgz -C orig/
     mkdir split
 
-    pip install toolshed
+    pip install --user toolshed
 
     python $GIGGLE_ROOT/examples/rme/rename.py \
         $GIGGLE_ROOT/examples/rme/states.txt \
@@ -41,14 +79,15 @@ Roadmap database with subsets for testing
     ls *.bed | xargs -I {} -P 10 bash -c "bgzip {}"
     cd ..
 
+    mkdir split_sort
     $GIGGLE_ROOT/scripts/sort_bed "split/*gz" split_sort/ 30
 
     cd split_sort
     time ls *.bed.gz | xargs -I {} bash -c "tabix {}"
 
-    real    2m12.584s
-    user    1m27.827s
-    sys     0m22.229s
+    real    2m49.350s
+    user    2m13.874s
+    sys     0m34.953s
 
     cd ..
 
@@ -62,56 +101,13 @@ Roadmap database with subsets for testing
     user    1m18.907s
     sys     0m3.379s
 
-    SIZE=`ls -l split_sort/*gz | awk 'BEGIN {sum=0} {sum += $5;} END {print sum}'`
-
-    ls -l split_sort/*gz \
-    | awk '{OFS="\t"; print rand(),$5,$9;}' \
-    | sort -g \
-    | awk -v t=$SIZE '
-        BEGIN {   batch_size=0; batch_id=0 }
-        {
-            OFS="\t";
-            if (size < t/4) {
-                size += $2
-            } else {
-                print size;
-                size = $2
-                batch_id += 1;
-            }
-            print batch_id,$2,$3;
-        }'\
-    > batches_sizes.txt
-
-    # 1 -> 1/2, 3 full data set
-
-    mkdir split_sort_s1
-    cd split_sort_s1
-    cat ../batches_sizes.txt \
-        | awk '$1<=1' \
-        | cut -f3 \
-        | xargs -I{} bash -c "ln -s ../{} .;ln -s ../{}.tbi"   
-    cd ..
-
-    time $GIGGLE_ROOT/bin/giggle index \
-        -i "split_sort_s1/*gz" \
-        -o split_sort_s1_b \
-        -f -s
-    Indexed 27858577 intervals.
-
-    real    0m38.561s
-    user    0m36.584s
-    sys     0m1.946s
-
-    ln -s split_sort split_sort_s3
-    ln -s split_sort_b split_sort_b_s3
-
     cd ..
 
 Random query sets
 
-    cd data
+    cd rme_data
 
-    zcat split/Adipose_Nuclei_Repressed_PolyComb.bed.gz \
+    zcat split_sort/Adipose_Nuclei_Repressed_PolyComb.bed.gz \
     | cut -f1 \
     | uniq > rme_chrm_order.txt
 
@@ -120,50 +116,56 @@ Random query sets
     done \
     > rme.human.hg19.genome
 
-    bedtools random -n 10 -g rme.human.hg19.genome  > r10.bed
-    bedtools random -n 100 -g rme.human.hg19.genome  > r100.bed
-    bedtools random -n 1000 -g rme.human.hg19.genome  > r1000.bed
-    bedtools random -n 10000 -g rme.human.hg19.genome  > r10000.bed
-    bedtools random -n 100000 -g rme.human.hg19.genome  > r100000.bed
-    bedtools random -n 1000000 -g rme.human.hg19.genome  > r1000000.bed
-    
-    
-    #wget -O gsort https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_darwin_amd64
-    #wget -O gsort https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_linux_amd64
-
-    chmod +x gsort
-
-    ./gsort r10.bed rme.human.hg19.genome > r10.sort.bed
-    ./gsort r100.bed rme.human.hg19.genome > r100.sort.bed
-    ./gsort r1000.bed rme.human.hg19.genome > r1000.sort.bed
-    ./gsort r10000.bed rme.human.hg19.genome > r10000.sort.bed
-    ./gsort r100000.bed rme.human.hg19.genome > r100000.sort.bed
-    ./gsort r1000000.bed rme.human.hg19.genome > r1000000.sort.bed
-
-    bgzip -c r10.sort.bed > r10.sort.bed.gz
-    bgzip -c r100.sort.bed > r100.sort.bed.gz
-    bgzip -c r1000.sort.bed > r1000.sort.bed.gz
-    bgzip -c r10000.sort.bed > r10000.sort.bed.gz
-    bgzip -c r100000.sort.bed > r100000.sort.bed.gz
-    bgzip -c r1000000.sort.bed > r1000000.sort.bed.gz
+    Q_SIZES="10 100 1000 10000 100000 1000000"
+    for Q_SIZE in $Q_SIZES; do
+        bedtools random -n $Q_SIZE -g rme.human.hg19.genome  \
+        | ../gsort /dev/stdin rme.human.hg19.genome \
+        | bgzip -c \
+        > rme_r$Q_SIZE.bed.gz
+    done
 
     cd ..
 
-SQLITE / UCSC 
+    cd ucsc_data
 
-    cd sqlite
+    zcat parsed_tracks_sorted/snp147.bed.gz \
+    | cut -f1 \
+    | uniq \
+    > ucsc_chrm_order.txt
 
-    gcc -o ucsc_idx ucsc_idx.c
-    gcc -o reg2query reg2query.c
-    ./ucsc_build.sh ../data/split_sort_s1 ucsc_s1.db
-    ./ucsc_build.sh ../data/split_sort_s3 ucsc_s3.db
+    for s in `cat ucsc_chrm_order.txt`; do
+        grep -w $s $GIGGLE_ROOT/data/human.hg19.genome
+    done \
+    > ucsc.human.hg19.genome
 
+    Q_SIZES="10 100 1000 10000 100000 1000000"
+    for Q_SIZE in $Q_SIZES; do
+        bedtools random -n $Q_SIZE -g ucsc.human.hg19.genome  \
+        | ../gsort /dev/stdin ucsc.human.hg19.genome \
+        | bgzip -c \
+        > ucsc_r$Q_SIZE.bed.gz
+    done
     cd ..
 
 Speed tests
-    
-    for database in 1 3; do
-        for query in 10 100 1000 10000 100000 1000000; do
-            ./speed_test.sh $query $database
-        done
+
+    cd rme_data
+
+    Q_SIZES="10 100 1000 10000 100000 1000000"
+    for Q_SIZE in $Q_SIZES; do
+        $GIGGLE_ROOT/experiments/speed_test/speed_test.sh \
+            rme_r$Q_SIZE.bed.gz \
+            split_sort \
+            rme.human.hg19.genome
+    done
+
+    cd ..
+
+    cd ucsc_data
+    Q_SIZES="10 100 1000 10000 100000 1000000"
+    for Q_SIZE in $Q_SIZES; do
+        $GIGGLE_ROOT/experiments/speed_test/speed_test.sh \
+            ucsc_r$Q_SIZE.bed.gz \
+            parsed_tracks_sorted \
+            ucsc.human.hg19.genome
     done
