@@ -139,11 +139,11 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                 printf("%s\t"
                        "%u\t"
                        "%u\t"
-                       "%g\t"
-                       "%g\t"
-                       "%g\t"
-                       "%g\t"
-                       "%g\t"
+                       "%.17g\t"
+                       "%.17g\t"
+                       "%.17g\t"
+                       "%.17g\t"
+                       "%.17g\t"
                        "\n",
                        fd->file_name,
                        fd->num_intervals,
