@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
 
+#include <float.h>
+#include <limits.h>
 #include <err.h>
 #include <sysexits.h>
 #include <stdlib.h>
@@ -210,7 +212,7 @@ double log2fc(double ratio)
 //{{{double neglog10p(double sig)
 double neglog10p(double sig)
 {
-    if (fabs(sig) < 0.0001)
+    if (fabs(sig) < -DBL_MAX)
         return 10.0;
     return -1.0 * log10(sig);
 }
