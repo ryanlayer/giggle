@@ -27,8 +27,8 @@ $.urlParam = function(name){
 $(document).ready(function() {
         console.log(decodeURIComponent($.urlParam('server')));
 
-        if (decodeURIComponent($.urlParam('rme_index')) != 'null') {
-           giggleUrl = "http://" + decodeURIComponent($.urlParam('rme_index'));
+        if (decodeURIComponent($.urlParam('primary_index')) != 'null') {
+           giggleUrl = "http://" + decodeURIComponent($.urlParam('primary_index'));
         } 
 
         if (decodeURIComponent($.urlParam('ucsc_index')) != 'null') {
