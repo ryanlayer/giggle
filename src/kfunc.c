@@ -207,7 +207,7 @@ long long main(long long argc, char *argv[])
     return aux->p;
 }
 
-double kt_fisher_exact(long long n11, long long n12, long long n21, long long n22, double *_left, double *_right, double *two)
+double _kt_fisher_exact(long long n11, long long n12, long long n21, long long n22, double *_left, double *_right, double *two)
 {
     long long i, j, max, min;
     double p, q, left, right;
@@ -239,7 +239,7 @@ double kt_fisher_exact(long long n11, long long n12, long long n21, long long n2
     *two = left + right;
     if (*two > 1.) *two = 1.;
     // adjust left and right
-    if (labs((long) (i - n11)) < labs((long) (j - n11))) right = 1. - left + q;
+    if (labs((long) (i - n11)) < labs((long) (j - n11)) && q != 0.0) right = 1. - left + q;
     else left = 1.0 - right + q;
     *_left = left; *_right = right;
     return q;

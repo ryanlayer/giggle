@@ -34,7 +34,7 @@ typedef struct {
 
 // incremental version of hypergenometric distribution
 double hypergeo_acc(long long n11, long long n1_, long long n_1, long long n, hgacc_t *aux);
-double kt_fisher_exact(long long n11, long long n12, long long n21, long long n22, double *_left, double *_right, double *two);
+double _kt_fisher_exact(long long n11, long long n12, long long n21, long long n22, double *_left, double *_right, double *two);
 
 
 #endif /* KFUNC_H_ */

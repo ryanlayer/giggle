@@ -124,18 +124,19 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                 long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
 
                 double left, right, two;
-                double r = kt_fisher_exact(n11,
-                                           n12,
-                                           n21,
-                                           n22,
-                                           &left,
-                                           &right,
-                                           &two);
+                double r = _kt_fisher_exact(n11,
+                                            n12,
+                                            n21,
+                                            n22,
+                                            &left,
+                                            &right,
+                                            &two);
 
                 double ratio = 
                         (((double)n11/(double)MAX(1,n12)) / 
                          ((double)n21/(double)n22));
 
+                /*
                 printf("%s\t"
                        "%u\t"
                        "%u\t"
@@ -153,7 +154,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        left,
                        right,
                        log2fc(ratio) * neglog10p(two));
-                /*
+                */
                 printf("#%s\t"
                        "size:%u\t"
                        "overlaps:%u\t"
@@ -179,7 +180,6 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        fd->mean_interval_size,
                        mean_interval_size,
                        comp_mean);
-                       */
 
             }
         }
