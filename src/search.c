@@ -123,28 +123,27 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                         MAX(n11 + n12 + n21, genome_size/comp_mean);
                 long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
 
-                double left, right, two;
-                double r = _kt_fisher_exact(n11,
-                                            n12,
-                                            n21,
-                                            n22,
-                                            &left,
-                                            &right,
-                                            &two);
+                long double left, right, two;
+                long double r = _kt_fisher_exact(n11,
+                                                 n12,
+                                                 n21,
+                                                 n22,
+                                                 &left,
+                                                 &right,
+                                                 &two);
 
                 double ratio = 
                         (((double)n11/(double)MAX(1,n12)) / 
                          ((double)n21/(double)n22));
 
-                /*
                 printf("%s\t"
                        "%u\t"
                        "%u\t"
                        "%.17g\t"
-                       "%.17g\t"
-                       "%.17g\t"
-                       "%.17g\t"
-                       "%.17g\t"
+                       "%.17Lg\t"
+                       "%.17Lg\t"
+                       "%.17Lg\t"
+                       "%.17Lg\t"
                        "\n",
                        fd->file_name,
                        fd->num_intervals,
@@ -154,7 +153,8 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        left,
                        right,
                        log2fc(ratio) * neglog10p(two));
-                */
+
+                       /*
                 printf("#%s\t"
                        "size:%u\t"
                        "overlaps:%u\t"
@@ -180,6 +180,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        fd->mean_interval_size,
                        mean_interval_size,
                        comp_mean);
+                       */
 
             }
         }
