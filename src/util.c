@@ -210,11 +210,11 @@ double log2fc(double ratio)
 //}}}
 
 //{{{double neglog10p(double sig)
-double neglog10p(double sig)
+long double neglog10p(long double sig)
 {
-    if (fabs(sig) < -DBL_MAX)
+    if (fabsl(sig) < -DBL_MAX)
         return 10.0;
-    return -1.0 * log10(sig);
+    return -1.0 * log10l(sig);
 }
 //}}}
 

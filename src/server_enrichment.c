@@ -744,14 +744,14 @@ static int answer_to_connection (void *cls,
                         MAX(n11 + n12 + n21, genome_size/comp_mean);
                 long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
 
-                double left, right, two;
-                double r = kt_fisher_exact(n11,
-                                           n12,
-                                           n21,
-                                           n22,
-                                           &left,
-                                           &right,
-                                           &two);
+                long double left, right, two;
+                long double r = _kt_fisher_exact(n11,
+                                                 n12,
+                                                 n21,
+                                                 n22,
+                                                 &left,
+                                                 &right,
+                                                 &two);
                 double ratio = 
                     (((double)n11/(double)n12) / ((double)n21/(double)n22));
 
@@ -761,8 +761,8 @@ static int answer_to_connection (void *cls,
                              "size:%u\t"
                              "overlaps:%u\t"
                              "ratio:%f\t"
-                             "sig:%f"
-                             "combo:%f"
+                             "sig:%Lf"
+                             "combo:%Lf"
                              "\n",
                              fd->file_name,
                              fd->num_intervals,
@@ -777,8 +777,8 @@ static int answer_to_connection (void *cls,
                              "size:%u\t"
                              "overlaps:%u\t"
                              "ratio:%f\t"
-                             "sig:%f\t"
-                             "combo:%f"
+                             "sig:%Lf\t"
+                             "combo:%Lf"
                              "\n",
                              page,
                              fd->file_name,

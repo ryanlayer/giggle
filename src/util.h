@@ -49,6 +49,6 @@ int test_pattern_match(struct giggle_index *gi,
 
 
 double log2fc(double ratio);
-double neglog10p(double sig);
+long double neglog10p(long double sig);
 
 #endif
