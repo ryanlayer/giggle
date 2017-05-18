@@ -21,6 +21,7 @@ long double _lbinom(long long n, long long k)
 // hypergeometric distribution
 long double _hypergeo(long long n11, long long n1_, long long n_1, long long n)
 {
+    //***DEBUG***
     return expl(_lbinom(n1_, n11) + _lbinom(n-n1_, n_1-n11) - _lbinom(n, n_1));
 }
 
@@ -48,6 +49,7 @@ long double _hypergeo_acc(long long n11, long long n1_, long long n_1, long long
         aux->n11 = n11;
     }
     aux->p = _hypergeo(aux->n11, aux->n1_, aux->n_1, aux->n);
+
     return aux->p;
 }
 
@@ -65,12 +67,18 @@ long double _kt_fisher_exact(long long n11,
     long long n1_, n_1, n;
 
     n1_ = n11 + n12; n_1 = n11 + n21; n = n11 + n12 + n21 + n22; // calculate n1_, n_1 and n
+
     max = (n_1 < n1_) ? n_1 : n1_; // max n11, for right tail
     min = n1_ + n_1 - n;    // not sure why n11-n22 is used instead of min(n_1,n1_)
     if (min < 0) min = 0; // min n11, for left tail
     *two = *_left = *_right = 1.;
+
     if (min == max) return 1.; // no need to do test
+
+
     q = _hypergeo_acc(n11, n1_, n_1, n, &aux); // the probability of the current table
+    if (q < 1e-200) q = 1e-200;
+
     // left tail
     p = _hypergeo_acc(min, 0, 0, 0, &aux);
     for (left = 0., i = min + 1; p < 0.99999999 * q && i<=max; ++i) // loop until underflow
@@ -94,6 +102,3 @@ long double _kt_fisher_exact(long long n11,
     *_left = left; *_right = right;
     return q;
 }
-
-
-

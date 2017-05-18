@@ -132,9 +132,15 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                                                  &right,
                                                  &two);
 
+                /*
                 double ratio = 
                         (((double)n11/(double)MAX(1,n12)) / 
                          ((double)n21/(double)n22));
+                */
+
+                double ratio = 
+                        (((double)(n11 + 1)/(double)MAX(1,n12)) / 
+                         ((double)(n21 + 1)/(double)(n22 + 1)));
 
                 printf("%s\t"
                        "%u\t"
@@ -153,13 +159,15 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        left,
                        right,
                        log2fc(ratio) * neglog10p(two));
-
-                       /*
+                /*
                 printf("#%s\t"
                        "size:%u\t"
                        "overlaps:%u\t"
                        "ratio:%f\t"
-                       "sig:%f\t"
+                       "combo:%.17Lg\t"
+                       "right:%.17Lg\t"
+                       "left:%.17Lg\t"
+                       "two:%.17Lg\t"
                        "n11:%lld\t"
                        "n12:%lld\t"
                        "n21:%lld\t"
@@ -172,7 +180,10 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                        fd->num_intervals,
                        file_counts,
                        ratio,
+                       log2fc(ratio) * neglog10p(two),
                        right,
+                       left,
+                       two,
                        n11,
                        n12,
                        n21,
