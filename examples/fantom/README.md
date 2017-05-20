@@ -38,7 +38,7 @@ Get database data and index
     mkdir split
     python $GIGGLE_ROOT/examples/fantom/rename.py \
         Human.sample_name2library_id.sanitized.txt \
-        human_permissive_enhancers_phase_1_and_2_expression_count_matrix.txt 
+        human_permissive_enhancers_phase_1_and_2_expression_count_matrix.txt \
         split
     
     $GIGGLE_ROOT/scripts/sort_bed "split/*" split_sort/
