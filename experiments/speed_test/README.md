@@ -22,10 +22,12 @@ Get source code
     cd ..
 
     wget -O gsort https://github.com/brentp/gsort/releases/download/v0.0.4/gsort_linux_amd64
-
     chmod +x gsort
 
-Get UCSC data
+    wget -O gargs https://github.com/brentp/gargs/releases/download/v0.3.6/gargs_linux
+    chmod +x gargs
+
+Get database data and index
 
     mkdir ucsc_data
     cd ucsc_data
@@ -35,10 +37,8 @@ Get UCSC data
     mkdir parsed_tracks
 
     ls database/*sql \
-    | xargs \
-        -I{} \
-        -P 30 \
-        bash -c "python $GIGGLE_ROOT/examples/ucsc/parse_sql.py {} parsed_tracks/"
+    | gargs -p 30 \
+        "python $GIGGLE_ROOT/examples/ucsc/parse_sql.py {} parsed_tracks/"
 
     mkdir parsed_tracks_sorted
 
@@ -58,8 +58,6 @@ Get UCSC data
 
     cd ..
 
-Get Roadmap data, split it up for testing
-
     mkdir rme_data
     cd rme_data
     wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.mnemonics.bedFiles.tgz
@@ -76,14 +74,14 @@ Get Roadmap data, split it up for testing
         "split/"
 
     cd split
-    ls *.bed | xargs -I {} -P 10 bash -c "bgzip {}"
+    ls *.bed | ../gargs -p 30 "bgzip {}"
     cd ..
 
     mkdir split_sort
     $GIGGLE_ROOT/scripts/sort_bed "split/*gz" split_sort/ 30
 
     cd split_sort
-    time ls *.bed.gz | xargs -I {} bash -c "tabix {}"
+    time ls *.bed.gz | ../gargs "tabix {}"
 
     real    2m49.350s
     user    2m13.874s
@@ -151,21 +149,64 @@ Speed tests
 
     cd rme_data
 
+    export RESULTS=rme.speed_test
+
     Q_SIZES="10 100 1000 10000 100000 1000000"
     for Q_SIZE in $Q_SIZES; do
         $GIGGLE_ROOT/experiments/speed_test/speed_test.sh \
             rme_r$Q_SIZE.bed.gz \
             split_sort \
             rme.human.hg19.genome
-    done
+    done \
+    > $RESULTS
+
+    (cat $RESULTS  |  awk '$1=="giggle"' |  awk '{print $4;}' |  paste -sd " " -;
+     cat $RESULTS  |  awk '$1=="bedtools"' | awk '{print $4;}' |  paste -sd " " -;
+     cat $RESULTS  |  awk '$1=="tabix"' | awk '{print $4;}' |  paste -sd " " -) \
+    | $GIGGLE_ROOT/scripts/lines.py \
+        -o $RESULTS.pdf \
+        --legend_loc 4 \
+        --plot_width 4 \
+        --plot_height 3 \
+        --xticks ",10,100,1000,1e4,1e5,1e6" \
+        --xlabel "Num. query intervals" \
+        --ylabel "Run time (s)" \
+        --ylog \
+        -c "#00405B,#4A7C96,#0091D6" \
+        --x_min -0.1  --x_max 5.1 \
+        --y_min 2e-3  --y_max 1000000 \
+        --legend "giggle,bedtools,tabix" \
+        --legend_loc 4
 
     cd ..
 
     cd ucsc_data
+
+    export RESULTS=ucsc.speed_test
+
     Q_SIZES="10 100 1000 10000 100000 1000000"
     for Q_SIZE in $Q_SIZES; do
         $GIGGLE_ROOT/experiments/speed_test/speed_test.sh \
             ucsc_r$Q_SIZE.bed.gz \
             parsed_tracks_sorted \
             ucsc.human.hg19.genome
-    done
+    done \
+    > $RESULTS
+    
+    (cat $RESULTS  |  awk '$1=="giggle"' |  awk '{print $4;}' |  paste -sd " " -;
+     cat $RESULTS  |  awk '$1=="bedtools"' | awk '{print $4;}' |  paste -sd " " -;
+     cat $RESULTS  |  awk '$1=="tabix"' | awk '{print $4;}' |  paste -sd " " -) \
+    | $GIGGLE_ROOT/scripts/lines.py \
+        -o $RESULTS.pdf \
+        --legend_loc 4 \
+        --plot_width 4 \
+        --plot_height 3 \
+        --xticks ",10,100,1000,1e4,1e5,1e6" \
+        --xlabel "Num. query intervals" \
+        --ylabel "Run time (s)" \
+        --ylog \
+        -c "#00405B,#4A7C96,#0091D6" \
+        --x_min -0.1  --x_max 5.1 \
+        --y_min 2e-3  --y_max 1000000 \
+        --legend "giggle,bedtools,tabix" \
+        --legend_loc 4

@@ -12,6 +12,13 @@ rcParams['font.family'] = 'Arial'
 delim = '\t'
 parser = OptionParser()
 
+parser.add_option("-a",
+                  "--alpha",
+                  type="float",
+                  default=1.0,
+                  help="Alpha value for points")
+
+
 parser.add_option("-l",
                   "--log_y",
                   action="store_true", dest="logy", default=False,
@@ -155,9 +162,15 @@ ax.get_xaxis().tick_bottom()
 ax.get_yaxis().tick_left()
 
 if len(X) == 0:
-    ax.plot(range(len(Y)),Y,options.line_style,color=options.color, s=1,linewidth=1)
+    ax.plot(range(len(Y)),\
+            Y,\
+            options.line_style,color=options.color, \
+            s=1,\
+            linewidth=1,
+            alpha=options.alpha)
 else:
-    ax.plot(X,Y,options.line_style,color=options.color, linewidth=1)
+    ax.plot(X,Y,options.line_style,color=options.color, linewidth=1, \
+            alpha=options.alpha)
 #ax.scatter(X,Y,s=options.point_size,color=options.color)
 
 #print X
