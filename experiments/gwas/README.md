@@ -56,34 +56,44 @@ Get database data and index
 
 Run experiment
 
-    wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gwasCatalog.txt.gz
+    wget https://www.nature.com/nature/journal/v518/n7539/extref/nature13835-s1.xls
+    # copy first five columns into a text file named gwas.txt
 
-    gunzip -c gwasCatalog.txt.gz \
-    | grep "Rheumatoid arthritis" \
-    | cut -f2,3,4,18 \
-    | grep -v "_" \
-    | awk '$4<5E-10' \
-    | cut -f1,2,3 \
-    | sort -u \
-    | bgzip -c \
-    > RA.bed.gz
+    mkdir gwas_results
 
-   $GIGGLE_ROOT/bin/giggle search \
-    -i rme_data/split_sort_b \
-    -q RA.bed.gz \
-    -s \
-    > RA.bed.gz.giggle.result
+    for D in `tail -n+2 gwas.txt | awk '{print $1;}'  | sort -u`; do
+        grep $D gwas.txt \
+        | awk '{OFS="\t"; print $4,$5,$5+1;}' \
+        | bgzip -c > $D.bed.gz
+
+        $GIGGLE_ROOT/bin/giggle search \
+            -i rme_data/split_sort_b \
+            -q $D.bed.gz -s \
+        > gwas_results/$D.bed.gz.result
+
+    done
 
     $GIGGLE_ROOT/scripts/giggle_heat_map.py \
         -s $GIGGLE_ROOT/examples/rme/states.txt \
         --state_names $GIGGLE_ROOT/examples/rme/short_states.txt \
         -c $GIGGLE_ROOT/examples/rme/EDACC_NAME.txt \
-        -i RA.bed.gz.giggle.result \
-        -o RA.bed.gz.giggle.result.3x11.pdf \
+        -i gwas_results/gwas_results/Crohns_disease.bed.gz.result \
+        -o Crohns_disease.bed.gz.result.pdf \
         -n $GIGGLE_ROOT/examples/rme/new_groups.txt \
         --x_size 3 \
         --y_size 11 \
         --stat combo \
         --ablines 15,26,31,43,52,60,72,82,87,89,93,101,103,116,120,122,127 \
         --group_names $GIGGLE_ROOT/examples/rme/new_groups_names.txt
-        #--no_ylabels \
+
+    $GIGGLE_ROOT/scripts/giggle_gwas_heatmap.py \
+        -i "gwas_results/*" \
+        --states Enhancers,Strong_transcription \
+        -s $GIGGLE_ROOT/examples/rme/states.txt \
+        -c $GIGGLE_ROOT/examples/rme/EDACC_NAME.txt \
+        -n $GIGGLE_ROOT/examples/rme/new_groups.txt \
+        --ablines 15,26,31,43,52,60,72,82,87,89,93,101,103,116,120,122,127 \
+        --group_names new_groups_names.txt \
+        -o gwas.pdf \
+        --x_size 6 \
+        --y_size 11
