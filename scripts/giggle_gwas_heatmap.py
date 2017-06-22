@@ -350,7 +350,7 @@ else:
 
 plt.ylim((0,len(cells)))
 plt.xlim((0,2*len(traits)))
-cbar = plt.colorbar(fraction=0.026, pad=0.01)
+cbar = plt.colorbar(fraction=0.026, pad=0.02, ticks=[data.min(), 0, data.max()])
 cbar.ax.tick_params(labelsize=10) 
 
 if options.black:

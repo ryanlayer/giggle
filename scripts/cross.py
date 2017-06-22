@@ -281,7 +281,8 @@ from pylab import get_cmap
 data = NP_D
 print data.min(), data.max()
 plt.pcolor(data, 
-           cmap=get_cmap("Blues"))
+           cmap=get_cmap("Reds"))
+           #cmap=get_cmap("Rlues"))
            #cmap=hm)
            #norm = MidpointNormalize(midpoint=100),
 

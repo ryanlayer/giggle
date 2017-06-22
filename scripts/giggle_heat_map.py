@@ -222,6 +222,7 @@ class MidpointNormalize(Normalize):
 
 #norm=matplotlib.colors.LogNorm(vmin=data.min(), vmax=data.max()), \
 print data.min(), data.max()
+
 plt.pcolor(data, \
            norm = MidpointNormalize(midpoint=0),
            cmap=hm)
@@ -255,9 +256,6 @@ elif options.no_ylabels:
         else:
             plt.xticks(np.arange(0.5,len(states)+0.5,1.0),states,rotation=90, fontsize=10)
 else:
-
-
-
     if options.group_names:
 
         group_names = []
@@ -297,7 +295,12 @@ else:
 
 plt.ylim((0,len(cells)))
 plt.xlim((0,len(states)))
-cbar = plt.colorbar(fraction=0.046, pad=0.04)
+
+
+#cbar_min = -1 * max([abs(data.min()), data.max()])
+#cbar_max = max([abs(data.min()), data.max()])
+
+cbar = plt.colorbar(fraction=0.046, pad=0.04, ticks=[data.min(), 0, data.max()])
 cbar.ax.tick_params(labelsize=10) 
 
 if options.black:

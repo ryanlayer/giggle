@@ -77,7 +77,7 @@ Run experiment
         -s $GIGGLE_ROOT/examples/rme/states.txt \
         --state_names $GIGGLE_ROOT/examples/rme/short_states.txt \
         -c $GIGGLE_ROOT/examples/rme/EDACC_NAME.txt \
-        -i gwas_results/gwas_results/Crohns_disease.bed.gz.result \
+        -i gwas_results/Crohns_disease.bed.gz.result \
         -o Crohns_disease.bed.gz.result.pdf \
         -n $GIGGLE_ROOT/examples/rme/new_groups.txt \
         --x_size 3 \
@@ -93,7 +93,7 @@ Run experiment
         -c $GIGGLE_ROOT/examples/rme/EDACC_NAME.txt \
         -n $GIGGLE_ROOT/examples/rme/new_groups.txt \
         --ablines 15,26,31,43,52,60,72,82,87,89,93,101,103,116,120,122,127 \
-        --group_names new_groups_names.txt \
+        --group_names $GIGGLE_ROOT/examples/rme/new_groups_names.txt \
         -o gwas.pdf \
         --x_size 6 \
         --y_size 11
