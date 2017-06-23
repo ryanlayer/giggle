@@ -175,7 +175,7 @@ Speed tests
         -c "#00405B,#4A7C96,#0091D6" \
         --x_min -0.1  --x_max 5.1 \
         --y_min 2e-3  --y_max 1000000 \
-        --legend "giggle,bedtools,tabix" \
+        --legend "GIGGLE,BEDTOOLS,TABIX" \
         --legend_loc 4
 
     cd ..
@@ -208,5 +208,5 @@ Speed tests
         -c "#00405B,#4A7C96,#0091D6" \
         --x_min -0.1  --x_max 5.1 \
         --y_min 2e-3  --y_max 1000000 \
-        --legend "giggle,bedtools,tabix" \
+        --legend "GIGGLE,BEDTOOLS,TABIX" \
         --legend_loc 4
