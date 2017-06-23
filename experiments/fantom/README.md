@@ -61,32 +61,21 @@ Run experiment
     wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1218nnn/GSM1218850/suppl/GSM1218850_MB135DMMD.peak.txt.gz
 
     zcat GSM1218850_MB135DMMD.peak.txt.gz \
-    | sort -k 8,8n \
-    | tail -n 500 \
-    | $HTSLIB_ROOT/bgzip -c > GSM1218850_MB135DMMD.peak.top500.bed.gz
+    | awk '$8 >= 100'
+    | $HTSLIB_ROOT/bgzip -c > GSM1218850_MB135DMMD.peak.q100.bed.gz
+
 
     time $GIGGLE_ROOT/bin/giggle search \
     -i fantom_data/split_sort_b \
-    -q GSM1218850_MB135DMMD.peak.top500.bed.gz \
+    -q GSM1218850_MB135DMMD.peak.q100.bed.gz \
     -s \
-    > GSM1218850_MB135DMMD.peak.top500.bed.gz.giggle.result
+    > GSM1218850_MB135DMMD.peak.q100.bed.gz.giggle.result
 
     real    0m0.633s
     user    0m0.549s
     sys     0m0.071s
 
-    tail -n+2 GSM1218850_MB135DMMD.peak.top500.bed.gz.giggle.result \
+    tail -n+2 GSM1218850_MB135DMMD.peak.q100.bed.gz.giggle.result \
     | sort -k 8,8nr \
     | cut -f1,8 \
     | head
-
-    split_sort/Skeletal_muscle_cells_differentiated_into_Myotubes_-_multinucleated-donor1.bed.gz    270.96229298544656
-    split_sort/Skeletal_Muscle_Cells-donor1.bed.gz  164.97545837826983
-    split_sort/Myoblast-donor3.bed.gz       161.39164624877923
-    split_sort/Myoblast_differentiation_to_myotubes-day03-control_donor1.bed.gz     136.90932514695589
-    split_sort/globus_pallidus-adult-donor10258.bed.gz      135.24238209151017
-    split_sort/Myoblast_differentiation_to_myotubes-day02-Duchenne_Muscular_Dystrophy_donor3.bed.gz 134.99225350229454
-    split_sort/mesenchymal_stem_cell_line-Hu5E18.bed.gz     134.07817135766324
-    split_sort/Myoblast_differentiation_to_myotubes-day10-control_donor1.bed.gz     130.99876057527351
-    split_sort/Basophils-donor3.bed.gz      128.79942399643491
-    split_sort/Skeletal_Muscle_Satellite_Cells-donor3.bed.gz        126.89499300689034
