@@ -105,7 +105,7 @@ Get database data and index
         -a 0.25 \
         -o mc_obs_fisher_pval.pdf \
         --y_label "MC p-value" \
-        --x_label "Fisher's exact p-value" \
+        --x_label "Fisher's exact p-value (GIGGLE)" \
         --fig_x 3 \
         --fig_y 3 \
         --x_max 1.01 --x_min 0 \
@@ -122,6 +122,6 @@ Get database data and index
         -a 0.25 \
         -o mc_obs_exp-odds.pdf \
         --y_label "MC observed/expected" \
-        --x_label "Odds ratio" \
+        --x_label "Odds ratio (GIGGLE)" \
         --fig_x 3 \
         --fig_y 3

@@ -169,7 +169,7 @@ Speed tests
         --plot_width 4 \
         --plot_height 3 \
         --xticks ",10,100,1000,1e4,1e5,1e6" \
-        --xlabel "Num. query intervals" \
+        --xlabel "Number query intervals" \
         --ylabel "Run time (s)" \
         --ylog \
         -c "#00405B,#4A7C96,#0091D6" \
@@ -202,7 +202,7 @@ Speed tests
         --plot_width 4 \
         --plot_height 3 \
         --xticks ",10,100,1000,1e4,1e5,1e6" \
-        --xlabel "Num. query intervals" \
+        --xlabel "Number query intervals" \
         --ylabel "Run time (s)" \
         --ylog \
         -c "#00405B,#4A7C96,#0091D6" \
