@@ -24,11 +24,11 @@ SORT()
     if [ ${IN: -4} == ".bed" ]; then
         BASE=`basename $IN`
         echo $BASE
-        cat $IN | LC_ALL=C sort --buffer-size 2G -k1,1 -k2,2n | bgzip -c > $OUT_PATH/$BASE.gz
+        cat $IN | LC_ALL=C sort --buffer-size 2G -k1,1 -k2,2n -k3,3n | bgzip -c > $OUT_PATH/$BASE.gz
     elif [ ${IN: -7} == ".bed.gz" ]; then
         BASE=`basename $IN`
         echo $BASE
-        gzip -d -c $IN | LC_ALL=C sort --buffer-size 2G -k1,1 -k2,2n | bgzip -c > $OUT_PATH/$BASE
+        gzip -d -c $IN | LC_ALL=C sort --buffer-size 2G -k1,1 -k2,2n -k3,3n | bgzip -c > $OUT_PATH/$BASE
     else
         echo "SKIPPING $IN"
     fi
