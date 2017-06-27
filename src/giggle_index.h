@@ -407,4 +407,5 @@ uint32_t giggle_get_indexed_files(char *index_dir_name,
                                   uint32_t **num_intervals,
                                   double **mean_interval_sizes);
 
+void block_store_giggle_set_data_handler();
 #endif
