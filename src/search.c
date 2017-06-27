@@ -387,18 +387,10 @@ int search_main(int argc, char **argv, char *full_cmd)
 
     struct giggle_index *gi =
                 giggle_load(index_dir_name,
-                            uint64_t_ll_giggle_set_data_handler);
+                            block_store_giggle_set_data_handler);
 
     if (gi == NULL)
         errx(1, "Error loading giggle index %s.", index_dir_name);
-
-#if BLOCK_STORE
-    giggle_data_handler.giggle_collect_intersection =
-            giggle_collect_intersection_data_in_block;
-
-    giggle_data_handler.map_intersection_to_offset_list =
-            leaf_data_map_intersection_to_offset_list;
-#endif
 
     struct giggle_query_result *gqr = NULL;
 

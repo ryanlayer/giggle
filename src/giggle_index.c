@@ -3315,6 +3315,46 @@ uint32_t giggle_get_indexed_files(char *index_dir_name,
 }
 //}}}
 
+//{{{void block_store_giggle_set_data_handler();
+void block_store_giggle_set_data_handler()
+{
+    bpt_node_repair = uint64_t_ll_leading_repair;
+
+    uint64_t_ll_giggle_data_handler.non_leading_cache_handler =
+        uint64_t_ll_non_leading_cache_handler;
+    uint64_t_ll_giggle_data_handler.leading_cache_handler = 
+        uint64_t_ll_leading_cache_handler;
+    uint64_t_ll_giggle_data_handler.new_non_leading = 
+        uint64_t_ll_new_non_leading;
+    uint64_t_ll_giggle_data_handler.new_leading = 
+        uint64_t_ll_new_leading;
+    uint64_t_ll_giggle_data_handler.non_leading_SA_add_scalar = 
+        uint64_t_ll_non_leading_SA_add_scalar;
+    uint64_t_ll_giggle_data_handler.non_leading_SE_add_scalar = 
+        uint64_t_ll_non_leading_SE_add_scalar;
+    uint64_t_ll_giggle_data_handler.leading_B_add_scalar = 
+        uint64_t_ll_leading_B_add_scalar;
+    uint64_t_ll_giggle_data_handler.leading_union_with_B = 
+        uint64_t_ll_leading_union_with_B;
+    uint64_t_ll_giggle_data_handler.non_leading_union_with_SA = 
+        uint64_t_ll_non_leading_union_with_SA;
+    uint64_t_ll_giggle_data_handler.non_leading_union_with_SA_subtract_SE = 
+        uint64_t_ll_non_leading_union_with_SA_subtract_SE;
+
+    uint64_t_ll_giggle_data_handler.write_tree = 
+        giggle_write_tree_cache_dump;
+
+    giggle_data_handler = uint64_t_ll_giggle_data_handler;
+
+    giggle_data_handler.giggle_collect_intersection =
+            giggle_collect_intersection_data_in_block;
+
+    giggle_data_handler.map_intersection_to_offset_list =
+            leaf_data_map_intersection_to_offset_list;
+
+}
+//
+
 #if 0
 //{{{ uint32_t giggle_merge_chrom(char *chrm_string,
 uint32_t giggle_merge_chrom(char *chrm_string,
