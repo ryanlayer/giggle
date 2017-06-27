@@ -1,12 +1,16 @@
 BIN=bin
 OBJ=obj
-LIBD=lib
 
-all: 
+all: htslib
 	@mkdir -p $(OBJ)
 	@mkdir -p $(BIN)
-	@mkdir -p $(LIBD)
 	cd src; $(MAKE)
+
+htslib:
+	cd lib/htslib && \
+	    	autoheader && autoconf && \
+		./configure --disable-bz2 --disable-lzma --enable-libcurl && \
+		$(MAKE)
 
 server:
 	@mkdir -p $(OBJ)
@@ -16,4 +20,4 @@ server:
 clean:
 	rm -rf $(BIN)/*
 	rm -rf $(OBJ)/*
-	rm -rf $(LIBD)/*
+	cd lib/htslib && $(MAKE) clean

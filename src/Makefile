@@ -1,7 +1,7 @@
 BIN=../bin
 OBJ=../obj
 LIBD=../lib
-HTS_ROOT=../../htslib
+HTS_ROOT=$(LIBD)/htslib
 LIBMHD_INCLUDES=$(HOME)/usr/local/include
 LIBMHD_LIBS=$(HOME)/usr/local/lib
 CFLAGS=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
