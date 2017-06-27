@@ -1,5 +1,5 @@
 UNITY_ROOT=./unity
-HTS_ROOT=../../../htslib/
+HTS_ROOT=../../lib/htslib/
 CC=gcc
 SRC=../../src/
 TEST_SRC=$(wildcard *.c)
