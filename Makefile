@@ -7,10 +7,9 @@ all: htslib
 	cd src; $(MAKE)
 
 htslib:
-	cd lib/htslib && \
-	    	autoheader && autoconf && \
-		./configure --disable-bz2 --disable-lzma --enable-libcurl && \
-		$(MAKE)
+	$(shell cd lib/htslib && autoreconf)
+	cd lib/htslib; ./configure --disable-bz2 --disable-lzma --enable-libcurl
+	$(MAKE) -C lib/htslib
 
 server:
 	@mkdir -p $(OBJ)
