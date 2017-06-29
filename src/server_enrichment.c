@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -298,10 +299,10 @@ static int iterate_post(void *coninfo_cls,
     struct connection_info_struct *con_info = coninfo_cls;
     FILE *fp;
 
-    int r = asprintf(&(con_info->file_name),
-                     "%s/%s",
-                     con_info->arg->upload_dir,
-                     filename);
+    int ret = asprintf(&(con_info->file_name),
+                       "%s/%s",
+                       con_info->arg->upload_dir,
+                       filename);
 
     con_info->answerstring = servererrorpage;
     con_info->answercode = MHD_HTTP_INTERNAL_SERVER_ERROR;
@@ -522,10 +523,10 @@ static int answer_to_connection (void *cls,
                     long offset;
 
                     char *full_path = NULL;
-                    int r = asprintf(&full_path,
-                                     "%s/%s",
-                                     arg->upload_dir,
-                                     q->file_name);
+                    int ret = asprintf(&full_path,
+                                       "%s/%s",
+                                       arg->upload_dir,
+                                       q->file_name);
 
                     struct input_file *q_f = input_file_init(full_path);
 
@@ -571,32 +572,32 @@ static int answer_to_connection (void *cls,
                                            i,
                                            file_patterns_set_is_set)) {
                         if (printed_i == 0) {
-                            asprintf(&tmp_page,
-                                     "#%s\t"
-                                     "%u\t"
-                                     "%u\n",
-                                     fd->file_name,
-                                     fd->num_intervals,
-                                     giggle_get_query_len(gqr, i));
+                            int ret = asprintf(&tmp_page,
+                                               "#%s\t"
+                                               "%u\t"
+                                               "%u\n",
+                                               fd->file_name,
+                                               fd->num_intervals,
+                                               giggle_get_query_len(gqr, i));
                         } else {
-                            asprintf(&tmp_page,
-                                     "%s"
-                                     "#%s\t"
-                                     "%u\t"
-                                     "%u\n",
-                                     page,
-                                     fd->file_name,
-                                     fd->num_intervals,
-                                     giggle_get_query_len(gqr, i));
+                            int ret = asprintf(&tmp_page,
+                                               "%s"
+                                               "#%s\t"
+                                               "%u\t"
+                                               "%u\n",
+                                               page,
+                                               fd->file_name,
+                                               fd->num_intervals,
+                                               giggle_get_query_len(gqr, i));
                         }
 
                             fprintf(stderr,
-                                     "#%s\t"
-                                     "%u\t"
-                                     "%u\n",
-                                     fd->file_name,
-                                     fd->num_intervals,
-                                     giggle_get_query_len(gqr, i));
+                                    "#%s\t"
+                                    "%u\t"
+                                    "%u\n",
+                                    fd->file_name,
+                                    fd->num_intervals,
+                                    giggle_get_query_len(gqr, i));
 
 
                         free(page);
@@ -610,7 +611,10 @@ static int answer_to_connection (void *cls,
                             struct giggle_query_iter *gqi =
                                     giggle_get_query_itr(gqr, i);
                             while (giggle_query_next(gqi, &result) == 0) {
-                                asprintf(&tmp_page, "%s%s\n", page, result);
+                                int ret = asprintf(&tmp_page,
+                                                   "%s%s\n",
+                                                   page,
+                                                   result);
                                 free(page);
                                 page = tmp_page;
                             }
@@ -756,37 +760,37 @@ static int answer_to_connection (void *cls,
                     (((double)n11/(double)n12) / ((double)n21/(double)n22));
 
                 if (i == 0) {
-                    asprintf(&tmp_page,
-                             "#%s\t"
-                             "size:%u\t"
-                             "overlaps:%u\t"
-                             "ratio:%f\t"
-                             "sig:%Lf"
-                             "combo:%Lf"
-                             "\n",
-                             fd->file_name,
-                             fd->num_intervals,
-                             file_counts,
-                             ratio,
-                             right,
-                             log2fc(ratio) * neglog10p(two));
+                    int ret = asprintf(&tmp_page,
+                                       "#%s\t"
+                                       "size:%u\t"
+                                       "overlaps:%u\t"
+                                       "ratio:%f\t"
+                                       "sig:%Lf"
+                                       "combo:%Lf"
+                                       "\n",
+                                       fd->file_name,
+                                       fd->num_intervals,
+                                       file_counts,
+                                       ratio,
+                                       right,
+                                       log2fc(ratio) * neglog10p(two));
                 } else {
-                    asprintf(&tmp_page,
-                             "%s"
-                             "#%s\t"
-                             "size:%u\t"
-                             "overlaps:%u\t"
-                             "ratio:%f\t"
-                             "sig:%Lf\t"
-                             "combo:%Lf"
-                             "\n",
-                             page,
-                             fd->file_name,
-                             fd->num_intervals,
-                             file_counts,
-                             ratio,
-                             right,
-                             log2fc(ratio) * neglog10p(two));
+                    int ret = asprintf(&tmp_page,
+                                       "%s"
+                                       "#%s\t"
+                                       "size:%u\t"
+                                       "overlaps:%u\t"
+                                       "ratio:%f\t"
+                                       "sig:%Lf\t"
+                                       "combo:%Lf"
+                                       "\n",
+                                       page,
+                                       fd->file_name,
+                                       fd->num_intervals,
+                                       file_counts,
+                                       ratio,
+                                       right,
+                                       log2fc(ratio) * neglog10p(two));
                 }
 
                 free(page);
@@ -837,7 +841,7 @@ int main(int argc, char **argv)
     if (data_def == NULL)
         err(1, "malloc error in main().");
 
-    fread(data_def, data_def_size, 1, fp);
+    int ret = fread(data_def, data_def_size, 1, fp);
     data_def[data_def_size] = '\0';
     fclose(fp);
 
@@ -849,17 +853,7 @@ int main(int argc, char **argv)
     arg->upload_dir = upload_dir_name;
 
     arg->gi = giggle_load(index_dir_name,
-                          uint64_t_ll_giggle_set_data_handler);
-
-#if BLOCK_STORE
-    giggle_data_handler.giggle_collect_intersection =
-            giggle_collect_intersection_data_in_block;
-
-    giggle_data_handler.map_intersection_to_offset_list =
-            leaf_data_map_intersection_to_offset_list;
-#endif
-
-
+                          block_store_giggle_set_data_handler);
 
     struct MHD_Daemon *daemon;
 
