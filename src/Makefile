@@ -52,8 +52,7 @@ all: check-env $(LIST) library
 
 server: INCLUDES+=-I$(LIBMHD_INCLUDES) -L$(LIBMHD_LIBS)
 server: LIBS+=-lmicrohttpd 
-server: $(BIN)/server_overlap \
-	$(BIN)/server_enrichment
+server: $(BIN)/server_enrichment
 
 library: $(OBJS)
 	ar -cvq $(LIBD)/libgiggle.a $(OBJS)
