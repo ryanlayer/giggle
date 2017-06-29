@@ -1,24 +1,39 @@
+# GIGGLE
+
+GIGGLE is a genomics search engine that identifies and ranks the
+significance of shared genomic loci between query features and thousands of
+genome interval files.
+
 [![Build Status](https://travis-ci.org/ryanlayer/giggle.svg?branch=master)](https://travis-ci.org/ryanlayer/giggle)
 
-# GIGGLE: Genomic Inquiry
+# Building
 
-A multi-file genomic index for fast genomic inquiries.
+## Dependencies
+From a fresh install of Ubuntu, the following steps should provide all the
+required dependencies.
 
-# Build
+    sudo apt install gcc make autoconf zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev ruby
     
 ## Giggle command line intervace
 
-    git clone https://github.com/samtools/htslib.git
-    cd htslib
-    make
-    cd .. 
     git clone https://github.com/ryanlayer/giggle.git
     cd giggle
     make
+    export GIGGLE_ROOT=`pwd`
+
+## Run tests
+
+    cd test/func
+    ./giggle_tests.sh
+    cd ../unit
+    make
+    cd ../../..
+
 
 ## Web server (optional)
 This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
+    mkdir -p $HOME/usr/local/
     wget http://ftpmirror.gnu.org/libmicrohttpd/libmicrohttpd-0.9.46.tar.gz
     tar zxvf libmicrohttpd-0.9.46.tar.gz
     cd libmicrohttpd-0.9.46
@@ -26,9 +41,15 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     make
     make install
 
-    git clone https://github.com/json-c/json-c.git
-    cd json-c
-    sh autogen.sh
+    export LD_LIBRARY_PATH=$HOME/usr/local/lib/
+
+    cd ..
+
+    sudo apt install libtool
+
+    wget https://github.com/json-c/json-c/archive/json-c-0.12.1-20160607.tar.gz
+    tar xvf json-c-0.12.1-20160607.tar.gz  
+    cd json-c-json-c-0.12.1-20160607
     ./configure --prefix=$HOME/usr/local/
     make
     make install
@@ -37,147 +58,30 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     make
     make server
 
-# [Dev Docs](http://ryanlayer.github.io/giggle/)
-
 # Example analysis
-## GTEx (in examples/gtex)
+## Roadmap Epigenomics
 
-    mkdir data
-    cd data
-
-    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6/annotations/GTEx_Data_V6_Annotations_SampleAttributesDS.txt
-
-    tail -n+2 GTEx_Data_V6_Annotations_SampleAttributesDS.txt \
-    | cut -f 1,6 \
-    | sed -e "s/ /_/" \
-    > SAMPID_to_SMTS.txt
-
-    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6/reference/gencode.v19.genes.patched_contigs.gtf.gz
+    # details of how to recreate the data at 
+    # https://github.com/ryanlayer/giggle/blob/master/examples/rme/README.md
+    wget https://s3.amazonaws.com/layerlab/giggle/roadmap/split_sort.tar.gz
+    tar -zxvf split_sort.tar.gz
     
-    gunzip -c gencode.v19.genes.patched_contigs.gtf.gz \
-    | awk '$3=="transcript"' \
-    | cut -f1,4,5,9 \
-    | sed -e "s/gene_id \"//" \
-    | sed -e "s/\".*gene_name \"/\t/" \
-    | sed -e "s/\".*$//" \
-    > genes.bed
+    # NOTE, if the following command gives "Too many open file" try running "ulimit -Sn 16384"
+    $GIGGLE_ROOT/bin/giggle index -i "split_sort/*gz" -o split_sort_b -s -f
 
-    wget http://www.gtexportal.org/static/datasets/gtex_analysis_v6/rna_seq_data/GTEx_Analysis_v6_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz
+    wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1218nnn/GSM1218850/suppl/GSM1218850_MB135DMMD.peak.txt.gz
+    # take the just the top peaks
+    zcat GSM1218850_MB135DMMD.peak.txt.gz \
+    | awk '$8>100' \
+    | cut -f1,2,3 \
+    | $GIGGLE_ROOT/lib/htslib/bgzip -c \
+    > GSM1218850_MB135DMMD.peak.q100.bed.gz
 
-    gunzip -c GTEx_Analysis_v6_RNA-seq_RNA-SeQCv1.1.8_gene_rpkm.gct.gz \
-    | python one_per_tissue.py
+    $GIGGLE_ROOT/bin/giggle search -s \
+        -i split_sort_b/ \
+        -q GSM1218850_MB135DMMD.peak.bed.gz \
+    > GSM1218850_MB135DMMD.peak.bed.gz.result
 
-    mv *.bed gtex/.
-    cd gtex
-    ls | xargs -P 20 -I {} sh -c "bgzip {}"
-    cd ..
-    ~/src/giggle/bin/giggle index -i "gtex/*gz" -o gtex_b -f
+## Roadmap webserver 
 
-    giggle search -i gtex_b/ \
-        -q affected.snps.vcf.gz -o -v \
-    | python gtex_to_bp.py 10
-    | python bp.py -o affected_box_plot.png
-
-## Epigenomics Roadmap (in examples/rme)
-
-    mkdir data
-    cd data
-    wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.mnemonics.bedFiles.tgz
-    tar zxvf all.mnemonics.bedFiles.tgz
-    cd ..
-    mkdir split
-    python rename.py states.txt EDACC_NAME.txt "data/*gz" "split/"
-    cd split
-    ls *.bed | xargs -I {} -P 10 sh -c "bgzip {}"
-    ls *.bed.gz | xargs -I {} -P 10 sh -c "tabix {}"
-
-## Timings
-
-###bedtools
-####unsorted
-
-    time ls split/*gz | \
-        xargs -I{} \
-        sh -c "bedtools intersect -a inkids_rare.bed.gz -b {} | wc -l"
-
-    real    2m15.021s
-    user    1m57.950s
-    sys 0m16.163s
-
-####sorted
-
-    time ls split/*gz | \
-        xargs -I{} \
-        sh -c "bedtools intersect -sorted -g genome.txt -a inkids_rare.bed.gz -b {} | wc -l"
-
-    real    0m58.092s
-    user    0m51.030s
-    sys 0m8.076s
-
-###tabix
-####index
-
-    time ls *gz | xargs -I{} tabix {}
-
-    real    1m54.741s
-    user    1m41.347s
-    sys 0m7.689s
-
-####search
-
-    time ls split/*gz | xargs -I{} sh -c "tabix -p bed -B {}  inkids_rare.bed.gz | wc -l"
-
-    real    0m26.832s
-    user    0m19.550s
-    sys 0m7.597s
-
-###giggle
-####index
-
-    time ~/src/giggle/bin/giggle index \
-        -i "split/*gz" -o split_i -f
-    Indexed 55605005 intervals.
-
-    real    7m59.121s
-    user    7m3.515s
-    sys 0m41.202s
-
-####just the counts
-
-    time ~/src/giggle/bin/giggle search -c \
-        -q inkids_rare.bed.gz \
-        -i split_i 
-
-    real    0m0.727s
-    user    0m0.031s
-    sys 0m0.677s
-
-####counts and significance tests
-
-    time ~/src/giggle/bin/giggle search -s \
-        -q inkids_rare.bed.gz \
-        -i split_i 
-
-    real    0m0.851s
-    user    0m0.052s
-    sys 0m0.712s   
-
-####all matching records in all files
-
-    time ~/src/giggle/bin/giggle search -v \
-        -q inkids_rare.bed.gz \
-        -i split_i 
-
-    real    0m3.249s
-    user    0m2.280s
-    sys 0m0.822s
-
-## Epigenomics Roadmap Server
-
-    ~/src/giggle/bin/server_overlap \
-        1 \
-        split_i \
-        ~/src/giggle/examples/rme/web/track_names.txt \
-        ~/src/giggle/examples/rme/web/header.txt
-
-Then open `~src/giggle/scripts/get_overlaps.html`
+   giggle/bin/server_enrichment split_sort_b/ /tmp/ giggle/examples/rme/data_def.json 8080 
