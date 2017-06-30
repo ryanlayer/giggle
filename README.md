@@ -77,6 +77,11 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     | $GIGGLE_ROOT/lib/htslib/bgzip -c \
     > GSM1218850_MB135DMMD.peak.q100.bed.gz
 
+    # List files in the index
+    $GIGGLE_ROOT/bin/giggle search -l \
+        -i split_sort_b/ 
+
+    # Search
     $GIGGLE_ROOT/bin/giggle search -s \
         -i split_sort_b/ \
         -q GSM1218850_MB135DMMD.peak.bed.gz \

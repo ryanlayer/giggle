@@ -50,7 +50,8 @@ int search_help(int exit_code)
 "             -s give significance by indexed file (requires query file)\n"
 "             -v give full record results\n"
 "             -f print results for files that match a pattern (regex CSV)\n"
-"             -g genome size for significance testing (default 3095677412)\n",
+"             -g genome size for significance testing (default 3095677412)\n"
+"             -l list the files in the index\n",
             PROGRAM_NAME, VERSION, PROGRAM_NAME);
     return exit_code;
 }
