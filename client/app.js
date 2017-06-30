@@ -104,7 +104,9 @@ function loadUCSCSmartView() {
                                 if (record.trackName) {
 				    if (+record.overlaps > 0) {
 					    ucscTracksUrl += "&" + record.trackName + "=dense";
-				    }
+				    } else {
+					    ucscTracksUrl += "&" + record.trackName + "=hide";
+                                    }
                                 }
 			});
 			var newTab = window.open(ucscTracksUrl, '_blank');
