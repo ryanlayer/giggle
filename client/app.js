@@ -183,7 +183,9 @@ function loadUCSCTracks(chr, start, end) {
 			records.forEach( function(record) {
 				if (+record.overlaps > 0) {
 					ucscTracksUrl += "&" + record.trackName + "=dense";
-				}
+				} else {
+					    ucscTracksUrl += "&" + record.trackName + "=hide";
+                                }
 			});
 			var newTab = window.open(ucscTracksUrl, '_blank');
 			//newTab.focus();
