@@ -59,21 +59,17 @@ $(document).ready(function() {
 
 	});
 
-	loadUCSCDefinition();
-
+        loadUCSCDefinition();
 });
 
 function loadUCSCSmartView() {
 
-        console.log("HERE 1")
     	if ($('#overlaps').val() == null || $('#overlaps').val().trim() == "") {
 		$('#no-region-warning').removeClass("hide");
 		return;
 	}
 
-
 	var giggleTracksUrl = giggleUCSCBrowserUrl + "?region=" + $('#overlaps').val();
-        console.log(giggleTracksUrl);
 
 	$.ajax({
 	    url: giggleTracksUrl,
@@ -87,6 +83,7 @@ function loadUCSCSmartView() {
 
 				} else {
 					fields = row.split("\t");
+
 					
 					var rec = {};
 					rec.name     = fields[0].split("/")[1];
@@ -104,16 +101,14 @@ function loadUCSCSmartView() {
 			//var ucscTracksUrl = ucscBrowserUrl + '&position=' + chr + ":" + start + '-' + end;
 			var ucscTracksUrl = ucscBrowserUrl + '&position=' + $('#overlaps').val();
 			records.forEach( function(record) {
-				if (+record.overlaps > 0) {
-					ucscTracksUrl += "&" + record.trackName + "=dense";
-				}
+                                if (record.trackName) {
+				    if (+record.overlaps > 0) {
+					    ucscTracksUrl += "&" + record.trackName + "=dense";
+				    }
+                                }
 			});
 			var newTab = window.open(ucscTracksUrl, '_blank');
 			//newTab.focus();
-
-
-
-
 	    },
 	    error: function(error) {
 	    	console.log("An error occurred when getting UCSC track info " + giggleTracksUrl);
@@ -127,7 +122,6 @@ function loadUCSCSmartView() {
 function loadUCSCDefinition() {
 
 	var giggleTracksDefUrl = giggleUCSCBrowserUrl + "?data";
-
 
 	$.ajax({
 	    url: giggleTracksDefUrl,
