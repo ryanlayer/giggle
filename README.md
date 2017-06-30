@@ -32,7 +32,6 @@ required dependencies.
     make
     cd ../../..
 
-
 ### Web server (optional)
 This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
@@ -62,15 +61,21 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     make server
 
 ## Example analysis
+
+**NOTE:** Index files and query files MUST be bgzipped (https://github.com/samtools/htslib, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3042176/).
+
 ### Roadmap Epigenomics
 
     # details of how to recreate the data at 
     # https://github.com/ryanlayer/giggle/blob/master/examples/rme/README.md
-    wget https://s3.amazonaws.com/layerlab/giggle/roadmap/split_sort.tar.gz
-    tar -zxvf split_sort.tar.gz
+    wget https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
+    tar -zxvf roadmap_sort.tar.gz
     
-    # NOTE, if the following command gives "Too many open file" try running "ulimit -Sn 16384"
-    $GIGGLE_ROOT/bin/giggle index -i "split_sort/*gz" -o split_sort_b -s -f
+    # NOTE, if the following command gives "Too many open files" try:
+    # ulimit -Sn 16384
+    $GIGGLE_ROOT/bin/giggle index -s -f \
+        -i "roadmap_sort/*gz" \
+        -o roadmap_sort_b 
 
     wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1218nnn/GSM1218850/suppl/GSM1218850_MB135DMMD.peak.txt.gz
     # take the just the top peaks
@@ -82,16 +87,33 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
     # List files in the index
     $GIGGLE_ROOT/bin/giggle search -l \
-        -i split_sort_b/ 
+        -i roadmap_sort_b/ 
 
     # Search
     $GIGGLE_ROOT/bin/giggle search -s \
-        -i split_sort_b/ \
-        -q GSM1218850_MB135DMMD.peak.bed.gz \
-    > GSM1218850_MB135DMMD.peak.bed.gz.result
+        -i roadmap_sort_b/ \
+        -q GSM1218850_MB135DMMD.peak.q100.bed.gz \
+    > GSM1218850_MB135DMMD.peak.q100.bed.gz.result
+
+    
+    # Plot
+    sudo apt install python python-pip python-tk
+    pip install matplotlib
+    $GIGGLE_ROOT/scripts/giggle_heat_map.py \
+        -s $GIGGLE_ROOT/examples/rme/states.txt \
+        -c $GIGGLE_ROOT/examples/rme/EDACC_NAME.txt \
+        -i GSM1218850_MB135DMMD.peak.q100.bed.gz.result \
+        -o GSM1218850_MB135DMMD.peak.q100.bed.gz.result.3x11.pdf \
+        -n $GIGGLE_ROOT/examples/rme/new_groups.txt \
+        --x_size 3 \
+        --y_size 11 \
+        --stat combo \
+        --ablines 15,26,31,43,52,60,72,82,87,89,93,101,103,116,120,122,127 \
+        --state_names $GIGGLE_ROOT/examples/rme/short_states.txt \
+        --group_names $GIGGLE_ROOT/examples/rme/new_groups_names.txt
 
 ### Roadmap webserver 
 
-    giggle/bin/server_enrichment split_sort_b/ /tmp/ giggle/examples/rme/data_def.json 8080 
+    giggle/bin/server_enrichment roadmap_sort_b/ /tmp/ giggle/examples/rme/data_def.json 8080 
 
 

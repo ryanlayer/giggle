@@ -63,6 +63,67 @@ $(document).ready(function() {
 
 });
 
+function loadUCSCSmartView() {
+
+        console.log("HERE 1")
+    	if ($('#overlaps').val() == null || $('#overlaps').val().trim() == "") {
+		$('#no-region-warning').removeClass("hide");
+		return;
+	}
+
+
+	var giggleTracksUrl = giggleUCSCBrowserUrl + "?region=" + $('#overlaps').val();
+        console.log(giggleTracksUrl);
+
+	$.ajax({
+	    url: giggleTracksUrl,
+	    type: "GET",
+	    crossDomain: true,
+	    dataType: "text",
+	    success: function(data) {
+	    	var records = [];
+			data.split("\n").forEach(function(row) {
+				if (row == null || row.trim() == "") {
+
+				} else {
+					fields = row.split("\t");
+					
+					var rec = {};
+					rec.name     = fields[0].split("/")[1];
+					rec.size     = fields[1];
+					rec.overlaps = fields[2];
+
+					var pos      = ucscFileMap[rec.name];
+					rec.pos      = pos;
+					rec.trackName = ucscTrackNames[+pos];
+					records.push(rec);
+
+				}
+			});
+
+			//var ucscTracksUrl = ucscBrowserUrl + '&position=' + chr + ":" + start + '-' + end;
+			var ucscTracksUrl = ucscBrowserUrl + '&position=' + $('#overlaps').val();
+			records.forEach( function(record) {
+				if (+record.overlaps > 0) {
+					ucscTracksUrl += "&" + record.trackName + "=dense";
+				}
+			});
+			var newTab = window.open(ucscTracksUrl, '_blank');
+			//newTab.focus();
+
+
+
+
+	    },
+	    error: function(error) {
+	    	console.log("An error occurred when getting UCSC track info " + giggleTracksUrl);
+	    	console.error();
+	    }
+	});
+
+//function loadUCSCTracks(chr, start, end) {
+}
+
 function loadUCSCDefinition() {
 
 	var giggleTracksDefUrl = giggleUCSCBrowserUrl + "?data";
