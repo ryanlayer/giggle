@@ -1,27 +1,30 @@
+[![Build Status](https://travis-ci.org/ryanlayer/giggle.svg?branch=master)](https://travis-ci.org/ryanlayer/giggle)
+
 # GIGGLE
 
 GIGGLE is a genomics search engine that identifies and ranks the
 significance of shared genomic loci between query features and thousands of
 genome interval files.
 
-[![Build Status](https://travis-ci.org/ryanlayer/giggle.svg?branch=master)](https://travis-ci.org/ryanlayer/giggle)
+For questions and discussion about GIGGLE please visit/join the mailing list:
+https://groups.google.com/d/forum/giggle-discuss
 
-# Building
+## Building
 
-## Dependencies
+### Dependencies
 From a fresh install of Ubuntu, the following steps should provide all the
 required dependencies.
 
     sudo apt install gcc make autoconf zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev ruby
     
-## Giggle command line intervace
+### Giggle command line intervace
 
     git clone https://github.com/ryanlayer/giggle.git
     cd giggle
     make
     export GIGGLE_ROOT=`pwd`
 
-## Run tests
+### Run tests
 
     cd test/func
     ./giggle_tests.sh
@@ -30,7 +33,7 @@ required dependencies.
     cd ../../..
 
 
-## Web server (optional)
+### Web server (optional)
 This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
     mkdir -p $HOME/usr/local/
@@ -58,8 +61,8 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     make
     make server
 
-# Example analysis
-## Roadmap Epigenomics
+## Example analysis
+### Roadmap Epigenomics
 
     # details of how to recreate the data at 
     # https://github.com/ryanlayer/giggle/blob/master/examples/rme/README.md
@@ -87,7 +90,7 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
         -q GSM1218850_MB135DMMD.peak.bed.gz \
     > GSM1218850_MB135DMMD.peak.bed.gz.result
 
-## Roadmap webserver 
+### Roadmap webserver 
 
     giggle/bin/server_enrichment split_sort_b/ /tmp/ giggle/examples/rme/data_def.json 8080 
 
