@@ -126,4 +126,65 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
     giggle/bin/server_enrichment roadmap_sort_b/ /tmp/ giggle/examples/rme/data_def.json 8080 
 
+## APIs
 
+### [Python](https://github.com/brentp/python-giggle) by Brent Pedersen
+
+```
+from giggle import Giggle
+index = Giggle('existing-index-dir') # or Giggle.create('new-index-dir', 'files/*.bed')
+print(index.files)
+
+result = index.query('chr1', 9999, 20000)
+print(result.n_files)
+print(result.n_total_hits) # integer number sum of hits across all files
+
+print(result.n_hits(0)) # integer number of hits for the 0th file...
+
+for hit in result[0]:
+    print(hit) # hit is a string
+```
+
+#### Installation
+
+make sure you have `liz`, `libcurl`, `libcrypto`, `libbz2` and `liblzma` installed in the appropriate
+place on your system.
+```
+git clone --recursive https://github.com/brentp/python-giggle
+cd python-giggle
+python setup.py test
+python setup.py install
+```
+
+### [Go](https://github.com/brentp/go-giggle) by Brent Pedersen
+
+[![GoDoc](https://godoc.org/github.com/brentp/go-giggle?status.png)](https://godoc.org/github.com/brentp/go-giggle)
+
+```Go
+
+import (
+    giggle "github.com/brentp/go-giggle"
+    "fmt"
+) 
+
+func main() {
+
+    index := giggle.Open("/path/to/index")
+    res := index.Query("1", 565657, 567999)
+
+    // all files in the index
+    index.Files()
+
+    // int showing total count
+    res.TotalHits()
+
+    // []uint32 giving number of hits for each file
+    res.Hits()
+
+    var lines []string
+    # access results by index of file.
+    lines = res.Of(0)
+    fmt.Println(strings.Join(lines, "\n"))
+    lines = res.Of(1)
+}
+```
