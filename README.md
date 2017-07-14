@@ -9,6 +9,9 @@ genome interval files.
 For questions and discussion about GIGGLE please visit/join the mailing list:
 https://groups.google.com/d/forum/giggle-discuss
 
+For more information about how GIGGLE works, please read the preprint:
+http://www.biorxiv.org/content/early/2017/06/29/157735
+
 ## Building
 
 ### Dependencies
@@ -17,7 +20,7 @@ required dependencies.
 
     sudo apt install gcc make autoconf zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev ruby
     
-### Giggle command line intervace
+### Giggle command line interface
 
     git clone https://github.com/ryanlayer/giggle.git
     cd giggle
@@ -26,7 +29,7 @@ required dependencies.
 
 ### Run tests
 
-The first set of tests requre bedtools to be in your path.
+The first set of tests require bedtools to be in your path.
 
     git clone https://github.com/arq5x/bedtools2.git
     cd bedtools2
