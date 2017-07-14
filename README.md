@@ -26,7 +26,17 @@ required dependencies.
 
 ### Run tests
 
-    cd test/func
+The first set of tests requre bedtools to be in your path.
+
+    git clone https://github.com/arq5x/bedtools2.git
+    cd bedtools2
+    make
+    cd bin
+    export PATH=$PATH:`pwd`
+    
+Now run the tests
+
+    cd $GIGGLE_ROOT/test/func
     ./giggle_tests.sh
     cd ../unit
     make
