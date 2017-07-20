@@ -1,5 +1,5 @@
-#ifndef __GIGGLE_H__
-#define __GIGGLE_H__
+#ifndef __GIGGLE_INDEX_H__
+#define __GIGGLE_INDEX_H__
 
 #include <stdint.h>
 #include <htslib/khash.h>
