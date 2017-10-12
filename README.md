@@ -48,6 +48,19 @@ Now run the tests
     cd ../unit
     make
     cd ../../..
+    
+### Hosted data and services
+
+#### Data
+Roadmap Epigenomics:  https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
+
+UCSC Genome browser:  https://s3.amazonaws.com/layerlab/giggle/ucsc/ucscweb_sort.tar.gz
+
+Fantom5:  https://s3.amazonaws.com/layerlab/giggle/fantom/fantom_sort.tar.gz
+
+#### Interactive heatmap
+
+http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.compute-1.amazonaws.com/rme&ucsc_index=ec2-54-227-176-15.compute-1.amazonaws.com/ucsc
 
 ### Web server (optional)
 This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
@@ -79,9 +92,10 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     cd ..
     
 To host the site shown in Supplemental Figure 3, you will need host web servers for both 
-the Roadmap Epigenomics data and the UCSC data. Here we will use `localhost` running on two
-different ports, but these steps would apply to many other configurations including hosting
-the data sets on different servers.
+the Roadmap Epigenomics data and the UCSC data. Here we will run both servers on the same
+host from ports `8080` and `8081` and access the web services using `localhost`, but these 
+are generall steps and apply to many other configurations including hosting the data sets 
+on different servers.
      
     wget https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
     tar -zxvf roadmap_sort.tar.gz
@@ -96,8 +110,21 @@ the data sets on different servers.
     tar -zxvf ucscweb_sort.tar.gz
     
     $GIGGLE_ROOT/bin/giggle index -s -f \
-        -i "roadmap_sort/*gz" \
-        -o roadmap_sort_b 
+        -i "ucscweb_sort/*gz" \
+        -o ucscweb_sort_b
+    
+Start a web server for each index. 
+
+    $GIGGLE_ROOT/bin/server_enrichment roadmap_sort_b/ /tmp/ $GIGGLE_ROOT/examples/rme/data_def.json 8080 &
+    $GIGGLE_ROOT/bin/server_enrichment ucscweb_sort_b/ /tmp/ $GIGGLE_ROOT/examples/ucsc/data_def.json 8081 &
+
+Pass these two services to the web interface through URL arguments:
+
+    http://ryanlayer.github.io/giggle/index.html?primary_index=localhost:8080&ucsc_index=localhost:8081
+   
+These data are also being served here:
+
+http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.compute-1.amazonaws.com/rme&ucsc_index=ec2-54-227-176-15.compute-1.amazonaws.com/ucsc
 
 ## Example analysis
 
@@ -151,9 +178,6 @@ the data sets on different servers.
         --state_names $GIGGLE_ROOT/examples/rme/short_states.txt \
         --group_names $GIGGLE_ROOT/examples/rme/new_groups_names.txt
 
-### Roadmap webserver 
-
-    $GIGGLE_ROOT/bin/server_enrichment roadmap_sort_b/ /tmp/ $GIGGLE_ROOT/examples/rme/data_def.json 8080 
 
 ## APIs
 
