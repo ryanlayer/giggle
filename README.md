@@ -26,16 +26,20 @@ required dependencies.
     cd giggle
     make
     export GIGGLE_ROOT=`pwd`
+    cd ..
 
 ### Run tests
 
 The first set of tests require bedtools to be in your path.
+
+    sudo apt install g++ python
 
     git clone https://github.com/arq5x/bedtools2.git
     cd bedtools2
     make
     cd bin
     export PATH=$PATH:`pwd`
+    cd ../..
     
 Now run the tests
 
@@ -69,9 +73,31 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     make
     make install
 
-    cd giggle
+    cd $GIGGLE_ROOT
     make
     make server
+    cd ..
+    
+To host the site shown in Supplemental Figure 3, you will need host web servers for both 
+the Roadmap Epigenomics data and the UCSC data. Here we will use `localhost` running on two
+different ports, but these steps would apply to many other configurations including hosting
+the data sets on different servers.
+     
+    wget https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
+    tar -zxvf roadmap_sort.tar.gz
+    
+    # NOTE, if the following command gives "Too many open files" try:
+    ulimit -Sn 16384
+    $GIGGLE_ROOT/bin/giggle index -s -f \
+        -i "roadmap_sort/*gz" \
+        -o roadmap_sort_b 
+        
+    wget https://s3.amazonaws.com/layerlab/giggle/ucsc/ucscweb_sort.tar.gz
+    tar -zxvf ucscweb_sort.tar.gz
+    
+    $GIGGLE_ROOT/bin/giggle index -s -f \
+        -i "roadmap_sort/*gz" \
+        -o roadmap_sort_b 
 
 ## Example analysis
 
@@ -127,7 +153,7 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
 ### Roadmap webserver 
 
-    giggle/bin/server_enrichment roadmap_sort_b/ /tmp/ giggle/examples/rme/data_def.json 8080 
+    $GIGGLE_ROOT/bin/server_enrichment roadmap_sort_b/ /tmp/ $GIGGLE_ROOT/examples/rme/data_def.json 8080 
 
 ## APIs
 
