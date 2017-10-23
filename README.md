@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/ryanlayer/giggle.svg?branch=master)](https://travis-ci.org/ryanlayer/giggle)
 
-# GIGGLE
+![logo](https://raw.githubusercontent.com/ryanlayer/giggle/master/img/logo.png "logo")
 
 GIGGLE is a genomics search engine that identifies and ranks the
 significance of shared genomic loci between query features and thousands of
