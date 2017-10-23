@@ -111,20 +111,22 @@ for l in open(options.cistrome_data_file, 'r'):
     cistrome_id_to_geoid[A[0]] = A[1]
 
 
-qc_by_geoid={}
-for l in open(options.qc_data_file, 'r'):
-    A = l.rstrip().split('\t')
-    if A[0] == 'id':
-        continue
+qc_by_geoid=None
+if options.qc_data_file:
+    qc_by_geoid={}
+    for l in open(options.qc_data_file, 'r'):
+        A = l.rstrip().split('\t')
+        if A[0] == 'id':
+            continue
 
-    qc_by_geoid[cistrome_id_to_geoid[A[0]]] = { \
-            'map' : A[1], \
-            'peaks' : A[2], \
-            'fastqc' : A[3], \
-            'frip' : A[4], \
-            'pbc' : A[5], \
-            'motif_judge' : A[6], \
-            'dhs' : A[7]}
+        qc_by_geoid[cistrome_id_to_geoid[A[0]]] = { \
+                'map' : A[1], \
+                'peaks' : A[2], \
+                'fastqc' : A[3], \
+                'frip' : A[4], \
+                'pbc' : A[5], \
+                'motif_judge' : A[6], \
+                'dhs' : A[7]}
 
 line_count_by_geoid={}
 for l in open(options.line_count_file, 'r'):
@@ -147,17 +149,19 @@ Y_names = []
 
 results = {}
 
-Q_ids = [Q_id for Q_id in Q_ids if line_count_by_geoid[Q_id] > 100]
-Q_ids = [Q_id for Q_id in Q_ids if qc_by_geoid[Q_id]['peaks'] == 'true']
-Q_ids = [Q_id for Q_id in Q_ids if qc_by_geoid[Q_id]['frip'] == 'true']
+Q_ids = [Q_id for Q_id in Q_ids if line_count_by_geoid[Q_id] > 20]
+if qc_by_geoid:
+    Q_ids = [Q_id for Q_id in Q_ids if qc_by_geoid[Q_id]['peaks'] == 'true']
+    Q_ids = [Q_id for Q_id in Q_ids if qc_by_geoid[Q_id]['frip'] == 'true']
 
 if options.q_x:
     Q_x = options.q_x.split(',')
     Q_ids = [Q_id for Q_id in Q_ids if Q_id not in Q_x]
 
-DB_ids = [DB_id for DB_id in DB_ids if line_count_by_geoid[DB_id] > 100]
-DB_ids = [DB_id for DB_id in DB_ids if qc_by_geoid[DB_id]['peaks'] == 'true']
-DB_ids = [DB_id for DB_id in DB_ids if qc_by_geoid[DB_id]['frip'] == 'true']
+DB_ids = [DB_id for DB_id in DB_ids if line_count_by_geoid[DB_id] > 20]
+if qc_by_geoid:
+    DB_ids = [DB_id for DB_id in DB_ids if qc_by_geoid[DB_id]['peaks'] == 'true']
+    DB_ids = [DB_id for DB_id in DB_ids if qc_by_geoid[DB_id]['frip'] == 'true']
 
 
 if options.db_x:
@@ -233,6 +237,7 @@ for DB_id in DB_ids:
 #X_names = DB_ids
 
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 

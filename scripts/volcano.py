@@ -5,6 +5,7 @@ from operator import itemgetter
 import sys
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 import pylab
 import random
 from optparse import OptionParser
