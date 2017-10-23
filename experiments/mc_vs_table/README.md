@@ -114,6 +114,22 @@ Get database data and index
     paste \
         <(tail -n+2 GSM1218850_MB135DMMD.peak.q100.bed.gz.giggle.result | sort) \
         <(cat GSM1218850_MB135DMMD.peak.q100.bed.bits.result | sort) \
+    | cut -f7,14 \
+    | sed -e "s/p://g" \ 
+    | awk '{OFS="\t"; print -1*(log($1)/log(10)),-1*(log($2)/log(10));}' \
+    | $GIGGLE_ROOT/scripts/scatter.py \
+        -a 0.25 \
+        -o mc_obs_fisher_pval.1og10.pdf \
+        --y_label "-log10(MC p-value)" \
+        --x_label "-log10(Fisher's exact p-value) (GIGGLE)" \
+        --fig_x 3 \
+        --fig_y 3 \
+        --x_max 1.01 --x_min 0 \
+        --y_max 1.01 --y_min 0
+
+    paste \
+        <(tail -n+2 GSM1218850_MB135DMMD.peak.q100.bed.gz.giggle.result | sort) \
+        <(cat GSM1218850_MB135DMMD.peak.q100.bed.bits.result | sort) \
     | cut -f4,11,12 \
     | sed -e "s/.://g" \ 
     | awk '$1!=0 && $2!=0 && $3!=0' \
