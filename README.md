@@ -15,15 +15,17 @@ http://www.biorxiv.org/content/early/2017/06/29/157735
 ## Usage
 
 GIGGLE has two high-level functions:
-* `index` creates and index from a director of bgziped annotations (BED files
+* `index` creates an index from a directory of bgzipped annotations (BED files
   or VCF files)
-* `search` takes a region of a file of regions and searchers them against an
+* `search` takes a region or a file of regions and searches them against an
   index
 
-    giggle, v0.6.3
-    usage:   giggle <command> [options]
-         index     Create an index
-         search    Search an index
+```
+giggle, v0.6.3
+usage:   giggle <command> [options]
+     index     Create an index
+     search    Search an index
+```
 
 ### Indexing
 
@@ -99,7 +101,7 @@ files then index.
     giggle/scripts/sort_bed "repeat/*.bed" repeat_sort 4
     giggle index -i "repeat_sort/*gz" -o repeat_sort_b -f -s
 
-A GIGGLE index can be queried and the output formatted in a variety of ways .
+A GIGGLE index can be queried and the output formatted in a variety of ways.
 The most basic is to search a single interval and get the number of overlaps for 
 each database file.
 
@@ -114,7 +116,7 @@ each database file.
 
 To search only a subset of database files use the `-f` option, which takes a 
 comma separated list of regular expressions. Only those database files that
-match one of the regular expression will be considered.
+match one of the regular expressions will be considered.
 
     giggle search -i repeat_sort_b -r 1:200457776-200457776 -f rmsk,simple
 
@@ -131,20 +133,22 @@ is useful for detailed filtering and summaries.
 GIGGLE also accepts query files in either `bed.gz` or `vcf.gz` formats. When a 
 query file is given all of the above options are valid. In addition, GIGGLE can
 perform statistical tests between the query file and each database file using the 
-`-s` option. These tests include the :
+`-s` option. These tests include the:
 * odds ratio that estimates the enrichment of observed v. expected
-* the Fishers two tail, left tail, and right tail tests that estimated p-values
-* the GIGGLE combo score that combines odds ration and Fishers two tail tests
+* the Fisher's two tailed, left tailed, and right tailed tests that estimate p-values
+* the GIGGLE combo score that combines the odds ratio and Fisher's two tailed tests
 
-    giggle search -i repeat_sort_b -q bed.bed.gz -s
-    #file   file_size   overlaps    odds_ratio  fishers_two_tail    fishers_left_tail   fishers_rigth_tail  combo_score
-    repeat_sort/chainSelf.bed.gz    1058543 410556  1.4753028915472957e-10  9.9350208733579337e-201 9.9350208733579337e-201 1   0
-    repeat_sort/genomicSuperDups.bed.gz 51599   31434   1.2707669134541957  7.63990775297919e-91    1   3.8346413983550421e-91  31.153365312726858
-    repeat_sort/microsat.bed.gz 41572   12320   1.0772570268110226  3.7685521408880773e-10  0.999999999820790361.9339512340673677e-10   1.0117655469639908
-    repeat_sort/rmsk.bed.gz 5298130 1599051 1.0068476528982573e-10  3.9822462776218267e-200 2.2545997326354446e-200 1   0
-    repeat_sort/simpleRepeat.bed.gz 962714  308460  1.0977857352008243e-10  4.4719559780220419e-201 4.4719559780220419e-201 1   0
+```
+giggle search -i repeat_sort_b -q bed.bed.gz -s
+#file                             file_size   overlaps              odds_ratio         fishers_two_tail       fishers_left_tail   fishers_rigth_tail       combo_score
+repeat_sort/chainSelf.bed.gz        1058543     410556  1.4753028915472957e-10  9.9350208733579337e-201 9.9350208733579337e-201   1                        0
+repeat_sort/genomicSuperDups.bed.gz   51599      31434  1.2707669134541957      7.63990775297919e-91    1                         3.8346413983550421e-91  31.153365312726858
+repeat_sort/microsat.bed.gz           41572      12320  1.0772570268110226      3.7685521408880773e-10  0.99999999982079036       1.9339512340673677e-10   1.0117655469639908
+repeat_sort/rmsk.bed.gz             5298130    1599051  1.0068476528982573e-10  3.9822462776218267e-200 2.2545997326354446e-200   1                        0
+repeat_sort/simpleRepeat.bed.gz      962714     308460  1.0977857352008243e-10  4.4719559780220419e-201 4.4719559780220419e-201   1                        0
+```
 
-Original records can also be retrieved and groups by query interval with the `-v -o` options.
+Original records can also be retrieved and grouped by query interval with the `-v -o` options.
 
     giggle search -i repeat_sort_b -q ALL.wgs.integrated_sv_map_v2.20130502.svs.genotypes.vcf.gz -v -o | head
 
