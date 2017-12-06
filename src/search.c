@@ -84,7 +84,7 @@ int print_giggle_query_result(struct giggle_query_result *gqr,
                "odds_ratio\t"
                "fishers_two_tail\t"
                "fishers_left_tail\t"
-               "fishers_rigth_tail\t"
+               "fishers_right_tail\t"
                "combo_score\n");
     }
 
