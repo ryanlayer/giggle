@@ -396,3 +396,19 @@ func main() {
     lines = res.Of(1)
 }
 ```
+
+## Docker
+
+### [giggle-docker](https://github.com/kubor/giggle-docker) by Ryuichi Kubo
+
+```
+docker run kubor/giggle-docker giggle -h
+```
+
+```
+Unknown command
+giggle, v0.6.3
+usage:   giggle <command> [options]
+         index     Create an index
+                  search    Search an index
+```
