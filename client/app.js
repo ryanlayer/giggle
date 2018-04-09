@@ -25,7 +25,7 @@ $.urlParam = function(name){
 }
 
 $(document).ready(function() {
-        console.log(decodeURIComponent($.urlParam('server')));
+        //console.log(decodeURIComponent($.urlParam('server')));
 
         if (decodeURIComponent($.urlParam('primary_index')) != 'null') {
            giggleUrl = "http://" + decodeURIComponent($.urlParam('primary_index'));
@@ -450,8 +450,13 @@ function loadHeatmapChart(data, theDef) {
 
 	dataForChart.split("\n").forEach(function(row) {
 		fields = row.split("\t");
-		if (fields.length == 0 || fields[0] == "") {
+                if (fields[0] == "QueryFileError") {
+                    $('#bad-file-warning').removeClass("hide");		
+	            return;	
+                }
 
+		if (fields.length == 0 || fields[0] == "") {
+                    
 		} else {
 			var rec = {};
 			rec.name = fields[0].split("/")[1];
@@ -486,26 +491,25 @@ function loadHeatmapChart(data, theDef) {
 				} else {
 					rec.combo = combo;
 				}	
-                                console.log(combo)
 			}
 
 			rec.row = sourceFileMap[rec.name].row;
 			rec.col = sourceFileMap[rec.name].col;
 			def.cells.push(rec);
-
 		}
 	});
 
-	maxValue = d3.max(def.cells, function(d,i) {return d.overlaps});
-	if (maxValue <= 2) {
-		maxValue = 3;
-	}
-	heatmap.colors(colorbrewer.YlGnBu[Math.min(maxValue, 9)])
+        if ( def.cells.length > 0) {
+            maxValue = d3.max(def.cells, function(d,i) {return d.overlaps});
+            if (maxValue <= 2) {
+                    maxValue = 3;
+            }
+            heatmap.colors(colorbrewer.YlGnBu[Math.min(maxValue, 9)])
 
-	
-  	var selection = d3.select("#chart").datum(def);
-	heatmap(selection);	
-
+            
+            var selection = d3.select("#chart").datum(def);
+            heatmap(selection);	
+        }
 }
 
 function addCommas(nStr)
