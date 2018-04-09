@@ -270,8 +270,10 @@ on different servers.
     
 Start a web server for each index. 
 
-    $GIGGLE_ROOT/bin/server_enrichment roadmap_sort_b/ /tmp/ $GIGGLE_ROOT/examples/rme/data_def.json 8080 &
-    $GIGGLE_ROOT/bin/server_enrichment ucscweb_sort_b/ /tmp/ $GIGGLE_ROOT/examples/ucsc/data_def.json 8081 &
+    $GIGGLE_ROOT/bin/server_enrichment -i roadmap_sort_b/ -u /tmp/ -d $GIGGLE_ROOT/examples/rme/data_def.json -p 8080 &
+    $GIGGLE_ROOT/bin/server_enrichment -i ucscweb_sort_b/ -u /tmp/ -d $GIGGLE_ROOT/examples/ucsc/data_def.json -p 8081 &
+
+    If you get Access-Control-Allow-Origin errors, then pass the `-a` option to `server_enrichment`
 
 Pass these two services to the web interface through URL arguments:
 
