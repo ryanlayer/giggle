@@ -28,6 +28,7 @@ parser.add_option("-n",
                   dest="name_map_file_name",
                   help="ID to name mapping file")
 
+(options, args) = parser.parse_args()
 if not options.metadata_file_name:
     parser.error('TF_human_data_information.txt file not given')
 if not options.curr_dir:
