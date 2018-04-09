@@ -109,6 +109,7 @@ const char *servererrorpage =
   "<html><body>An internal server error has occured.</body></html>";
 const char *fileexistspage =
   "<html><body>This file already exists.</body></html>";
+const char *queryfile_errorpage = "QueryFileError";
 //}}}
 
 //{{{ uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
@@ -529,6 +530,9 @@ static int answer_to_connection (void *cls,
                                        q->file_name);
 
                     struct input_file *q_f = input_file_init(full_path);
+                    if (q_f == NULL) {
+                        fprintf(stderr, "Error with file %s.\n", full_path);
+                    }
 
                     free(full_path);
 
@@ -703,6 +707,10 @@ static int answer_to_connection (void *cls,
 
 
             struct input_file *q_f = input_file_init(con_info->file_name);
+            if (q_f == NULL) {
+                fprintf(stderr, "Error with file %s.\n", con_info->file_name);
+                //return send_page (connection, queryfile_errorpage, MHD_HTTP_BAD_REQUEST, "text/html");
+            }
 
             struct giggle_query_result *gqr = NULL;
 

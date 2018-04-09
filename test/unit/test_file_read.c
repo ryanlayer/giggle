@@ -21,9 +21,15 @@ void tearDown(void) { }
 void test_init_file(void)
 {
     struct input_file *i = input_file_init("../data/1k.sort.bed.gz");
+    TEST_ASSERT_NOT_NULL(i);
     input_file_destroy(&i);
+    TEST_ASSERT_NULL(i);
 
-    TEST_ASSERT_EQUAL(NULL, i);
+    i = input_file_init("../data/1k.vcf");
+    TEST_ASSERT_NULL(i);
+
+    i = input_file_init("../data/bad.bed.gz");
+    TEST_ASSERT_NULL(i);
 }
 //}}}
 

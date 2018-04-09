@@ -431,6 +431,8 @@ int search_main(int argc, char **argv, char *full_cmd)
         kstring_t line = {0, 0, NULL};
 
         struct input_file *q_f = input_file_init(query_file_name);
+        if (q_f == NULL)
+            errx(1, "Error loading query file %s.", query_file_name);
 
         while ( q_f->input_file_get_next_interval(q_f, 
                                                   &chrm,

@@ -2,6 +2,7 @@
 
 #include <htslib/bgzf.h>
 #include <htslib/kstring.h>
+#include <htslib/hts.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -35,10 +36,9 @@ struct input_file *input_file_init(char *file_name)
 
     i->file_name = strdup(file_name);
 
-
     // .bed.gz
     if ( (strlen(i->file_name) > 7) &&
-         strcmp(".bed.gz", file_name + strlen(i->file_name) - 7) == 0) {
+            strcmp(".bed.gz", file_name + strlen(i->file_name) - 7) == 0) {
         i->type = BED;
     // .vcf.gz
     } else if ( (strlen(i->file_name) > 7) &&
@@ -51,22 +51,30 @@ struct input_file *input_file_init(char *file_name)
         fprintf(stderr, "File type not supported '%s'.\n", i->file_name);
         free(i->file_name);
         free(i);
-        i = NULL;
+        return NULL;
     }
 
     if (i->type == BED) {
         i->kstr = (kstring_t*)calloc(1, sizeof(kstring_t));
-        if (i->kstr == NULL)
-            err(1, "calloc error in input_file_init().");
+        if (i->kstr == NULL) {
+            fprintf(stderr, "calloc error in input_file_init().");
+            return NULL;
+        }
 
-        if ((i->bed_fp = bgzf_open(file_name, "r")) == 0)
-            err(1,"Could not open file '%s'\n", file_name);
+        if ((i->bed_fp = bgzf_open(file_name, "r")) == 0) {
+            fprintf(stderr ,"Could not open file '%s'\n", file_name);
+            return NULL;
+        }
 
-        if ( bgzf_compression(i->bed_fp) != bgzf )
-            errx(1,"Not a BGZF file '%s'\n", file_name);
+        if ( bgzf_compression(i->bed_fp) != bgzf ) {
+            fprintf(stderr, "Not a BGZF file '%s'\n", file_name);
+            return NULL;
+        }
 
-        if ( !i->bed_fp->is_compressed )
-            err(1,"Not a bgzip compressed file '%s'\n", file_name);
+        if ( !i->bed_fp->is_compressed ) {
+            fprintf(stderr, "Not a bgzip compressed file '%s'\n", file_name);
+            return NULL;
+        }
 
         i->last_offset = 0;
 
@@ -78,37 +86,52 @@ struct input_file *input_file_init(char *file_name)
             input_file_seek_bgzf;
     } else if ( (i->type == VCF) || (i->type == BCF) ) {
         i->bcf_fp = hts_open(i->file_name,"rb");
-        if (!i->bcf_fp)
-            err(EX_DATAERR, "Could not read file '%s'", i->file_name);
+        if (!i->bcf_fp) {
+            fprintf(stderr, "Could not read file '%s'", i->file_name);
+            return NULL;
+        }
 
-        if (i->bcf_fp->format.compression != bgzf)
-            errx(EX_DATAERR, "Not a BGZF file '%s'\n", i->file_name);
+        if (i->bcf_fp->format.compression != bgzf) {
+            fprintf(stderr, "Not a BGZF file '%s'\n", i->file_name);
+            return NULL;
+        }
 
         i->line = bcf_init1();
         i->hdr = bcf_hdr_read(i->bcf_fp);
 
-        if ( !i->hdr )
-            err(EX_DATAERR, "Could not read the header '%s'", i->file_name);
+        if ( !i->hdr ) {
+            fprintf(stderr, "Could not read the header '%s'", i->file_name);
+            return NULL;
+        }
 
         htsFormat type = *hts_get_format(i->bcf_fp);
         if (type.format == bcf) {
             fprintf(stderr, "File type not supported '%s'.\n", i->file_name);
             free(i->file_name);
             free(i);
-            i = NULL;
-            //i->last_offset = bgzf_tell(i->bcf_fp->fp.bgzf);
+            return NULL;
         } else {
             hts_close(i->bcf_fp);
 
             i->kstr = (kstring_t*)calloc(1, sizeof(kstring_t));
-            if (i->kstr == NULL)
-                err(1, "calloc error in input_file_init().");
 
-            if ((i->bed_fp = bgzf_open(file_name, "r")) == 0)
-                err(1,"Could not open file '%s'\n", i->file_name);
+            if (i->kstr == NULL) {
+                fprintf(stderr, "calloc error in input_file_init().");
+                return NULL;
+            }
 
-            if ( !i->bed_fp->is_compressed )
-                err(1,"Not a bgzip compressed file '%s'\n", i->file_name);
+            if ((i->bed_fp = bgzf_open(file_name, "r")) == 0) {
+                fprintf(stderr, "Could not open file '%s'\n", i->file_name);
+                return NULL;
+            }
+
+            if ( !i->bed_fp->is_compressed ) {
+                fprintf(stderr,
+                        "Not a bgzip compressed file '%s'\n",
+                        i->file_name);
+                return NULL;
+            }
+
             // move past the header
             while (bgzf_getline(i->bed_fp, '\n', i->kstr) >= 0) {
                 if (i->kstr->s[0] == '#')
@@ -116,8 +139,11 @@ struct input_file *input_file_init(char *file_name)
                 else
                     break;
             }
-            if (bgzf_seek(i->bed_fp, i->last_offset, SEEK_SET) != 0)
-                err(EX_DATAERR, "Error moving past header '%s'", i->file_name);
+
+            if (bgzf_seek(i->bed_fp, i->last_offset, SEEK_SET) != 0) {
+                fprintf(stderr, "Error moving past header '%s'", i->file_name);
+                return NULL;
+            }
 
             i->input_file_get_next_interval = 
                 input_file_get_next_interval_vcf;

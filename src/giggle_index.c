@@ -871,6 +871,9 @@ uint32_t giggle_index_file(struct giggle_index *gi,
 {
     //fprintf(stderr, "%s\n", file_name);
     struct input_file *i = input_file_init(file_name);
+    if (i == NULL)
+        errx(1, "Could not open %s.\n", file_name);
+
     int chrm_len = 10;
     char *chrm = (char *)malloc(chrm_len*sizeof(char));
     if (chrm == NULL)
@@ -1441,6 +1444,8 @@ int giggle_query_next(struct giggle_query_iter *gqi,
         struct file_data *fd = file_index_get(gqi->gi->file_idx,
                                               gqi->file_id); 
         gqi->ipf = input_file_init(fd->file_name);
+        if (gqi->ipf == NULL)
+            errx(1, "Could not open %s.\n", fd->file_name);
     }
 
     gqi->ipf->input_file_seek(gqi->ipf, gqi->sorted_offsets[gqi->curr]);
@@ -2971,6 +2976,8 @@ uint32_t giggle_bulk_insert_open_files(char *input_path_name,
     uint32_t i;
     for (i = 0; i < results.gl_pathc; i++) {
         (*i_files)[i] = input_file_init(results.gl_pathv[i]);
+        if ((*i_files)[i] == NULL)
+            errx(1, "Could not open %s.\n", results.gl_pathv[i]);
         // register the file with the file index
         uint32_t file_id = file_index_add(*file_idx, results.gl_pathv[i]);
         if (i != file_id)
