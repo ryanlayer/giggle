@@ -1,8 +1,8 @@
 #!/bin/bash
 
 doxygen doxygen.cfg
-cd html/
-cp -r ../../client .
+cp -r ../client/* .
 git add *
+cd html/
 git commit -m "update docs"
 git push origin gh-pages
