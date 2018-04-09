@@ -25,8 +25,6 @@ $.urlParam = function(name){
 }
 
 $(document).ready(function() {
-        //console.log(decodeURIComponent($.urlParam('server')));
-
         if (decodeURIComponent($.urlParam('primary_index')) != 'null') {
            giggleUrl = "http://" + decodeURIComponent($.urlParam('primary_index'));
         } 
@@ -297,7 +295,6 @@ function promiseLoadMatrixDefinition() {
 		    crossDomain: true,
 		    dataType: "text",
 		    success: function(data) {
-
 		    	def = JSON.parse(data);
 				def.sourceFiles.forEach( function( sourceFile ) {
 					var cellCoord = {};
@@ -357,27 +354,23 @@ function initBedUploadForm() {
 
 	    var url = giggleUrl + "filepost";
 
-            console.log(giggleUrl, giggleUCSCBrowserUrl, url)
-
-	  
 	    $.ajax({
 	        url         : url,
 	        data        : formData,
  	        cache       : false,
 	        contentType : false,
 	        processData : false,
-
 	        type        : 'POST',
 	        success     : function(data, textStatus, jqXHR){
-	        	$('.loader').addClass("hide");
+	            $('.loader').addClass("hide");
 	            loadHeatmapChart(data, def);
 	        },
 	        error       : function(error) {
-	        	$('.loader').addClass("hide");
-	        	if (error.success().hasOwnProperty("responseText") && error.success().responseText.length > 0) {
-	        		loadHeatmapChart( error.success().responseText, def);
-	        	}
- 	        	console.error();      	
+                    $('.loader').addClass("hide");
+                    if (error.success().hasOwnProperty("responseText") && error.success().responseText.length > 0) {
+                        loadHeatmapChart( error.success().responseText, def);
+                    }
+                    console.error();      	
 	        }
 	    });
 	});	
@@ -440,8 +433,6 @@ function loadHeatmapForRegion() {
 function loadHeatmapChart(data, theDef) {
 	def = theDef ? theDef : def; 
 	dataForChart = data ? data : dataForChart;
-
-        console.log(def)
 	def.cells = [];
 
 	if($("input[type='radio'].radio-value-field").is(':checked')) {

@@ -11,6 +11,8 @@
 #include <sysexits.h>
 #include <htslib/kstring.h>
 #include <math.h>
+#include <getopt.h>
+#include <ctype.h>
 
 #include "util.h"
 #include "giggle_index.h"
@@ -55,20 +57,6 @@ struct request
     char *file_patterns_to_be_printed;
 };
 
-int print_giggle_query_result(struct giggle_query_result *gqr,
-                              struct giggle_index *gi,
-                              regex_t *regexs,
-                              char **file_patterns,
-                              uint32_t num_file_patterns,
-                              uint32_t num_intervals,
-                              double mean_interval_size,
-                              long long genome_size,
-                              uint32_t f_is_set,
-                              uint32_t v_is_set,
-                              uint32_t c_is_set,
-                              uint32_t s_is_set,
-                              uint32_t o_is_set);
-
 struct args {
     struct giggle_index *gi;
     char *data_def;
@@ -111,6 +99,8 @@ const char *fileexistspage =
   "<html><body>This file already exists.</body></html>";
 const char *queryfile_errorpage = "QueryFileError";
 //}}}
+
+int SET_ACCESS_CONTROL_HEADER = 0;
 
 //{{{ uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
 uint32_t parse_file_patterns(char *file_patterns_to_be_printed,
@@ -265,6 +255,7 @@ static int send_page (struct MHD_Connection *connection,
                       int status_code,
                       const char *type)
 {
+fprintf(stderr, "%s\n", type);
     int ret;
     struct MHD_Response *response;
 
@@ -274,9 +265,10 @@ static int send_page (struct MHD_Connection *connection,
     if (!response)
         return MHD_NO;
 
-    MHD_add_response_header(response,
-                            MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                            "*");
+    if (SET_ACCESS_CONTROL_HEADER != 0 ) 
+        MHD_add_response_header(response,
+                                MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                "*");
 
     MHD_add_response_header (response, MHD_HTTP_HEADER_CONTENT_TYPE, type);
     ret = MHD_queue_response (connection, status_code, response);
@@ -532,6 +524,7 @@ static int answer_to_connection (void *cls,
                     struct input_file *q_f = input_file_init(full_path);
                     if (q_f == NULL) {
                         fprintf(stderr, "Error with file %s.\n", full_path);
+                	return send_page (connection, queryfile_errorpage, MHD_HTTP_OK, "text/html");
                     }
 
                     free(full_path);
@@ -709,7 +702,7 @@ static int answer_to_connection (void *cls,
             struct input_file *q_f = input_file_init(con_info->file_name);
             if (q_f == NULL) {
                 fprintf(stderr, "Error with file %s.\n", con_info->file_name);
-                //return send_page (connection, queryfile_errorpage, MHD_HTTP_BAD_REQUEST, "text/html");
+                return send_page (connection, queryfile_errorpage, MHD_HTTP_OK, "text/html");
             }
 
             struct giggle_query_result *gqr = NULL;
@@ -822,22 +815,100 @@ static int answer_to_connection (void *cls,
 }
 //}}}
 
+//{{{int server_help(int exit_code)
+int server_help(int exit_code)
+{
+    fprintf(stderr,
+            "usage: server_enrichment -i <index dir> -u <upload dir> -d <data definition> "
+            "-p <port> [options]\n"
+            "         options:\n"
+            "             -a Set Access-Control-Allow-Origin header to pages\n" );
+    return exit_code;
+}
+//}}}
+
 //{{{int main(int argc, char **argv)
 int main(int argc, char **argv)
 {
-    if (argc != 5) {
-        fprintf(stderr,
-                "usage:\t%s <index dir> <upload dir> "
-                "<data definition> <port>\n",
-                argv[0]);
-        return 0;
+    if (argc < 2) return server_help(EX_OK);
+
+    int i_is_set = 0,
+        u_is_set = 0,
+        d_is_set = 0,
+        p_is_set = 0,
+        a_is_set = 0;
+
+
+    char *index_dir_name = NULL,
+         *upload_dir_name = NULL,
+         *data_def_file_name = NULL;
+
+    uint32_t port = 0;
+
+    SET_ACCESS_CONTROL_HEADER = 0;
+
+    int c;
+    while((c = getopt (argc, argv, "i:u:d:p:ah")) != -1) {
+        switch(c) {
+            case 'i':
+                i_is_set = 1;
+                index_dir_name = optarg;
+                break;
+            case 'u':
+                u_is_set = 1;
+                upload_dir_name = optarg;
+                break;
+            case 'd':
+                d_is_set = 1;
+                data_def_file_name = optarg;
+                break;
+            case 'p':
+                p_is_set = 1;
+                port = atoi(optarg);
+                break;
+            case 'a':
+                a_is_set = 1;
+                SET_ACCESS_CONTROL_HEADER = 1;
+                break;
+            case '?':
+                 if ( (optopt == 'i') ||
+                      (optopt == 'u') ||
+                      (optopt == 'd') ||
+                      (optopt == 'p') )
+                        fprintf (stderr, "Option -%c requires an argument.\n",
+                                optopt);
+                    else if (isprint (optopt))
+                        fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                    else
+                    fprintf(stderr,
+                            "Unknown option character `\\x%x'.\n",
+                            optopt);
+                return server_help(EX_USAGE);
+            default:
+                return server_help(EX_OK);
+        }
     }
 
-    //uint32_t NUMBER_OF_THREADS = atoi(argv[1]);
-    char *index_dir_name = argv[1]; 
-    char *upload_dir_name = argv[2]; 
-    char *data_def_file_name = argv[3]; 
-    uint32_t port = atoi(argv[4]); 
+    if (i_is_set == 0) {
+        fprintf(stderr, "Index directory is not set\n");
+        return server_help(EX_USAGE);
+    }
+
+    if (u_is_set == 0) {
+        fprintf(stderr, "Upload directory is not set\n");
+        return server_help(EX_USAGE);
+    }
+
+    if (d_is_set == 0) {
+        fprintf(stderr, "Data def is not set\n");
+        return server_help(EX_USAGE);
+    }
+
+    if (p_is_set == 0) {
+        fprintf(stderr, "Port is not set\n");
+        return server_help(EX_USAGE);
+    }
+
 
     FILE *fp = fopen(data_def_file_name, "r");
     if (!fp)
