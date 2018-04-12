@@ -9,8 +9,8 @@ genome interval files.
 For questions and discussion about GIGGLE please visit/join the mailing list:
 https://groups.google.com/d/forum/giggle-discuss
 
-For more information about how GIGGLE works, please read the preprint:
-http://www.biorxiv.org/content/early/2017/06/29/157735
+For more information about how GIGGLE works, please read the manuscript in Nature Methods:
+https://www.nature.com/articles/nmeth.4556
 
 Or watch a presentation about GIGGLE on YouTube (14m 37s)
 [![GIGGLE](https://img.youtube.com/vi/yw8H7PhtZoA/0.jpg)](https://www.youtube.com/watch?v=yw8H7PhtZoA)
