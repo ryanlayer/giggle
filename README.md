@@ -215,7 +215,7 @@ Fantom5:  https://s3.amazonaws.com/layerlab/giggle/fantom/fantom_sort.tar.gz
 
 #### Interactive heatmap
 
-http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.compute-1.amazonaws.com/rme&ucsc_index=ec2-54-227-176-15.compute-1.amazonaws.com/ucsc
+http://ryanlayer.github.io/giggle/index.html?primary_index=stix.colorado.edu/rme&ucsc_index=stix.colorado.edu/ucsc
 
 ### Web server (optional)
 This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
