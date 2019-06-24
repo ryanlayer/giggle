@@ -9,20 +9,6 @@ genome interval files.
 For questions and discussion about GIGGLE please visit/join the mailing list:
 https://groups.google.com/d/forum/giggle-discuss
 
-<iframe id="forum_embed"
-  src="javascript:void(0)"
-  scrolling="no"
-  frameborder="0"
-  width="900"
-  height="700">
-</iframe>
-<script type="text/javascript">
-  document.getElementById('forum_embed').src =
-     'https://groups.google.com/forum/embed/?place=forum/giggle-discuss'
-     + '&showsearch=true&showpopout=true&showtabs=false'
-     + '&parenturl=' + encodeURIComponent(window.location.href);
-</script>
-
 For more information about how GIGGLE works, please read the manuscript in Nature Methods:
 https://www.nature.com/articles/nmeth.4556
 
