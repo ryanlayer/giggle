@@ -1848,7 +1848,7 @@ void test_giggle_bulk_insert(void)
      * ls ../data/many/  | xargs -I {} bash -c "gunzip -c {} | wc -l"
      * ls ../data/many/  | xargs -I {} bash -c "gunzip -c {} | awk '{s += \$3-\$2} END {print s/NR;}'"
      */
-    TEST_ASSERT_EQUAL(22, num_intervals);
+    TEST_ASSERT_EQUAL(22, num_files);
     
     char *A_names[22] = {"../data/many/0.1.bed.gz",
                          "../data/many/0.2.bed.gz",
