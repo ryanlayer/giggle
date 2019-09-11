@@ -73,6 +73,10 @@ static const _U_UINT UnitySizeMask[] =
  * Pretty Printers & Test Result Output Handlers
  *-----------------------------------------------*/
 
+void SetOutputColorRed(){printf("\033[0;31m");}
+void SetOutputColorGreen(){printf("\033[0;32m");}
+void ResetOutputColor(){printf("\033[0m");}
+
 void UnityPrint(const char* string)
 {
     const char* pch = string;
@@ -274,13 +278,17 @@ void UnityPrintFloat(_UD number)
 void UnityPrintFail(void);
 void UnityPrintFail(void)
 {
+    SetOutputColorRed();
     UnityPrint(UnityStrFail);
+    ResetOutputColor();
 }
 
 void UnityPrintOk(void);
 void UnityPrintOk(void)
 {
+    SetOutputColorGreen();
     UnityPrint(UnityStrOk);
+    ResetOutputColor();
 }
 
 /*-----------------------------------------------*/
