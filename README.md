@@ -414,3 +414,22 @@ usage:   giggle <command> [options]
          index     Create an index
                   search    Search an index
 ```
+
+## Singularity
+
+### [giggle-singularity](https://github.com/HugoGuillen/giggle-singularity) by Hugo Guillen
+
+`giggle-singularity` provides the tools to create and access a Singularity container with GIGGLE.
+
+```bash
+giggle.sh -h
+
+usage:
+  giggle.sh <command> [options]
+  index   Create an index.
+  search  Search an index.
+  check   Verifies configuration.
+  pull    Creates a singularity container from giggle-docker image.
+  shell   Opens the shell to the giggle-singularity container.
+  NOTE: first run 'check' to verify all configuration parameters are correct.
+```
