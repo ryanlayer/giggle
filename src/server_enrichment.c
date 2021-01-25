@@ -738,16 +738,26 @@ static int answer_to_connection (void *cls,
                         //unordered_list_get(con_info->arg->gi->file_index, i); 
 
                 uint32_t file_counts = giggle_get_query_len(gqr, i);
+
                 long long n11 = (long long)(file_counts);
-                long long n12 = (long long)(MAX(0,num_intervals-file_counts));
-                long long n21 = (long long)
-                        (MAX(0,fd->num_intervals-file_counts));
+                long long n12;
+
+                if (file_counts > num_intervals) 
+                    n12 = 0;
+                else
+                    n12 = num_intervals-file_counts;
+
+                fprintf(stderr, "%lld %lld n12:%lld\n", file_counts, num_intervals, n12);
+
+                long long n12 = (long long)safe_subtract(num_intervals,file_counts);
+                long long n21 = (long long)safe_subtract(fd->num_intervals,file_counts);
 
                 double comp_mean = fd->mean_interval_size+mean_interval_size;
 
                 long long n22_full = (long long)
                         MAX(n11 + n12 + n21, genome_size/comp_mean);
-                long long n22 = MAX(0, n22_full - (n11 + n12 + n21));
+                long long n22 = (long long)safe_subtract(n22_full, n11 + n12 + n21);
+
 
                 long double left, right, two;
                 long double r = _kt_fisher_exact(n11,
