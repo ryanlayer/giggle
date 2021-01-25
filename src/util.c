@@ -18,6 +18,12 @@
 
 #include "util.h"
 
+int safe_subtract(uint32_t a, uint32_t b) {
+    if ( a < b )
+        return 0;
+    return a - b;
+}
+
 int long_uint_pair_cmp(const void *_a, const void *_b)
 {
     struct long_uint_pair *a = (struct long_uint_pair *)_a;

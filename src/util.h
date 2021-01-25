@@ -13,6 +13,8 @@
 #include "giggle_index.h"
 #include "file_read.h"
 
+int safe_subtract(uint32_t a, uint32_t b);
+
 struct doubles_uint32_t_tuple
 {
     double d1,d2;
