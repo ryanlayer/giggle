@@ -17,6 +17,7 @@
  *       0-31  : size
  *      32-63  : num
  *      64-... : offsets
+ *      ..-... : uncompressed_sizes
  *
  * data_file:
  *              0-offsets[0] : 1st element
@@ -36,6 +37,7 @@ struct disk_store
     uint64_t index_start_offset; //!< End of header file position in offsets
     uint64_t data_start_offset; //!< End of header file position in data
     uint64_t *offsets; //!< Array of data end offsets stored on disk
+    uint32_t *uncompressed_sizes; //!< Array of uncompressed_sizes of data stored on disk
 };
 
 /**

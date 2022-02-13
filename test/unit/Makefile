@@ -8,6 +8,7 @@ PREFIX=Runner_
 RUNNERS=$(addprefix $(PREFIX),$(TESTS))
 
 NO_PRE_SRC_FILES= disk_store.c \
+		 zlib_wrapper.c \
 		 cache.c \
 		 giggle_index.c \
 		 lists.c \
