@@ -4,20 +4,23 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define DISK_COMPRESSION 1
+
+
 /**
  * @brief The interface to on-disk storage
  *
  * Files are stored using two data structures. Serialized data elements are
  * stored sequentially in the data_file (*.dat) and offsets is an array of
  * the last offset for each stored element in the data file. The size of the
- * element and its start position can be infered by the prevous element in the
- * offfset array.  The offset array is stored in the index_file (*.idx).
+ * element and its start position can be inferred by the previous element in the
+ * offset array.  The offset array is stored in the index_file (*.idx).
  *
  * index_file: 
  *       0-31  : size
  *      32-63  : num
  *      64-... : offsets
- *      ..-... : uncompressed_sizes
+ *      ..-... : uncompressed_sizes #if DISK_COMPRESSION
  *
  * data_file:
  *              0-offsets[0] : 1st element
@@ -37,7 +40,11 @@ struct disk_store
     uint64_t index_start_offset; //!< End of header file position in offsets
     uint64_t data_start_offset; //!< End of header file position in data
     uint64_t *offsets; //!< Array of data end offsets stored on disk
+
+#if DISK_COMPRESSION
     uint32_t *uncompressed_sizes; //!< Array of uncompressed_sizes of data stored on disk
+#endif
+
 };
 
 /**

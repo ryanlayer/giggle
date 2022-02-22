@@ -5,3 +5,6 @@ inkids_rare_smaller.bed.gz
 *_Runner.c
 *.dSYM/
 *.DS_Store
+bin/
+lib/
+ssshtest
