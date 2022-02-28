@@ -16,17 +16,12 @@
 #define DISK_LOG_FILENAME "disk_zlib_log.csv"
 #endif
 
-struct disk_file_header *new_disk_file_header(uint8_t is_index_file, uint8_t compression_method) {
+struct disk_file_header *new_disk_file_header(uint8_t compression_method) {
     
     struct disk_file_header *h = (struct disk_file_header *) 
             calloc(1, sizeof(struct disk_file_header));
     if (h == NULL)
         err(1, "calloc error in disk_store_init().");
-    if (is_index_file) {
-        strncpy(h->marker, "GIGLIDX", 7);
-    } else {
-        strncpy(h->marker, "GIGLDAT", 7);
-    }
     h->compression_method = compression_method;
     return h;
 }
@@ -43,9 +38,12 @@ struct disk_store *disk_store_init(uint32_t size,
         err(1, "calloc error in disk_store_init().");
 
     ds->is_compressed = true;
-    ds->index_file_header = new_disk_file_header(true, 'z');
-    ds->data_file_header = new_disk_file_header(false, 'z');
-    
+    if (ds->is_compressed) {
+        ds->file_header = new_disk_file_header('z');
+    } else {
+        ds->file_header = NULL;
+    }
+
     ds->num = 0;
     ds->size = size;
     ds->index_file_name = strdup(index_file_name);
@@ -71,8 +69,13 @@ struct disk_store *disk_store_init(uint32_t size,
         ds->index_fp = *index_fp;
     }
 
-    if (fwrite(ds->index_file_header, sizeof(struct disk_file_header), 1, ds->index_fp) != 1)
-        err(1, "Could not write index_file_header to '%s'.", ds->index_file_name);
+    char index_file_marker[GIGGLE_FILE_MARKER_LENGTH] = GIGGLE_INDEX_FILE_MARKER;
+
+    if (fwrite(index_file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, ds->index_fp) != 1)
+        err(1, "Could not write index_file_marker to '%s'.", ds->index_file_name);
+
+    if (fwrite(ds->file_header, sizeof(struct disk_file_header), 1, ds->index_fp) != 1)
+        err(1, "Could not write file_header to '%s'.", ds->index_file_name);
 
     if (fwrite(&(ds->size), sizeof(uint32_t), 1, ds->index_fp) != 1)
         err(1, "Could not write size to '%s'.", ds->index_file_name);
@@ -89,9 +92,14 @@ struct disk_store *disk_store_init(uint32_t size,
     } else {
         ds->data_fp = *data_fp;
     }
-    
-    if (fwrite(ds->data_file_header, sizeof(struct disk_file_header), 1, ds->data_fp) != 1)
-        err(1, "Could not write data_file_header to '%s'.", ds->data_file_name);
+
+    char data_file_marker[GIGGLE_FILE_MARKER_LENGTH] = GIGGLE_DATA_FILE_MARKER;
+
+    if (fwrite(data_file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, ds->data_fp) != 1)
+        err(1, "Could not write data_file_marker to '%s'.", ds->data_file_name);
+
+    if (fwrite(ds->file_header, sizeof(struct disk_file_header), 1, ds->data_fp) != 1)
+        err(1, "Could not write file_header to '%s'.", ds->data_file_name);
 
     ds->data_start_offset = ftell(ds->data_fp);
 

@@ -40,8 +40,11 @@
  *   ...
  */
 
+#define GIGGLE_FILE_MARKER_LENGTH 7
+#define GIGGLE_INDEX_FILE_MARKER "GIGLIDX"
+#define GIGGLE_DATA_FILE_MARKER "GIGLDAT"
+
 struct disk_file_header {
-    char marker[7]; // GIGLIDX/GIGLDAT
     uint8_t compression_method, flag, extra;
 };
 struct disk_store
@@ -57,14 +60,13 @@ struct disk_store
     uint64_t *offsets; //!< Array of data end offsets stored on disk
     uint32_t *uncompressed_sizes; //!< Array of uncompressed_sizes of data stored on disk
     uint8_t is_compressed; //!< Is the data stored in data file compressed?
-    struct disk_file_header *index_file_header; //!< File header of the index file
-    struct disk_file_header *data_file_header; //!< File header of the data file
+    struct disk_file_header *file_header; //!< File header
 };
 
 /**
  * @brief Create a new disk file header
  */
-struct disk_file_header *new_disk_file_header(uint8_t is_index_file, uint8_t compression_method);
+struct disk_file_header *new_disk_file_header(uint8_t compression_method);
 
 /**
  * @brief Initialize a new disk store
