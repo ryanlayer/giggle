@@ -4,12 +4,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define DISK_COMPRESSION 1
-
-
 /**
  * @brief The interface to on-disk storage
  *
+ * 
  * Files are stored using two data structures. Serialized data elements are
  * stored sequentially in the data_file (*.dat) and offsets is an array of
  * the last offset for each stored element in the data file. The size of the
@@ -17,18 +15,35 @@
  * offset array.  The offset array is stored in the index_file (*.idx).
  *
  * index_file: 
- *       0-31  : size
- *      32-63  : num
- *      64-... : offsets
- *      ..-... : uncompressed_sizes #if DISK_COMPRESSION
+ *   file_header (might be absent):
+ *                0-55 (7B) : GIGLIDX (File identifier/marker)
+ *               56-63 (1B) : Compression Method
+ *               64-71 (1B) : Flag
+ *               72-79 (1B) : Extra
+ *   data:
+ *              80-111 (4B) : size
+ *             112-143 (4B) : num
+ *      144-... (8B * size) : offsets
+ *      ...-... (8B * size) : uncompressed_sizes // if compression is used
  *
  * data_file:
- *              0-offsets[0] : 1st element
+ *   file_header (might be absent):
+ *                 0-55 (7B) : GIGLDAT (File identifier/marker)
+ *                56-63 (1B) : Compression Method
+ *                64-71 (1B) : Flag
+ *                72-79 (1B) : Extra
+ *   data:
+ *             80-offsets[0] : 1st element
  *     offsets[0]-offsets[1] : 2nd element
  *   ...
  *   offsets[i-1]-offsets[i] : nth element
  *   ...
  */
+
+struct disk_file_header {
+    char marker[7]; // GIGLIDX/GIGLDAT
+    uint8_t compression_method, flag, extra;
+};
 struct disk_store
 {
     char *index_file_name; //!< Name of file containing offsets
@@ -40,12 +55,16 @@ struct disk_store
     uint64_t index_start_offset; //!< End of header file position in offsets
     uint64_t data_start_offset; //!< End of header file position in data
     uint64_t *offsets; //!< Array of data end offsets stored on disk
-
-#if DISK_COMPRESSION
     uint32_t *uncompressed_sizes; //!< Array of uncompressed_sizes of data stored on disk
-#endif
-
+    uint8_t is_compressed; //!< Is the data stored in data file compressed?
+    struct disk_file_header *index_file_header; //!< File header of the index file
+    struct disk_file_header *data_file_header; //!< File header of the data file
 };
+
+/**
+ * @brief Create a new disk file header
+ */
+struct disk_file_header *new_disk_file_header(uint8_t is_index_file, uint8_t compression_method);
 
 /**
  * @brief Initialize a new disk store

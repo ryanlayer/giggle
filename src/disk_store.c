@@ -7,10 +7,7 @@
 #include <err.h>
 #include "util.h"
 #include "disk_store.h"
-
-#if DISK_COMPRESSION
 #include "zlib_wrapper.h"
-#endif
 
 #define DISK_LOG 0
 
@@ -18,6 +15,21 @@
 #include <sys/time.h>
 #define DISK_LOG_FILENAME "disk_zlib_log.csv"
 #endif
+
+struct disk_file_header *new_disk_file_header(uint8_t is_index_file, uint8_t compression_method) {
+    
+    struct disk_file_header *h = (struct disk_file_header *) 
+            calloc(1, sizeof(struct disk_file_header));
+    if (h == NULL)
+        err(1, "calloc error in disk_store_init().");
+    if (is_index_file) {
+        strncpy(h->marker, "GIGLIDX", 7);
+    } else {
+        strncpy(h->marker, "GIGLDAT", 7);
+    }
+    h->compression_method = compression_method;
+    return h;
+}
 
 struct disk_store *disk_store_init(uint32_t size,
                                    FILE **index_fp,
@@ -30,6 +42,10 @@ struct disk_store *disk_store_init(uint32_t size,
     if (ds == NULL)
         err(1, "calloc error in disk_store_init().");
 
+    ds->is_compressed = true;
+    ds->index_file_header = new_disk_file_header(true, 'z');
+    ds->data_file_header = new_disk_file_header(false, 'z');
+    
     ds->num = 0;
     ds->size = size;
     ds->index_file_name = strdup(index_file_name);
@@ -37,12 +53,15 @@ struct disk_store *disk_store_init(uint32_t size,
     ds->offsets = (uint64_t *)calloc(size, sizeof(uint64_t));
     if (ds->offsets == NULL)
         err(1, "calloc error in disk_store_init().");
+    
 
-#if DISK_COMPRESSION
-    ds->uncompressed_sizes = (uint32_t *)calloc(size, sizeof(uint32_t));
-    if (ds->uncompressed_sizes == NULL)
-        err(1, "calloc error in disk_store_init().");
-#endif
+    if (ds->is_compressed) {
+        ds->uncompressed_sizes = (uint32_t *)calloc(size, sizeof(uint32_t));
+        if (ds->uncompressed_sizes == NULL)
+            err(1, "calloc error in disk_store_init().");
+    } else {
+        ds->uncompressed_sizes = NULL;
+    }
 
     if ((index_fp == NULL) || (*index_fp == NULL)) {
         ds->index_fp = fopen(index_file_name, "wb");
@@ -51,7 +70,9 @@ struct disk_store *disk_store_init(uint32_t size,
     } else {
         ds->index_fp = *index_fp;
     }
-    ds->index_start_offset = ftell(ds->index_fp);
+
+    if (fwrite(ds->index_file_header, sizeof(struct disk_file_header), 1, ds->index_fp) != 1)
+        err(1, "Could not write index_file_header to '%s'.", ds->index_file_name);
 
     if (fwrite(&(ds->size), sizeof(uint32_t), 1, ds->index_fp) != 1)
         err(1, "Could not write size to '%s'.", ds->index_file_name);
@@ -59,12 +80,7 @@ struct disk_store *disk_store_init(uint32_t size,
     if (fwrite(&(ds->num), sizeof(uint32_t), 1, ds->index_fp) != 1)
         err(1, "Could not write num to '%s'.", ds->index_file_name);
 
-    
-    // if (fwrite(ds->offsets, sizeof(uint64_t), ds->size, ds->index_fp) != ds->size)
-    //     err(1, "Could not write offsets to '%s'.", ds->index_file_name);
-    // if (fwrite(ds->uncompressed_sizes, sizeof(uint32_t), ds->size, ds->index_fp) != ds->size)
-    //     err(1, "Could not write uncompressed_sizes to '%s'.", ds->index_file_name);
-    
+    ds->index_start_offset = ftell(ds->index_fp);
 
     if ((data_fp == NULL) || (*data_fp == NULL)) {
         ds->data_fp = fopen(data_file_name, "wb");
@@ -73,6 +89,10 @@ struct disk_store *disk_store_init(uint32_t size,
     } else {
         ds->data_fp = *data_fp;
     }
+    
+    if (fwrite(ds->data_file_header, sizeof(struct disk_file_header), 1, ds->data_fp) != 1)
+        err(1, "Could not write data_file_header to '%s'.", ds->data_file_name);
+
     ds->data_start_offset = ftell(ds->data_fp);
 
     return ds;
@@ -115,14 +135,14 @@ struct disk_store *disk_store_load(FILE **index_fp,
     fr = fread(ds->offsets, sizeof(uint64_t), ds->size, ds->index_fp);
     check_file_read(ds->index_file_name, ds->index_fp, ds->size, fr);
 
-#if DISK_COMPRESSION
-    ds->uncompressed_sizes = (uint32_t *)calloc(ds->size, sizeof(uint32_t));
-    if (ds->uncompressed_sizes == NULL)
-        err(1, "calloc error in disk_store_load().");
+    if (ds->is_compressed) {
+        ds->uncompressed_sizes = (uint32_t *)calloc(ds->size, sizeof(uint32_t));
+        if (ds->uncompressed_sizes == NULL)
+            err(1, "calloc error in disk_store_load().");
 
-    fr = fread(ds->uncompressed_sizes, sizeof(uint32_t), ds->size, ds->index_fp);
-    check_file_read(ds->index_file_name, ds->index_fp, ds->size, fr);
-#endif
+        fr = fread(ds->uncompressed_sizes, sizeof(uint32_t), ds->size, ds->index_fp);
+        check_file_read(ds->index_file_name, ds->index_fp, ds->size, fr);
+    }
 
     ds->data_file_name = strdup(data_file_name);
 
@@ -155,11 +175,11 @@ void disk_store_sync(struct disk_store *ds)
             ds->size)
         err(1, "Could not write offsets to '%s'.", ds->index_file_name);
 
-#if DISK_COMPRESSION
-    if (fwrite(ds->uncompressed_sizes, sizeof(uint32_t), ds->size, ds->index_fp) != 
-            ds->size)
-        err(1, "Could not write uncompressed_sizes to '%s'.", ds->index_file_name);
-#endif
+    if (ds->is_compressed) {
+        if (fwrite(ds->uncompressed_sizes, sizeof(uint32_t), ds->size, ds->index_fp) != 
+                ds->size)
+            err(1, "Could not write uncompressed_sizes to '%s'.", ds->index_file_name);
+    }
 }
 //}}}
 
@@ -171,11 +191,9 @@ void disk_store_destroy(struct disk_store **ds)
     free((*ds)->index_file_name);
     free((*ds)->data_file_name);
     free((*ds)->offsets);
-
-#if DISK_COMPRESSION
-    free((*ds)->uncompressed_sizes);
-#endif
-
+    if ((*ds)->is_compressed) {
+        free((*ds)->uncompressed_sizes);
+    }
     if ((*ds)->index_fp != (*ds)->data_fp) {
         fclose((*ds)->data_fp);
         (*ds)->data_fp = NULL;
@@ -207,16 +225,16 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
                0,
                old_size * sizeof(uint64_t));
 
-#if DISK_COMPRESSION
-        ds->uncompressed_sizes = (uint32_t *)realloc(ds->uncompressed_sizes,
-                                          ds->size * sizeof(uint32_t));
-        if (ds->uncompressed_sizes == NULL)
-            err(1, "realloc error in disk_store_append().");
+        if (ds->is_compressed) {
+            ds->uncompressed_sizes = (uint32_t *)realloc(ds->uncompressed_sizes,
+                                            ds->size * sizeof(uint32_t));
+            if (ds->uncompressed_sizes == NULL)
+                err(1, "realloc error in disk_store_append().");
 
-        memset(ds->uncompressed_sizes + old_size,
-               0,
-               old_size * sizeof(uint32_t));
-#endif
+            memset(ds->uncompressed_sizes + old_size,
+                0,
+                old_size * sizeof(uint32_t));
+        }
     }
 
     if (fseek(ds->data_fp, 0, SEEK_END) != 0)
@@ -243,10 +261,9 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
 
     ds->offsets[curr_id] = ftell(ds->data_fp);
 
-#if DISK_COMPRESSION
-    ds->uncompressed_sizes[curr_id] = size;
-#endif
-
+    if (ds->is_compressed) {
+        ds->uncompressed_sizes[curr_id] = size;
+    }
     ds->num += 1;
 
     return curr_id; 
