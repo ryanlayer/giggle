@@ -112,6 +112,7 @@ struct disk_store *disk_store_load(FILE **index_fp,
         ds->is_compressed = false;
         ds->file_header = NULL;
     } else {
+        ds->is_compressed = true;
         ds->file_header = index_h;
     }
 
