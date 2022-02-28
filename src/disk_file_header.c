@@ -18,7 +18,7 @@ struct disk_file_header *new_disk_file_header(uint8_t compression_method) {
 }
 
 void write_disk_file_header(char *file_marker, struct disk_file_header *h, FILE *fp, char *file_name) {
-    if (fwrite(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp) != 1)
+    if (fwrite(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp) != GIGGLE_FILE_MARKER_LENGTH)
         err(1, "Could not write file_marker to '%s'.", file_name);
 
     if (fwrite(&(h->compression_method), sizeof(uint8_t), 1, fp) != 1)
