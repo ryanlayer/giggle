@@ -59,8 +59,10 @@ struct disk_store *disk_store_init(uint32_t size,
         ds->index_fp = *index_fp;
     }
 
-    write_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->file_header, ds->index_fp, ds->index_file_name);
-
+    if (ds->is_compressed) {
+        write_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->file_header, ds->index_fp, ds->index_file_name);
+    }
+    
     ds->index_start_offset = ftell(ds->index_fp);
 
     if (fwrite(&(ds->size), sizeof(uint32_t), 1, ds->index_fp) != 1)
@@ -77,7 +79,9 @@ struct disk_store *disk_store_init(uint32_t size,
         ds->data_fp = *data_fp;
     }
 
-    write_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->file_header, ds->data_fp, ds->data_file_name);
+    if (ds->is_compressed) {
+        write_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->file_header, ds->data_fp, ds->data_file_name);
+    }
 
     ds->data_start_offset = ftell(ds->data_fp);
 
