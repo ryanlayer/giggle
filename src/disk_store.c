@@ -107,7 +107,7 @@ struct disk_store *disk_store_load(FILE **index_fp,
         ds->index_fp = *index_fp;
     }
     
-    struct disk_file_header *index_h = read_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->index_fp, ds->index_file_name);
+    struct disk_file_header *index_h = read_disk_file_header(ds->index_fp, ds->index_file_name, GIGGLE_INDEX_FILE_MARKER);
     if (index_h == NULL) {
         ds->is_compressed = false;
         ds->file_header = NULL;
@@ -151,7 +151,7 @@ struct disk_store *disk_store_load(FILE **index_fp,
         ds->data_fp = *data_fp;
     }
     
-    struct disk_file_header *data_h = read_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->data_fp, ds->data_file_name);
+    struct disk_file_header *data_h = read_disk_file_header(ds->data_fp, ds->data_file_name, GIGGLE_DATA_FILE_MARKER);
     if (data_h == NULL) {
         if (ds->is_compressed) {
             err(1, "Missing file header in data file '%s' when index file '%s' has file header.", data_file_name, index_file_name);
@@ -265,15 +265,16 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
          ((curr_id > 0) && (curr_offset != ds->offsets[curr_id - 1])) )
         err(1, "Index and file '%s' are out of sync.", ds->data_file_name);
     
-#if DISK_COMPRESSION
-    uLong compressed_size;
-    // TODO: Typecasting uint64_t to uLong -> Potential integer overflow. Will crash if (uncompressed) size > 4GB
-    void *compressed_data = zlib_compress(data, size, &compressed_size);
-    if (fwrite(compressed_data, compressed_size, 1, ds->data_fp) != 1)
-#else
-    if (fwrite(data, size, 1, ds->data_fp) != 1)
-#endif
-        err(1, "Could not write data to '%s'.", ds->data_file_name);
+    if (ds->is_compressed) {
+        uLong compressed_size;
+        // TODO: Typecasting uint64_t to uLong -> Potential integer overflow. Will crash if (uncompressed) size > 4GB
+        void *compressed_data = zlib_compress(data, size, &compressed_size);
+        if (fwrite(compressed_data, compressed_size, 1, ds->data_fp) != 1)
+            err(1, "Could not write data to '%s'.", ds->data_file_name);
+    } else {
+        if (fwrite(data, size, 1, ds->data_fp) != 1)
+            err(1, "Could not write data to '%s'.", ds->data_file_name);
+    }
 
     ds->offsets[curr_id] = ftell(ds->data_fp);
 
@@ -309,13 +310,15 @@ void *disk_store_get(struct disk_store *ds, uint32_t id, uint64_t *size)
         start_offset = ds->offsets[id - 1];
     uint64_t end_offset = ds->offsets[id];
 
-#if DISK_COMPRESSION
-    uLong compressed_size = end_offset - start_offset;
-    void *data = (void *) calloc(1, compressed_size);
-#else
-    *size = end_offset - start_offset;
-    void *data = (void *) calloc(1, *size);
-#endif
+    void *data;
+    uLong compressed_size = 0;
+    if (ds->is_compressed) {
+        compressed_size = end_offset - start_offset;
+        data = (void *) calloc(1, compressed_size);
+    } else {
+        *size = end_offset - start_offset;
+        data = (void *) calloc(1, *size);
+    }
 
     if (data == NULL)
         err(1, "calloc error in disk_store_get().");
@@ -323,19 +326,21 @@ void *disk_store_get(struct disk_store *ds, uint32_t id, uint64_t *size)
     if (fseek(ds->data_fp, start_offset, SEEK_SET) != 0)
         err(1, "Could not seek to data in '%s'.", ds->data_file_name);
 
-#if DISK_COMPRESSION
-    size_t fr = fread(data, compressed_size, 1, ds->data_fp);
-#else
-    size_t fr = fread(data, *size, 1, ds->data_fp);
-#endif
+    size_t fr;
+    if (ds->is_compressed) {
+        fr = fread(data, compressed_size, 1, ds->data_fp);
+    } else {
+        fr = fread(data, *size, 1, ds->data_fp);
+    }
 
     check_file_read(ds->data_file_name, ds->data_fp, 1, fr);
 
-#if DISK_COMPRESSION
-    uint32_t uncompressed_size = ds->uncompressed_sizes[id];
-    void *uncompressed_data = zlib_uncompress(data, compressed_size, uncompressed_size);
-    *size = uncompressed_size;
-#endif
+    void *uncompressed_data;
+    if (ds->is_compressed) {
+        uint32_t uncompressed_size = ds->uncompressed_sizes[id];
+        uncompressed_data = zlib_uncompress(data, compressed_size, uncompressed_size);
+        *size = uncompressed_size;
+    }
 
 #if DISK_LOG
     // end time
@@ -344,19 +349,18 @@ void *disk_store_get(struct disk_store *ds, uint32_t id, uint64_t *size)
     long microseconds = end.tv_usec - begin.tv_usec;
     long elapsed = seconds * 1e6 + microseconds;
 
-#if DISK_COMPRESSION
-    fprintf(fp, "%u\t%lu\t%lu\n", uncompressed_size, compressed_size, elapsed);
-#else
-    fprintf(fp, "%u\t%lu\n", *size, elapsed);
-#endif
+    if (ds->is_compressed) {
+        fprintf(fp, "%u\t%lu\t%lu\n", uncompressed_size, compressed_size, elapsed);
+    } else {
+        fprintf(fp, "%u\t%lu\n", *size, elapsed);
+    }
 
     fclose(fp);
 #endif
 
-#if DISK_COMPRESSION
-    return uncompressed_data;
-#else
-    return data;
-#endif
+    if (ds->is_compressed) {
+        return uncompressed_data;
+    } else {
+        return data;
+    }
 }
-//}}}

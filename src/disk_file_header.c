@@ -21,13 +21,13 @@ void write_disk_file_header(char *file_marker, struct disk_file_header *h, FILE 
     if (fwrite(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp) != 1)
         err(1, "Could not write file_marker to '%s'.", file_name);
 
-    if (fwrite(h->compression_method, sizeof(uint8_t), 1, fp) != 1)
+    if (fwrite(&(h->compression_method), sizeof(uint8_t), 1, fp) != 1)
         err(1, "Could not write compression_method to '%s'.", file_name);
 
-    if (fwrite(h->flag, sizeof(uint8_t), 1, fp) != 1)
+    if (fwrite(&(h->flag), sizeof(uint8_t), 1, fp) != 1)
         err(1, "Could not write flag to '%s'.", file_name);
 
-    if (fwrite(h->extra, sizeof(uint8_t), 1, fp) != 1)
+    if (fwrite(&(h->extra), sizeof(uint8_t), 1, fp) != 1)
         err(1, "Could not write extra to '%s'.", file_name);
 }
 
@@ -45,13 +45,13 @@ struct disk_file_header *read_disk_file_header(FILE *fp, char *file_name, char *
     if (h == NULL)
         err(1, "calloc error in read_disk_file_header().");
 
-    fr = fread(h->compression_method, sizeof(uint8_t), 1, fp);
+    fr = fread(&(h->compression_method), sizeof(uint8_t), 1, fp);
     check_file_read(file_name, fp, 1, fr);
 
-    fr = fread(h->flag, sizeof(uint8_t), 1, fp);
+    fr = fread(&(h->flag), sizeof(uint8_t), 1, fp);
     check_file_read(file_name, fp, 1, fr);
 
-    fr = fread(h->extra, sizeof(uint8_t), 1, fp);
+    fr = fread(&(h->extra), sizeof(uint8_t), 1, fp);
     check_file_read(file_name, fp, 1, fr);
     
     return h;

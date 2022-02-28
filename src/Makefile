@@ -14,6 +14,7 @@ CC=gcc
 
 
 LIB=bpt.o \
+    disk_file_header.o \
     disk_store.o \
     zlib_wrapper.o \
     cache.o \
