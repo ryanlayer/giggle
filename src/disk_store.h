@@ -40,13 +40,6 @@
  *   ...
  */
 
-#define GIGGLE_FILE_MARKER_LENGTH 7
-#define GIGGLE_INDEX_FILE_MARKER "GIGLIDX"
-#define GIGGLE_DATA_FILE_MARKER "GIGLDAT"
-
-struct disk_file_header {
-    uint8_t compression_method, flag, extra;
-};
 struct disk_store
 {
     char *index_file_name; //!< Name of file containing offsets
@@ -62,11 +55,6 @@ struct disk_store
     uint8_t is_compressed; //!< Is the data stored in data file compressed?
     struct disk_file_header *file_header; //!< File header
 };
-
-/**
- * @brief Create a new disk file header
- */
-struct disk_file_header *new_disk_file_header(uint8_t compression_method);
 
 /**
  * @brief Initialize a new disk store

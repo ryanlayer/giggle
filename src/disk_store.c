@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <err.h>
 #include "util.h"
+#include "disk_file_header.h"
 #include "disk_store.h"
 #include "zlib_wrapper.h"
 
@@ -15,16 +16,6 @@
 #include <sys/time.h>
 #define DISK_LOG_FILENAME "disk_zlib_log.csv"
 #endif
-
-struct disk_file_header *new_disk_file_header(uint8_t compression_method) {
-    
-    struct disk_file_header *h = (struct disk_file_header *) 
-            calloc(1, sizeof(struct disk_file_header));
-    if (h == NULL)
-        err(1, "calloc error in disk_store_init().");
-    h->compression_method = compression_method;
-    return h;
-}
 
 struct disk_store *disk_store_init(uint32_t size,
                                    FILE **index_fp,
@@ -52,7 +43,6 @@ struct disk_store *disk_store_init(uint32_t size,
     if (ds->offsets == NULL)
         err(1, "calloc error in disk_store_init().");
     
-
     if (ds->is_compressed) {
         ds->uncompressed_sizes = (uint32_t *)calloc(size, sizeof(uint32_t));
         if (ds->uncompressed_sizes == NULL)
@@ -69,21 +59,15 @@ struct disk_store *disk_store_init(uint32_t size,
         ds->index_fp = *index_fp;
     }
 
-    char index_file_marker[GIGGLE_FILE_MARKER_LENGTH] = GIGGLE_INDEX_FILE_MARKER;
+    write_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->file_header, ds->index_fp, ds->index_file_name);
 
-    if (fwrite(index_file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, ds->index_fp) != 1)
-        err(1, "Could not write index_file_marker to '%s'.", ds->index_file_name);
-
-    if (fwrite(ds->file_header, sizeof(struct disk_file_header), 1, ds->index_fp) != 1)
-        err(1, "Could not write file_header to '%s'.", ds->index_file_name);
+    ds->index_start_offset = ftell(ds->index_fp);
 
     if (fwrite(&(ds->size), sizeof(uint32_t), 1, ds->index_fp) != 1)
         err(1, "Could not write size to '%s'.", ds->index_file_name);
 
     if (fwrite(&(ds->num), sizeof(uint32_t), 1, ds->index_fp) != 1)
         err(1, "Could not write num to '%s'.", ds->index_file_name);
-
-    ds->index_start_offset = ftell(ds->index_fp);
 
     if ((data_fp == NULL) || (*data_fp == NULL)) {
         ds->data_fp = fopen(data_file_name, "wb");
@@ -93,13 +77,7 @@ struct disk_store *disk_store_init(uint32_t size,
         ds->data_fp = *data_fp;
     }
 
-    char data_file_marker[GIGGLE_FILE_MARKER_LENGTH] = GIGGLE_DATA_FILE_MARKER;
-
-    if (fwrite(data_file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, ds->data_fp) != 1)
-        err(1, "Could not write data_file_marker to '%s'.", ds->data_file_name);
-
-    if (fwrite(ds->file_header, sizeof(struct disk_file_header), 1, ds->data_fp) != 1)
-        err(1, "Could not write file_header to '%s'.", ds->data_file_name);
+    write_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->file_header, ds->data_fp, ds->data_file_name);
 
     ds->data_start_offset = ftell(ds->data_fp);
 
@@ -128,6 +106,15 @@ struct disk_store *disk_store_load(FILE **index_fp,
     } else {
         ds->index_fp = *index_fp;
     }
+    
+    struct disk_file_header *index_h = read_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->index_fp, ds->index_file_name);
+    if (index_h == NULL) {
+        ds->is_compressed = false;
+        ds->file_header = NULL;
+    } else {
+        ds->file_header = index_h;
+    }
+
     ds->index_start_offset = ftell(ds->index_fp);
 
     size_t fr = fread(&(ds->size), sizeof(uint32_t), 1, ds->index_fp);
@@ -150,6 +137,8 @@ struct disk_store *disk_store_load(FILE **index_fp,
 
         fr = fread(ds->uncompressed_sizes, sizeof(uint32_t), ds->size, ds->index_fp);
         check_file_read(ds->index_file_name, ds->index_fp, ds->size, fr);
+    } else {
+        ds->uncompressed_sizes = NULL;
     }
 
     ds->data_file_name = strdup(data_file_name);
@@ -161,6 +150,21 @@ struct disk_store *disk_store_load(FILE **index_fp,
     } else {
         ds->data_fp = *data_fp;
     }
+    
+    struct disk_file_header *data_h = read_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->data_fp, ds->data_file_name);
+    if (data_h == NULL) {
+        if (ds->is_compressed) {
+            err(1, "Missing file header in data file '%s' when index file '%s' has file header.", data_file_name, index_file_name);
+        }
+    } else {
+        if (ds->is_compressed) {
+            if (data_h->compression_method != index_h->compression_method || data_h->extra != index_h->extra || data_h->flag != index_h->flag) {
+                err(1, "File header mismatch in data file '%s' and index file '%s'.", data_file_name, index_file_name);
+            }
+        }
+        free(data_h);
+    }
+
     ds->data_start_offset = ftell(ds->data_fp);
 
     return ds;
@@ -209,6 +213,10 @@ void disk_store_destroy(struct disk_store **ds)
 
     fclose((*ds)->index_fp);
     (*ds)->index_fp = NULL;
+
+    if ((*ds)->file_header != NULL) {
+        free((*ds)->file_header);
+    }
 
     free(*ds);
     *ds = NULL;
