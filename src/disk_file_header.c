@@ -36,7 +36,7 @@ struct disk_file_header *read_disk_file_header(FILE *fp, char *file_name, char *
     
     size_t fr = fread(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp);
     if (fr != GIGGLE_FILE_MARKER_LENGTH || strcmp(expected_file_marker, file_marker) != 0) {
-        fseek(fp, 0, SEEK_SET);
+        fseek(fp, 0, SEEK_SET); // uncompressed file
         return NULL;
     }
 

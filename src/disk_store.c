@@ -32,6 +32,7 @@ struct disk_store *disk_store_init(uint32_t size,
     if (ds->is_compressed) {
         ds->file_header = new_disk_file_header('z');
     } else {
+        // only for demo purposes, not to be pushed to production
         ds->file_header = NULL;
     }
 
@@ -60,7 +61,8 @@ struct disk_store *disk_store_init(uint32_t size,
     }
 
     if (ds->is_compressed) {
-        write_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->file_header, ds->index_fp, ds->index_file_name);
+        write_disk_file_header(GIGGLE_INDEX_FILE_MARKER, ds->file_header, 
+                               ds->index_fp, ds->index_file_name);
     }
     
     ds->index_start_offset = ftell(ds->index_fp);
@@ -80,7 +82,8 @@ struct disk_store *disk_store_init(uint32_t size,
     }
 
     if (ds->is_compressed) {
-        write_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->file_header, ds->data_fp, ds->data_file_name);
+        write_disk_file_header(GIGGLE_DATA_FILE_MARKER, ds->file_header, 
+                               ds->data_fp, ds->data_file_name);
     }
 
     ds->data_start_offset = ftell(ds->data_fp);
@@ -111,7 +114,9 @@ struct disk_store *disk_store_load(FILE **index_fp,
         ds->index_fp = *index_fp;
     }
     
-    struct disk_file_header *index_h = read_disk_file_header(ds->index_fp, ds->index_file_name, GIGGLE_INDEX_FILE_MARKER);
+    struct disk_file_header *index_h = read_disk_file_header(ds->index_fp, 
+                                                             ds->index_file_name, 
+                                                             GIGGLE_INDEX_FILE_MARKER);
     if (index_h == NULL) {
         ds->is_compressed = false;
         ds->file_header = NULL;
@@ -156,15 +161,21 @@ struct disk_store *disk_store_load(FILE **index_fp,
         ds->data_fp = *data_fp;
     }
     
-    struct disk_file_header *data_h = read_disk_file_header(ds->data_fp, ds->data_file_name, GIGGLE_DATA_FILE_MARKER);
+    struct disk_file_header *data_h = read_disk_file_header(ds->data_fp,
+                                                            ds->data_file_name,
+                                                            GIGGLE_DATA_FILE_MARKER);
     if (data_h == NULL) {
-        if (ds->is_compressed) {
-            err(1, "Missing file header in data file '%s' when index file '%s' has file header.", data_file_name, index_file_name);
+        if (ds->file_header != NULL) {
+            err(1, "Missing file header in data file '%s' when index file '%s' has file header.", 
+            data_file_name, index_file_name);
         }
     } else {
-        if (ds->is_compressed) {
-            if (data_h->compression_method != index_h->compression_method || data_h->extra != index_h->extra || data_h->flag != index_h->flag) {
-                err(1, "File header mismatch in data file '%s' and index file '%s'.", data_file_name, index_file_name);
+        if (ds->file_header != NULL) {
+            if (data_h->compression_method != index_h->compression_method || 
+                data_h->extra != index_h->extra || 
+                data_h->flag != index_h->flag) {
+                err(1, "File header mismatch in data file '%s' and index file '%s'.", 
+                data_file_name, index_file_name);
             }
         }
         free(data_h);
