@@ -8,3 +8,5 @@ inkids_rare_smaller.bed.gz
 bin/
 lib/
 ssshtest
+test/**/*.idx
+test/**/*.dat
