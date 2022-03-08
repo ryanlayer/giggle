@@ -2,7 +2,7 @@ UNITY_ROOT=./unity
 HTS_ROOT=../../lib/htslib/
 CC=gcc
 SRC=../../src/
-TEST_SRC=$(wildcard *.c)
+TEST_SRC = $(filter-out $(wildcard *_Runner.c), $(wildcard *.c))
 TEST_NAMES=$(TEST_SRC:.c=)
 PREFIX=Runner_
 RUNNERS=$(addprefix $(PREFIX),$(TESTS))
