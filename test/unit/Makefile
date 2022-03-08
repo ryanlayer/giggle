@@ -57,6 +57,6 @@ test:
 	$(foreach var,$(TEST_NAMES),./$(var).o;)
 
 clean:
-	rm -f $(TEST_NAMES)
+	rm -f *.o
 	rm -f *_Runner.c
 	rm -rf *dSYM/
