@@ -10,3 +10,7 @@ lib/
 ssshtest
 test/**/*.idx
 test/**/*.dat
+!test/unit/Makefile
+!test/unit/unity/
+!test/unit/*.c
+test/unit/

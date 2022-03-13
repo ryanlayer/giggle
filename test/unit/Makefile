@@ -40,7 +40,7 @@ endif
 %: %.c
 	#ruby $(UNITY_ROOT)/auto/generate_test_runner.rb $@.c
 	ruby $(UNITY_ROOT)/generate_test_runner.rb $@.c
-	$(CC) -Werror -g -o $@.o \
+	$(CC) -Werror -g -o $@ \
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
 	    -I$(HTS_ROOT) \
@@ -54,9 +54,9 @@ endif
 	#rm $@_Runner.c
 
 test:
-	$(foreach var,$(TEST_NAMES),./$(var).o;)
+	$(foreach var,$(TEST_NAMES),./$(var);)
 
 clean:
-	rm -f *.o
+	rm -f $(TEST_NAMES)
 	rm -f *_Runner.c
 	rm -rf *dSYM/
