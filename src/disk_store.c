@@ -8,8 +8,6 @@
 #include "util.h"
 #include "disk_file_header.h"
 #include "disk_store.h"
-#include "zlib_wrapper.h"
-#include "fastlz_wrapper.h"
 
 #define DISK_LOG 0
 
@@ -29,11 +27,14 @@ struct disk_store *disk_store_init(uint32_t size,
     if (ds == NULL)
         err(1, "calloc error in disk_store_init().");
 
-    ds->is_compressed = true;
-    if (ds->is_compressed) {
-        ds->file_header = new_disk_file_header('z');
+    // Only for demo purposes, not to be pushed to production. Ideally accept as cmd arg
+    uint8_t compression_method = 'z';
+    uint8_t compression_level = 6;
+    if (compression_method) {
+        ds->is_compressed = true;
+        ds->file_header = new_disk_file_header(compression_method, compression_level);
     } else {
-        // only for demo purposes, not to be pushed to production
+        ds->is_compressed = false;
         ds->file_header = NULL;
     }
 
@@ -173,8 +174,8 @@ struct disk_store *disk_store_load(FILE **index_fp,
     } else {
         if (ds->file_header != NULL) {
             if (data_h->compression_method != index_h->compression_method || 
-                data_h->extra != index_h->extra || 
-                data_h->flag != index_h->flag) {
+                data_h->compression_level != index_h->compression_level ||
+                data_h->extra != index_h->extra) {
                 err(1, "File header mismatch in data file '%s' and index file '%s'.", 
                 data_file_name, index_file_name);
             }
@@ -285,7 +286,7 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
     if (ds->is_compressed) {
         uLong compressed_size;
         // TODO: Typecasting uint64_t to uLong -> Potential integer overflow. Will crash if (uncompressed) size > 4GB
-        void *compressed_data = fastlz_wrapper_compress(data, size, &compressed_size);
+        void *compressed_data = ds->file_header->compress(data, size, ds->file_header->compression_level, &compressed_size);
         if (fwrite(compressed_data, compressed_size, 1, ds->data_fp) != 1)
             err(1, "Could not write data to '%s'.", ds->data_file_name);
     } else {
@@ -355,7 +356,7 @@ void *disk_store_get(struct disk_store *ds, uint32_t id, uint64_t *size)
     void *uncompressed_data;
     if (ds->is_compressed) {
         uint32_t uncompressed_size = ds->uncompressed_sizes[id];
-        uncompressed_data = fastlz_wrapper_uncompress(data, compressed_size, uncompressed_size);
+        uncompressed_data = ds->file_header->uncompress(data, compressed_size, uncompressed_size);
         *size = uncompressed_size;
     }
 

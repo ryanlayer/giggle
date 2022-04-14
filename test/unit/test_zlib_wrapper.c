@@ -17,7 +17,7 @@ void test_zlib_wrapper(void)
     void *data = &x;
     uLong uncompressed_size = sizeof(x);
     uLong compressed_size;
-    void *compressed_data = zlib_compress(data, uncompressed_size, &compressed_size);
+    void *compressed_data = zlib_compress(data, uncompressed_size, 6, &compressed_size);
     void *uncompressed_data = zlib_uncompress(compressed_data, compressed_size, uncompressed_size);
     uint32_t y = *((uint32_t *)uncompressed_data);
     TEST_ASSERT_EQUAL(x, y);

@@ -4,7 +4,7 @@
 #include <err.h>
 #include "zlib_wrapper.h"
 
-void* zlib_compress(void *data, uLong uncompressed_size, uLong *compressed_size) {
+void* zlib_compress(void *data, uLong uncompressed_size, int level, uLong *compressed_size) {
 
     *compressed_size = compressBound(uncompressed_size);
 
@@ -13,7 +13,7 @@ void* zlib_compress(void *data, uLong uncompressed_size, uLong *compressed_size)
         err(1, "calloc error in zlib_compress().");
 
     // Deflate
-    compress((Bytef *)compressed_data, compressed_size, (Bytef *)data, uncompressed_size);
+    compress2((Bytef *)compressed_data, compressed_size, (Bytef *)data, uncompressed_size, level);
 
     return compressed_data;
 }

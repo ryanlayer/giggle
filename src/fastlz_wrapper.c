@@ -4,7 +4,7 @@
 #include <err.h>
 #include "fastlz_wrapper.h"
 
-void* fastlz_wrapper_compress(void *data, uLong uncompressed_size, uLong *compressed_size) {
+void* fastlz_wrapper_compress(void *data, uLong uncompressed_size, int level, uLong *compressed_size) {
 
     *compressed_size = uncompressed_size * 1.05 + 1; // extra 1 in case of round down
     if (*compressed_size < MINIMUM_BUFFER_SIZE) {
@@ -16,7 +16,7 @@ void* fastlz_wrapper_compress(void *data, uLong uncompressed_size, uLong *compre
         err(1, "calloc error in fastlz_compress().");
 
     // Deflate
-    *compressed_size = fastlz_compress_level(2, data, uncompressed_size, compressed_data);
+    *compressed_size = fastlz_compress_level(level, data, uncompressed_size, compressed_data);
 
     return compressed_data;
 }
