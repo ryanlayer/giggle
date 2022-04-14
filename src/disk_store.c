@@ -9,6 +9,7 @@
 #include "disk_file_header.h"
 #include "disk_store.h"
 #include "zlib_wrapper.h"
+#include "fastlz_wrapper.h"
 
 #define DISK_LOG 0
 
@@ -284,7 +285,7 @@ uint32_t disk_store_append(struct disk_store *ds, void *data, uint64_t size)
     if (ds->is_compressed) {
         uLong compressed_size;
         // TODO: Typecasting uint64_t to uLong -> Potential integer overflow. Will crash if (uncompressed) size > 4GB
-        void *compressed_data = zlib_compress(data, size, &compressed_size);
+        void *compressed_data = fastlz_wrapper_compress(data, size, &compressed_size);
         if (fwrite(compressed_data, compressed_size, 1, ds->data_fp) != 1)
             err(1, "Could not write data to '%s'.", ds->data_file_name);
     } else {
@@ -354,7 +355,7 @@ void *disk_store_get(struct disk_store *ds, uint32_t id, uint64_t *size)
     void *uncompressed_data;
     if (ds->is_compressed) {
         uint32_t uncompressed_size = ds->uncompressed_sizes[id];
-        uncompressed_data = zlib_uncompress(data, compressed_size, uncompressed_size);
+        uncompressed_data = fastlz_wrapper_uncompress(data, compressed_size, uncompressed_size);
         *size = uncompressed_size;
     }
 
