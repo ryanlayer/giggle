@@ -18,7 +18,7 @@
  *   file_header (might be absent):
  *                0-55 (7B) : GIGLIDX (File identifier/marker)
  *               56-63 (1B) : Compression Method
- *               64-71 (1B) : Flag
+ *               64-71 (1B) : Compression Level
  *               72-79 (1B) : Extra
  *   data:
  *              80-111 (4B) : size
