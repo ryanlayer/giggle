@@ -1,0 +1,2 @@
+command,mean,stddev,median,user,system,min,max
+"$GIGGLE_ROOT/bin/giggle index -s -f -i ""roadmap_sort/*gz"" -o zlib0",88.7408512163,0,88.7408512163,78.20686414000001,10.524262,88.7408512163,88.7408512163
