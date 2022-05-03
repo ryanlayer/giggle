@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 
     if ((argc != 4)) {
         errx(1,
-             "usage:\t%s <offest idx> <file idx> <idx>",
+             "usage:\t%s <offset idx> <file idx> <idx>",
              argv[0]);
     }
 

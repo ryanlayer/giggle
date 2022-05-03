@@ -14,7 +14,10 @@ CC=gcc
 
 
 LIB=bpt.o \
+    disk_file_header.o \
     disk_store.o \
+    zlib_wrapper.o \
+    fastlz_wrapper.o \
     cache.o \
     data_reg.o \
     file_read.o \

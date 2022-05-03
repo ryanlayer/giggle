@@ -7,24 +7,39 @@
 /**
  * @brief The interface to on-disk storage
  *
+ * 
  * Files are stored using two data structures. Serialized data elements are
  * stored sequentially in the data_file (*.dat) and offsets is an array of
  * the last offset for each stored element in the data file. The size of the
- * element and its start position can be infered by the prevous element in the
- * offfset array.  The offset array is stored in the index_file (*.idx).
+ * element and its start position can be inferred by the previous element in the
+ * offset array.  The offset array is stored in the index_file (*.idx).
  *
  * index_file: 
- *       0-31  : size
- *      32-63  : num
- *      64-... : offsets
+ *   file_header (might be absent):
+ *                0-55 (7B) : GIGLIDX (File identifier/marker)
+ *               56-63 (1B) : Compression Method
+ *               64-71 (1B) : Compression Level
+ *               72-79 (1B) : Extra
+ *   data:
+ *              80-111 (4B) : size
+ *             112-143 (4B) : num
+ *      144-... (8B * size) : offsets
+ *      ...-... (8B * size) : uncompressed_sizes // if compression is used
  *
  * data_file:
- *              0-offsets[0] : 1st element
+ *   file_header (might be absent):
+ *                 0-55 (7B) : GIGLDAT (File identifier/marker)
+ *                56-63 (1B) : Compression Method
+ *                64-71 (1B) : Flag
+ *                72-79 (1B) : Extra
+ *   data:
+ *             80-offsets[0] : 1st element
  *     offsets[0]-offsets[1] : 2nd element
  *   ...
  *   offsets[i-1]-offsets[i] : nth element
  *   ...
  */
+
 struct disk_store
 {
     char *index_file_name; //!< Name of file containing offsets
@@ -36,6 +51,9 @@ struct disk_store
     uint64_t index_start_offset; //!< End of header file position in offsets
     uint64_t data_start_offset; //!< End of header file position in data
     uint64_t *offsets; //!< Array of data end offsets stored on disk
+    uint32_t *uncompressed_sizes; //!< Array of uncompressed_sizes of data stored on disk
+    uint8_t is_compressed; //!< Is the data stored in data file compressed?
+    struct disk_file_header *file_header; //!< File header
 };
 
 /**
