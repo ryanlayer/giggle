@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>README.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="final-report">Final Report</h1>
+<h2 id="csci-5900--independent-study">CSCI 5900- Independent Study</h2>
+<h2 id="sagar-pathare">Sagar Pathare</h2>
+<h2 id="date-april-26-2022">Date: April 26, 2022</h2>
+<h2 id="title-using-compression-algorithms-in-giggle-to-reduce-disk-space-usage">Title: Using compression algorithms in GIGGLE to reduce disk space usage</h2>
+<h1 id="1-compression-of-the-b-tree-leaves">1.  Compression of the B+ tree leaves</h1>
+<h2 id="motivation">Motivation</h2>
+<p>The large genomic data sets used by GIGGLE occupy a large amount of disk space. Could we use compression algorithms to reduce disk space utilization without significantly affecting the runtime?</p>
+<h2 id="methodimplementation">Method/implementation</h2>
+<p>We used the most common library for data compression in C- zlib. We created a wrapper/interface around the zlib functions for improved usability. We applied compression to the data stored in the data file. In addition to the existing data, we stored the uncompressed sizes in the index file. We added a file header/marker for both index and data files. The file header includes information about the compression method, compression level, and an extra flag reserved for future use. Files without headers from previous versions are assumed to be uncompressed and are read accordingly, thus enabling backward compatibility. We used function pointers to dynamically set the compress/uncompress functions, depending on the compression method mentioned in the file header.</p>
+<h2 id="results">Results</h2>
+<h3 id="time-taken-for-indexing-seconds">Time taken for Indexing (seconds)</h3>
+<table>
+<thead>
+<tr>
+<th>type</th>
+<th>time</th>
+<th>user</th>
+<th>system</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>uncompressed</td>
+<td>70.49318158458</td>
+<td>64.95069978</td>
+<td>5.52916806</td>
+</tr>
+<tr>
+<td>fastlz1</td>
+<td>89.33131506806</td>
+<td>82.75897032</td>
+<td>6.56374108</td>
+</tr>
+<tr>
+<td>fastlz2</td>
+<td>155.0417450156</td>
+<td>128.78304566</td>
+<td>20.595867</td>
+</tr>
+<tr>
+<td>zlib0</td>
+<td>88.7408512163</td>
+<td>78.20686414</td>
+<td>10.524262</td>
+</tr>
+<tr>
+<td>zlib1</td>
+<td>107.49964638396</td>
+<td>99.16664924</td>
+<td>8.3172525</td>
+</tr>
+<tr>
+<td>zlib3</td>
+<td>116.30003864952</td>
+<td>106.35132674</td>
+<td>8.88081164</td>
+</tr>
+<tr>
+<td>zlib6</td>
+<td>122.00174653288</td>
+<td>114.55789172</td>
+<td>7.40855448</td>
+</tr>
+<tr>
+<td>zlib9</td>
+<td>226.4432716358</td>
+<td>214.986536</td>
+<td>11.37603618</td>
+</tr>
+</tbody>
+</table>
+<p><img src="compression-indexing.png" alt=""></p>
+<h2 id="disk-space-utilization-gb">Disk Space Utilization (GB)</h2>
+<table>
+<thead>
+<tr>
+<th>type</th>
+<th>space</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>uncompressed</td>
+<td>1.452596008</td>
+</tr>
+<tr>
+<td>fastlz1</td>
+<td>0.681222584</td>
+</tr>
+<tr>
+<td>fastlz2</td>
+<td>0.68060137</td>
+</tr>
+<tr>
+<td>zlib0</td>
+<td>1.459414745</td>
+</tr>
+<tr>
+<td>zlib1</td>
+<td>0.433347471</td>
+</tr>
+<tr>
+<td>zlib3</td>
+<td>0.428881416</td>
+</tr>
+<tr>
+<td>zlib6</td>
+<td>0.405332483</td>
+</tr>
+<tr>
+<td>zlib9</td>
+<td>0.40376754</td>
+</tr>
+</tbody>
+</table>
+<p><img src="compression-space.png" alt=""></p>
+<h2 id="time-taken-for-search-1-milliseconds">Time taken for Search 1 (milliseconds)</h2>
+<table>
+<thead>
+<tr>
+<th>command</th>
+<th>mean</th>
+<th>stddev</th>
+<th>median</th>
+<th>user</th>
+<th>system</th>
+<th>min</th>
+<th>max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>uncompressed</td>
+<td>45.5873693</td>
+<td>3.959420647</td>
+<td>44.7290814</td>
+<td>31.80930286</td>
+<td>13.75768714</td>
+<td>40.9441094</td>
+<td>62.0611574</td>
+</tr>
+<tr>
+<td>fastlz1</td>
+<td>59.18466978</td>
+<td>5.09236337</td>
+<td>59.78575998</td>
+<td>37.83761843</td>
+<td>21.31594118</td>
+<td>51.78323798</td>
+<td>74.08010998</td>
+</tr>
+<tr>
+<td>fastlz2</td>
+<td>56.41575026</td>
+<td>3.620396294</td>
+<td>55.79629656</td>
+<td>37.70584</td>
+<td>18.697718</td>
+<td>52.23282456</td>
+<td>77.13510456</td>
+</tr>
+<tr>
+<td>zlib0</td>
+<td>54.34283227</td>
+<td>3.636371739</td>
+<td>53.8785227</td>
+<td>37.09720143</td>
+<td>17.08244929</td>
+<td>49.7197372</td>
+<td>68.0634982</td>
+</tr>
+<tr>
+<td>zlib1</td>
+<td>74.10076984</td>
+<td>6.043988274</td>
+<td>71.65701646</td>
+<td>55.84351846</td>
+<td>18.24804923</td>
+<td>67.48732846</td>
+<td>92.28525846</td>
+</tr>
+<tr>
+<td>zlib3</td>
+<td>73.39287504</td>
+<td>4.622238952</td>
+<td>72.43769124</td>
+<td>53.72295818</td>
+<td>19.64546818</td>
+<td>66.57508224</td>
+<td>83.36368524</td>
+</tr>
+<tr>
+<td>zlib6</td>
+<td>66.19744482</td>
+<td>2.242995965</td>
+<td>65.84001782</td>
+<td>49.64041217</td>
+<td>16.5452913</td>
+<td>63.34766232</td>
+<td>74.41526232</td>
+</tr>
+<tr>
+<td>zlib9</td>
+<td>67.62356376</td>
+<td>1.623330847</td>
+<td>67.41949892</td>
+<td>52.68799767</td>
+<td>14.9192093</td>
+<td>65.11356992</td>
+<td>71.14124392</td>
+</tr>
+</tbody>
+</table>
+<p><img src="compression-search1.png" alt=""></p>
+<h2 id="time-taken-for-search-2-milliseconds">Time taken for Search 2 (milliseconds)</h2>
+<table>
+<thead>
+<tr>
+<th>command</th>
+<th>mean</th>
+<th>stddev</th>
+<th>median</th>
+<th>user</th>
+<th>system</th>
+<th>min</th>
+<th>max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>uncompressed</td>
+<td>9.189936953</td>
+<td>0.5627173893</td>
+<td>9.0503129</td>
+<td>4.956227092</td>
+<td>4.23508539</td>
+<td>8.2692079</td>
+<td>10.6013019</td>
+</tr>
+<tr>
+<td>fastlz1</td>
+<td>12.98639579</td>
+<td>1.471285836</td>
+<td>12.47858378</td>
+<td>4.174342933</td>
+<td>8.823754489</td>
+<td>11.38921178</td>
+<td>19.59861078</td>
+</tr>
+<tr>
+<td>fastlz2</td>
+<td>12.19613769</td>
+<td>0.5875847746</td>
+<td>12.03119652</td>
+<td>3.905453208</td>
+<td>8.274995</td>
+<td>11.21100202</td>
+<td>13.77797102</td>
+</tr>
+<tr>
+<td>zlib0</td>
+<td>11.95358581</td>
+<td>0.7256513148</td>
+<td>11.8664233</td>
+<td>4.200792825</td>
+<td>7.762784753</td>
+<td>10.7087693</td>
+<td>14.7913433</td>
+</tr>
+<tr>
+<td>zlib1</td>
+<td>12.96278894</td>
+<td>0.9137541321</td>
+<td>12.78595442</td>
+<td>5.075546634</td>
+<td>7.891110634</td>
+<td>11.84051342</td>
+<td>17.86654842</td>
+</tr>
+<tr>
+<td>zlib3</td>
+<td>12.6532173</td>
+<td>0.64123711</td>
+<td>12.4734273</td>
+<td>5.266293897</td>
+<td>7.37788507</td>
+<td>11.6403703</td>
+<td>15.2530783</td>
+</tr>
+<tr>
+<td>zlib6</td>
+<td>12.20321933</td>
+<td>0.5730424908</td>
+<td>12.02490832</td>
+<td>5.261854609</td>
+<td>6.953686435</td>
+<td>11.33335482</td>
+<td>14.26628082</td>
+</tr>
+<tr>
+<td>zlib9</td>
+<td>12.62452388</td>
+<td>0.5751466442</td>
+<td>12.48667264</td>
+<td>5.127496946</td>
+<td>7.492615961</td>
+<td>11.60951164</td>
+<td>14.42773764</td>
+</tr>
+</tbody>
+</table>
+<p><img src="compression-search2.png" alt=""></p>
+<p><strong>Note</strong>: The time duration values are approximate as they are affected by other applications running in the background.</p>
+<h2 id="discussion">Discussion</h2>
+<p>The disk space usage was reduced by 70-72%, but the time taken for the search queries increased by 25-50%.
+We can conclude that fastlz2 is the best candidate. Compared to the uncompressed version, it reduced the space by around 53%, increased the search times by only 24% and 33% respectively. The indexing time was roughly 2.2 times, which is fine for a one-time task.</p>
+<h2 id="steps-to-reproduce">Steps to Reproduce</h2>
+<ol>
+<li>Get the <code>roadmap_sort.tar.gz</code> file using <code>wget https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz</code></li>
+<li>Copy the file <a href="https://raw.githubusercontent.com/sspathare97/s22-is-report-giggle/main/GSM1218850_MB135DMMD.peak.q100.bed.gz">GSM1218850_MB135DMMD.peak.q100.bed.gz</a>.</li>
+<li>Install <a href="https://github.com/sharkdp/hyperfine">hyperfine</a>, a command-line benchmarking tool.</li>
+<li>In the <code>disk_store.c</code> file in the GIGGLE repo,
+<ol>
+<li>On line 31, update the <code>compression_method</code> (accepted values- <code>'z'</code> for zlib or <code>'f'</code> for fastlz)</li>
+<li>On line 32, update the <code>compression_level</code> (accepted values- <code>0</code> to <code>9</code> for zlib and <code>1</code> or <code>2</code> for fastlz)</li>
+</ol>
+</li>
+<li>Build the <code>giggle</code> binary using the <code>make</code> command in the repository. Make sure the variable <code>$GIGGLE_ROOT</code> is set.</li>
+<li>Run the following set of commands for each combination of <code>compression_method</code> and <code>compression_level</code>. For example, here the name is <code>zlib3</code> for using zlib with level 3. Replace it with other values.
+<ol>
+<li><code>hyperfine '$GIGGLE_ROOT/bin/giggle index -s -f -i &quot;roadmap_sort/*gz&quot; -o zlib3' --export-csv roadmap_sort_comparisons/index/zlib3.csv -M 1</code></li>
+<li><code>ls -l zlib3/cache* | awk '{s+=$5;}END{print &quot;zlib3,&quot;s;}' &gt;&gt; roadmap_sort_comparisons/space.csv</code></li>
+<li><code>hyperfine -w 3 '$GIGGLE_ROOT/bin/giggle search -i zlib3 -q GSM1218850_MB135DMMD.peak.q100.bed.gz' --export-csv roadmap_sort_comparisons/search1/zlib3.csv</code></li>
+<li><code>hyperfine -w 3 '$GIGGLE_ROOT/bin/giggle search -i zlib3 -r 1:1-1000000' --export-csv roadmap_sort_comparisons/search2/zlib3.csv</code></li>
+</ol>
+</li>
+<li>Analyze the results in the <code>roadmap_sort_comparisons</code> directory.</li>
+</ol>
+<h1 id="2-compression-of-the-offset-index">2.  Compression of the offset index</h1>
+<p>After compressing the files for leaves, currently, the file that takes up the most space is the offset index file- <code>offset_index.dat</code>. It stores a list of a pair of integers <code>x</code> and <code>y</code> where <code>x</code> is the file ID and <code>y</code> is the line ID in that file. We need the ability to read a particular position in the compressed file. After exploring various ways to implement compression, we concluded that we should implement block impression.</p>
+<h2 id="structure-of-the-offsetindexdat-file">Structure of the <code>offset_index.dat</code> file</h2>
+<ul>
+<li>0-63 (8B) : <code>num</code>- the number of <code>file_id_offset_pairs</code> stored in the file</li>
+<li>64-95 (4B) : <code>width</code>- the width of each <code>file_id_offset_pair</code>, currently 96 bits (12B)
+<ul>
+<li>Each <code>file_id_offset_pair</code> stores the two integers mentioned above
+<ul>
+<li>32 bit <code>file_id</code> (<code>x</code>)</li>
+<li>64 bit <code>offset</code> (<code>y</code>)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>96-... : <code>file_id_offset_pairs</code></li>
+</ul>
+<h2 id="block-compression-implementation">Block Compression Implementation</h2>
+<p>In the following diagram, Ryan has explained well how block compression could be implemented for <code>offset_index.dat</code>.</p>
+<p><img src="block-compression.png" alt="Block Compression"></p>
+<p align = "center">
+Block Compression- Ryan Layer
+</p>
+<ol>
+<li>We will store a fixed number of pairs of integers as one block and then apply the compression on each block. What a good block size could be needs to be determined experimentally.</li>
+<li>Currently, the leaf node stores <code>I_10</code>- which is the <code>offset_id</code> in the <code>offset_index.dat</code> file. Instead of storing <code>I_10</code>, we will store two values- the compressed block offset ID and the line offset ID within that block.</li>
+<li>We will also store the compressed offsets for each compressed block.</li>
+<li>To retrieve the original uncompressed <code>I_10</code>/<code>offset_id</code>, we will seek compressed file to the compressed block offset ID. We will uncompress the whole block and then seek to the line offset ID.</li>
+</ol>
+<h2 id="proposed-structure-of-the-offsetindexcompresseddat-file">Proposed structure of the <code>offset_index_compressed.dat</code> file</h2>
+<ul>
+<li>0-63 (8B) : <code>num</code>- the number of <code>file_id_offset_pairs</code> stored in the file</li>
+<li>64-95 (4B) : <code>width</code>- the width of each <code>file_id_offset_pair</code>, currently 96 bits (12B)</li>
+<li>96-127 (4B) : <code>block_size</code>- the size of each uncompressed block- same for all blocks</li>
+<li>128-... : <code>compressed_offsets</code>- the offset of each compressed block</li>
+<li>...-... : <code>compressed_data</code>- the actual compressed blocks</li>
+</ul>
+<h2 id="proposed-block-compression-implementation">Proposed Block Compression Implementation</h2>
+<p>We will create a standalone program called <code>block_compression.c</code> with the following functionality-</p>
+<ol>
+<li>Compress <code>offset_index.dat</code> to <code>offset_index_compressed.dat</code></li>
+<li>Uncompress <code>offset_index_compressed.dat</code> to <code>offset_index.dat</code></li>
+<li>Read <code>offset_id</code> from <code>offset_index.dat</code></li>
+<li>Read <code>offset_id</code> from <code>offset_index_compressed.dat</code></li>
+</ol>
+<p>We need to write unit tests to make sure the output from 3 and 4 are the same.</p>
+<h2 id="to-be-explained-later">To be explained later</h2>
+<ul>
+<li><code>mmap</code> usage</li>
+<li><code>offset_data_append_data</code> function pointer usage instead of <code>fwrite</code></li>
+<li><code>OFFSET_INDEX_DATA</code> macro definition</li>
+</ul>
+<h2 id="blocker-to-do-for-ryan">Blocker (To do for Ryan)</h2>
+<ul>
+<li>Figure out how to store two values in the leaf store</li>
+</ul>
+<h1 id="3-other-fixes-made-in-the-repository">3. Other fixes made in the repository</h1>
+<ul>
+<li>Added data files and executable files in the unit tests to gitignore.</li>
+<li>Fixed the unit tests Makefile issue that prevented two consecutive builds without running make clean- the _Runner.c files were also being considered for tests. Added wildcard filter to ignore them.</li>
+<li>Fixed minor bugs and formatting.</li>
+</ul>
+
+</body>
+</html>

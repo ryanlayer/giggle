@@ -5,3 +5,12 @@ inkids_rare_smaller.bed.gz
 *_Runner.c
 *.dSYM/
 *.DS_Store
+bin/
+lib/
+ssshtest
+test/**/*.idx
+test/**/*.dat
+!test/unit/Makefile
+!test/unit/unity/
+!test/unit/*.c
+test/unit/
