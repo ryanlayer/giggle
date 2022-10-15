@@ -23,3 +23,6 @@ clean:
 
 metadata:
 	cd src/metadata && gcc metadata.c -o bin/metadata -g && bin/metadata
+
+metadata-mem:
+	cd src/metadata && valgrind --leak-check=full --show-leak-kinds=all bin/metadata

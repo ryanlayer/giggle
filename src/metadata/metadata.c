@@ -205,10 +205,9 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     
     metadata_columns->columns[metadata_columns->num++] = metadata_column;
 
+    if (line)
+      free(line);
   }
-
-  if (line)
-    free(line);
 
   if (metadata_columns->num < 255) {
     metadata_columns->columns = (struct metadata_column **)realloc(metadata_columns->columns, sizeof(struct metadata_column*) * metadata_columns->num);
@@ -240,7 +239,7 @@ void display_metadata(struct metadata_columns *metadata_columns) {
   }
 }
 
-void init_metadata_dat(struct metadata_columns *metadata_columns, char *metadata_index_filename) {
+void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *metadata_index = fopen(metadata_index_filename, "wb");
   int i;
 
@@ -277,22 +276,45 @@ void init_metadata_dat(struct metadata_columns *metadata_columns, char *metadata
   fclose(metadata_index);
 }
 
+void append_metadata_dat(char *intervals_filename, char *metadata_index_filename, struct metadata_columns *metadata_columns) {
+  FILE *intervals = fopen(intervals_filename, "r");
+  FILE *metadata_index = fopen(metadata_index_filename, "a+b");
+  
+  char * line = NULL;
+  size_t len = 0;
+  ssize_t read;
+
+  while ((read = getline(&line, &len, intervals)) != -1) {
+    printf("Retrieved line of length %zu:\n%s\n", read, line);
+
+    if (line)
+      free(line);
+  }
+
+  fclose(intervals);
+  fclose(metadata_index);
+}
+
 struct metadata_types *read_metadata_dat() {
   // TODO
 }
 
 int main(void) {
-  
+  char *metadata_conf_filename = "metadata.conf";
+  char *metadata_index_filename = "metadata_index.dat";
+  char *intervals_filename = "intervals.tsv";
+
   // 1. Read metadata.conf
-  struct metadata_columns *metadata_columns = read_metadata_conf("metadata.conf");
+  struct metadata_columns *metadata_columns = read_metadata_conf(metadata_conf_filename);
 
   display_metadata(metadata_columns);
 
   // 2. Write header in metadata_index.dat
-  init_metadata_dat(metadata_columns, "metadata_index.dat");
+  init_metadata_dat(metadata_index_filename, metadata_columns);
 
   // 3. Read intervals.tsv and append data to metadata_index.dat
-  
+  append_metadata_dat(intervals_filename, metadata_index_filename, metadata_columns);
+
   // 4. Read ith interval's metadata from metadata_index.dat
   
 
