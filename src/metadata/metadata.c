@@ -5,6 +5,11 @@
 #include <ctype.h>
 
 #define COLUMN_NAME_MAX_LENGTH 32
+#define GIGGLE_METADATA_FILE_MARKER_LENGTH 7
+#define GIGGLE_METADATA_FILE_MARKER "GIGLMET"
+#define GIGGLE_METADATA_VERSION_MARKER_LENGTH 3
+#define GIGGLE_METADATA_VERSION_MARKER "000"
+#define GIGGLE_METADATA_EXTRA_LENGTH 6
 
 /*
 input
@@ -242,6 +247,22 @@ void display_metadata(struct metadata_columns *metadata_columns) {
 void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *metadata_index = fopen(metadata_index_filename, "wb");
   int i;
+  char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
+
+  if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
+    fprintf(stderr, "fwrite failure for file marker in init_metadata_dat.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if (fwrite(GIGGLE_METADATA_VERSION_MARKER, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index) != GIGGLE_METADATA_VERSION_MARKER_LENGTH) {
+    fprintf(stderr, "fwrite failure for version marker in init_metadata_dat.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if (fwrite(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index) != GIGGLE_METADATA_EXTRA_LENGTH) {
+    fprintf(stderr, "fwrite failure for extra in init_metadata_dat.\n");
+    exit(EXIT_FAILURE);
+  }
 
   if (fwrite(&(metadata_columns->num), sizeof(uint8_t), 1, metadata_index) != 1) {
     fprintf(stderr, "fwrite failure for metadata_columns->num in init_metadata_dat.\n");
