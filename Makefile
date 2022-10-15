@@ -20,3 +20,6 @@ clean:
 	rm -rf $(BIN)/*
 	rm -rf $(OBJ)/*
 	cd lib/htslib && $(MAKE) clean
+
+metadata:
+	cd src/metadata && gcc metadata.c -o bin/metadata -g && bin/metadata
