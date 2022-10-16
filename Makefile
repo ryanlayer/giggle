@@ -21,8 +21,10 @@ clean:
 	rm -rf $(OBJ)/*
 	cd lib/htslib && $(MAKE) clean
 
+HTS_ROOT=../../lib/htslib
+
 metadata:
-	cd src/metadata && gcc metadata.c -o bin/metadata -g && bin/metadata
+	cd src/metadata && gcc metadata.c -I$(HTS_ROOT) $(HTS_ROOT)/libhts.a -o bin/metadata -g && bin/metadata
 
 metadata-mem:
 	cd src/metadata && valgrind --leak-check=full --show-leak-kinds=all bin/metadata

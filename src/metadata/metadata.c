@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <htslib/kstring.h>
 
 #define COLUMN_NAME_MAX_LENGTH 32
 #define GIGGLE_METADATA_FILE_MARKER_LENGTH 7
@@ -62,7 +63,7 @@ struct metadata_types {
 
 enum data_type type_string_to_enum(char type_string[8]) {
   enum data_type type;
-  for(int i = 0; type_string[i]; i++){
+  for(int i = 0; type_string[i]; ++i){
     type_string[i] = toupper(type_string[i]);
   }
   if (strcmp(type_string, "CHAR") == 0) type = CHAR;
@@ -107,7 +108,8 @@ uint8_t data_type_to_width(enum data_type type) {
     case STRING: 
       break;
     default:
-      break;
+      fprintf(stderr, "Unknown data_type %d.\n", type);
+      exit(EXIT_FAILURE);
   }
   return width;
 }
@@ -140,9 +142,98 @@ char data_type_to_char(enum data_type type) {
       type_char = 's';
       break;
     default:
-      break;
+      fprintf(stderr, "Unknown data_type %d.\n", type);
+      exit(EXIT_FAILURE);
   }
   return type_char;
+}
+
+void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_type, char *data) {
+  enum data_type type = metadata_type->data_type;
+  char c;
+  int8_t b;
+  int16_t h;
+  int32_t i;
+  int64_t l;
+  float f;
+  double d;
+  uint8_t str_width = metadata_type->width;
+  char s_format[6]; // '%' + max value for int8_t + 's' + NULL -> '%255sN'
+  char *s;
+
+  switch (type) {
+    case CHAR: 
+      c = *data;
+      if (fwrite(&c, sizeof(char), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for CHAR in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+
+    case INT_8: 
+      b = atoi(data);
+      if (fwrite(&b, sizeof(int8_t), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for INT_8 in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+      
+    case INT_16: 
+      h = atoi(data);
+      if (fwrite(&h, sizeof(int16_t), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for INT_16 in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+      
+    case INT_32: 
+      i = atol(data);
+      if (fwrite(&i, sizeof(int32_t), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for INT_32 in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+      
+    case INT_64: 
+      l = atoll(data);
+      if (fwrite(&l, sizeof(int64_t), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for INT_64 in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+      
+    case FLOAT: 
+      f = atof(data);
+      if (fwrite(&f, sizeof(float), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for FLOAT in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+      
+    case DOUBLE: 
+      d = atof(data);
+      if (fwrite(&d, sizeof(double), 1, metadata_index) != 1) {
+        fprintf(stderr, "fwrite failure for DOUBLE in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      break;
+      
+    case STRING: 
+      snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
+      s = (char *)calloc(str_width, sizeof(char));
+      sscanf(data, s_format, s);
+
+      if (fwrite(s, sizeof(char), str_width, metadata_index) != str_width) {
+        fprintf(stderr, "fwrite failure for STRING in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
+      free(s);
+      break;
+      
+    default:
+      fprintf(stderr, "Unknown data_type %d.\n", type);
+      exit(EXIT_FAILURE);
+  }
 }
 
 struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
@@ -184,6 +275,11 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
       fprintf(stderr, "Cannot store more than 255 columns.\n");
       exit(EXIT_FAILURE);
     }
+    
+    if (str_len == 255) {
+      fprintf(stderr, "Column '%s': string length cannot be more than 254.\n", name);
+      exit(EXIT_FAILURE);
+    }
 
     struct metadata_type *metadata_type = (struct metadata_type *)malloc(sizeof(struct metadata_type));
     if (metadata_type == NULL) {
@@ -195,7 +291,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     metadata_type->data_type = type_string_to_enum(type_string);
     metadata_type->width += data_type_to_width(metadata_type->data_type);
     if (metadata_type->data_type == STRING) {
-      metadata_type->width = str_len;
+      metadata_type->width = str_len + 1;
     }
     metadata_columns->width += metadata_type->width;
 
@@ -210,10 +306,11 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     
     metadata_columns->columns[metadata_columns->num++] = metadata_column;
 
-    if (line)
-      free(line);
   }
 
+  if (line)
+    free(line);
+  
   if (metadata_columns->num < 255) {
     metadata_columns->columns = (struct metadata_column **)realloc(metadata_columns->columns, sizeof(struct metadata_column*) * metadata_columns->num);
   }
@@ -224,7 +321,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
 
 void free_metadata(struct metadata_columns *metadata_columns) {
   int i;
-  for (i = 0; i < metadata_columns->num; i++) {
+  for (i = 0; i < metadata_columns->num; ++i) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
     struct metadata_type *metadata_type = metadata_column->type;
     free(metadata_type);
@@ -237,7 +334,7 @@ void free_metadata(struct metadata_columns *metadata_columns) {
 void display_metadata(struct metadata_columns *metadata_columns) {
   int i;
   printf("%d %d\n", metadata_columns->num, metadata_columns->width);
-  for (i = 0; i < metadata_columns->num; i++) {
+  for (i = 0; i < metadata_columns->num; ++i) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
     struct metadata_type *metadata_type = metadata_column->type;
     printf("%d %d %s %d\n", metadata_column->column, metadata_type->data_type, metadata_type->name, metadata_type->width);
@@ -274,7 +371,7 @@ void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *m
     exit(EXIT_FAILURE);
   }
 
-  for (i = 0; i < metadata_columns->num; i++) {
+  for (i = 0; i < metadata_columns->num; ++i) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
     struct metadata_type *metadata_type = metadata_column->type;
     
@@ -306,11 +403,29 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
   ssize_t read;
 
   while ((read = getline(&line, &len, intervals)) != -1) {
-    printf("Retrieved line of length %zu:\n%s\n", read, line);
+    // printf("Retrieved line of length %zu:\n%s\n", read, line);
+    
+    kstring_t kline = {0, 0, NULL};
+    kputs(line, &kline);
 
-    if (line)
-      free(line);
+    int fields_length;
+    int *fields;
+    fields = ksplit(&kline, '\t', &fields_length);
+
+    for (int i = 0; i < metadata_columns->num; ++i) {
+      struct metadata_column *metadata_column = metadata_columns->columns[i];
+      int column = metadata_column->column;
+      struct metadata_type *metadata_type = metadata_column->type;
+      char *data = kline.s + fields[column - 1];
+      fwrite_data_type_item(metadata_index, metadata_type, data);
+    }
+
+    free(fields);
+    free(kline.s);
   }
+
+  if (line)
+    free(line);
 
   fclose(intervals);
   fclose(metadata_index);
