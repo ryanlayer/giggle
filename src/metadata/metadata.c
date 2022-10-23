@@ -75,6 +75,7 @@ struct metadata_columns {
 struct metadata_types {
   uint8_t num; // max item count = 255
   uint16_t width; // total width of each data row
+  uint64_t header_offset; // total header offset, end of the header file position
   struct metadata_type **types;
 };
 
@@ -423,7 +424,7 @@ void display_metadata_columns(struct metadata_columns *metadata_columns) {
 
 void display_metadata_types(struct metadata_types *metadata_types) {
   int i;
-  printf("metadata_types => num: %d, width: %d\n", metadata_types->num, metadata_types->width);
+  printf("metadata_types => num: %d, width: %d, header_offset: %lu\n", metadata_types->num, metadata_types->width, metadata_types->header_offset);
   for (i = 0; i < metadata_types->num; ++i) {
     struct metadata_type *metadata_type = metadata_types->types[i];
     printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_type->data_type, data_type_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
@@ -602,6 +603,8 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
 
     metadata_types->types[i] = metadata_type;
   }
+
+  metadata_types->header_offset = ftell(metadata_index);
 
   fclose(metadata_index);
 
