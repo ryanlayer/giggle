@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <htslib/kstring.h>
 #include <htslib/khash_str2int.h>
+#include <err.h>
+#include <sysexits.h>
 
 #define COLUMN_NAME_MAX_LENGTH 32
 #define GIGGLE_METADATA_FILE_MARKER_LENGTH 7
@@ -12,6 +14,17 @@
 #define GIGGLE_METADATA_VERSION_MARKER_LENGTH 3
 #define GIGGLE_METADATA_VERSION_MARKER "000"
 #define GIGGLE_METADATA_EXTRA_LENGTH 6
+
+void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs)
+{
+    if (exp != obs) {
+        if (feof(fp))
+            errx(EX_IOERR,
+                 "Error reading file \"%s\": End of file",
+                 file_name);
+        err(EX_IOERR, "Error reading file \"%s\"", file_name);
+    }
+}
 
 /*
 input
@@ -59,6 +72,7 @@ struct metadata_columns {
 
 struct metadata_types {
   uint8_t num; // max item count = 255
+  uint16_t width; // total width of each data row
   struct metadata_type **types;
 };
 
@@ -256,7 +270,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
   metadata_columns->num = 0;
   metadata_columns->width = 0;
 
-  metadata_columns->columns = (struct metadata_column **)malloc(sizeof(struct metadata_column*) * 255);
+  metadata_columns->columns = (struct metadata_column **)malloc(255 * sizeof(struct metadata_column*));
   if (metadata_columns->columns == NULL) {
     fprintf(stderr, "malloc failure for metadata_columns->columns in read_metadata_conf.\n");
     exit(EXIT_FAILURE);
@@ -324,6 +338,10 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
 
   if (metadata_columns->num < 255) {
     metadata_columns->columns = (struct metadata_column **)realloc(metadata_columns->columns, sizeof(struct metadata_column*) * metadata_columns->num);
+    if (metadata_columns->columns == NULL) {
+      fprintf(stderr, "realloc failure for metadata_columns->columns in read_metadata_conf.\n");
+      exit(EXIT_FAILURE);
+    }
   }
 
   khash_str2int_destroy_free(column_set);
@@ -335,7 +353,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
   return metadata_columns;
 }
 
-void free_metadata(struct metadata_columns *metadata_columns) {
+void free_metadata_columns(struct metadata_columns *metadata_columns) {
   int i;
   for (i = 0; i < metadata_columns->num; ++i) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
@@ -345,6 +363,18 @@ void free_metadata(struct metadata_columns *metadata_columns) {
   }
   free(metadata_columns->columns);
   free(metadata_columns);
+}
+
+void free_metadata_types(struct metadata_types *metadata_types) {
+  int i;
+  // for (i = 0; i < metadata_types->num; ++i) {
+  //   struct metadata_column *metadata_column = metadata_types->types[i];
+  //   struct metadata_type *metadata_type = metadata_column->type;
+  //   free(metadata_type);
+  //   free(metadata_column);
+  // }
+  free(metadata_types->types);
+  free(metadata_types);
 }
 
 void display_metadata(struct metadata_columns *metadata_columns) {
@@ -359,6 +389,11 @@ void display_metadata(struct metadata_columns *metadata_columns) {
 
 void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *metadata_index = fopen(metadata_index_filename, "wb");
+  if (metadata_index == NULL) {
+    fprintf(stderr, "%s not found.\n", metadata_index_filename);
+    exit(EXIT_FAILURE);
+  }
+
   int i;
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
 
@@ -407,12 +442,21 @@ void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *m
       exit(EXIT_FAILURE);
     }
   }
+
   fclose(metadata_index);
 }
 
 void append_metadata_dat(char *intervals_filename, char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *intervals = fopen(intervals_filename, "r");
+  if (intervals == NULL) {
+    fprintf(stderr, "%s not found.\n", intervals_filename);
+    exit(EXIT_FAILURE);
+  }
   FILE *metadata_index = fopen(metadata_index_filename, "a+b");
+  if (metadata_index == NULL) {
+    fprintf(stderr, "%s not found.\n", metadata_index_filename);
+    exit(EXIT_FAILURE);
+  }
   
   char * line = NULL;
   size_t len = 0;
@@ -447,6 +491,48 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
   fclose(metadata_index);
 }
 
+struct metadata_types *get_columns_from_metadata_dat(char *metadata_index_filename) {
+  FILE *metadata_index = fopen(metadata_index_filename, "rb");
+  if (metadata_index == NULL) {
+    fprintf(stderr, "%s not found.\n", metadata_index_filename);
+    exit(EXIT_FAILURE);
+  }
+  
+  struct metadata_types *metadata_types = (struct metadata_types *)malloc(sizeof(struct metadata_types));
+  if (metadata_types == NULL) {
+    fprintf(stderr, "malloc failure for metadata_types in read_metadata_conf.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int i;
+  size_t fr;
+  
+  fr = fread(&(metadata_types->num), sizeof(uint8_t), 1, metadata_index);
+  check_file_read(metadata_index_filename, metadata_index, 1, fr);
+  
+  fr = fread(&(metadata_types->width), sizeof(uint16_t), 1, metadata_index);
+  check_file_read(metadata_index_filename, metadata_index, 1, fr);
+
+  metadata_types->types = (struct metadata_type **)malloc(metadata_types->num * sizeof(struct metadata_type*));
+  if (metadata_types->types == NULL) {
+    fprintf(stderr, "calloc failure for metadata_types->types in read_metadata_conf.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (i = 0; i < metadata_types->num; ++i) {
+    
+    // <256-byte char*, name>
+    // <1-byte char, data type specifier>
+    // <optional, 1-byte uint8, width>
+
+
+  }
+
+  fclose(metadata_index);
+  
+  return metadata_types;
+}
+
 struct metadata_types *read_metadata_dat() {
   // TODO
 }
@@ -468,9 +554,10 @@ int main(void) {
   append_metadata_dat(intervals_filename, metadata_index_filename, metadata_columns);
 
   // 4. Read ith interval's metadata from metadata_index.dat
-  
+  struct metadata_types *metadata_types = get_columns_from_metadata_dat(metadata_index_filename);
 
-  free_metadata(metadata_columns);
+  free_metadata_columns(metadata_columns);
+  free_metadata_types(metadata_types);
 
   return 0;
 }
