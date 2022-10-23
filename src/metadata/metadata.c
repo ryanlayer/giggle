@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <htslib/kstring.h>
+#include <htslib/khash_str2int.h>
 
 #define COLUMN_NAME_MAX_LENGTH 32
 #define GIGGLE_METADATA_FILE_MARKER_LENGTH 7
@@ -221,6 +222,10 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
     case STRING: 
       snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
       s = (char *)calloc(str_width, sizeof(char));
+      if (s == NULL) {
+        fprintf(stderr, "calloc failure for s in fwrite_data_type_item.\n");
+        exit(EXIT_FAILURE);
+      }
       sscanf(data, s_format, s);
 
       if (fwrite(s, sizeof(char), str_width, metadata_index) != str_width) {
@@ -257,6 +262,8 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     exit(EXIT_FAILURE);
   }
 
+  void *column_set = khash_str2int_init();
+
   char * line = NULL;
   size_t len = 0;
   ssize_t read;
@@ -281,9 +288,16 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
       exit(EXIT_FAILURE);
     }
 
-    struct metadata_type *metadata_type = (struct metadata_type *)malloc(sizeof(struct metadata_type));
+    if (khash_str2int_has_key(column_set, name)) {
+      fprintf(stderr, "Cannot allow duplicate column '%s'.\n", name);
+      exit(EXIT_FAILURE);
+    } else {
+      khash_str2int_set(column_set, strdup(name), 1);
+    }
+
+    struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
     if (metadata_type == NULL) {
-      fprintf(stderr, "malloc failure for metadata_type in read_metadata_conf.\n");
+      fprintf(stderr, "calloc failure for metadata_type in read_metadata_conf.\n");
       exit(EXIT_FAILURE);
     }
 
@@ -308,12 +322,14 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
 
   }
 
-  if (line)
-    free(line);
-  
   if (metadata_columns->num < 255) {
     metadata_columns->columns = (struct metadata_column **)realloc(metadata_columns->columns, sizeof(struct metadata_column*) * metadata_columns->num);
   }
+
+  khash_str2int_destroy_free(column_set);
+
+  if (line)
+    free(line);
 
   fclose(metadata_conf);
   return metadata_columns;
