@@ -37,7 +37,7 @@ output
   <1-byte uint8, width>
   <1-byte char, data type specifier>
 >
-<4-byte num> <4-byte size>
+<8-byte num>
 < array of  
 <data 1> <data 2> ... <data n>
 >
@@ -73,10 +73,26 @@ struct metadata_columns {
 };
 
 struct metadata_types {
-  uint8_t num; // max item count = 255
+  uint8_t num_cols;
+  uint64_t num_rows;
   uint16_t width; // total width of each data row
   uint64_t header_offset; // total header offset, end of the header file position
   struct metadata_type **types;
+};
+
+struct metadata_item {
+  struct metadata_type *type;
+  void *data;
+};
+
+struct metadata_row {
+  uint8_t num; // total number of columns
+  struct metadata_item **items; // array of rows
+};
+
+struct metadata_rows {
+  uint64_t num; // total number of rows
+  struct metadata_row **rows; // data rows
 };
 
 enum data_type type_string_to_enum(char type_string[8]) {
@@ -326,7 +342,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     char name[256];
     char type_string[8];
     uint8_t str_len;
-    sscanf(line, "%hhd %255s %7s %hhd", &column, name, type_string, &str_len);
+    sscanf(line, "%hhu %255s %7s %hhu", &column, name, type_string, &str_len);
     // printf("%d %s %s %d\n", column, name, type_string, str_len);
 
     if (metadata_columns->num == 255) {
@@ -404,12 +420,39 @@ void free_metadata_columns(struct metadata_columns *metadata_columns) {
 
 void free_metadata_types(struct metadata_types *metadata_types) {
   int i;
-  for (i = 0; i < metadata_types->num; ++i) {
+  for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = metadata_types->types[i];
     free(metadata_type);
   }
   free(metadata_types->types);
   free(metadata_types);
+}
+
+void free_metadata_rows(struct metadata_rows *metadata_rows) {
+  int i, j;
+  for (i = 0; i < metadata_rows->num; ++i) {
+    struct metadata_row *metadata_row = metadata_rows->rows[i];
+
+    for (j = 0; j < metadata_row->num; ++j) {
+      struct metadata_item *metadata_item = metadata_row->items[j];
+      free(metadata_item);
+    }
+
+    free(metadata_row->items);
+    free(metadata_row);
+  }
+  free(metadata_rows->rows);
+  free(metadata_rows);
+}
+
+void free_metadata_row(struct metadata_row *metadata_row) {
+  int i;
+  for (i = 0; i < metadata_row->num; ++i) {
+    struct metadata_item *metadata_item = metadata_row->items[i];
+    free(metadata_item);
+  }
+  free(metadata_row->items);
+  free(metadata_row);
 }
 
 void display_metadata_columns(struct metadata_columns *metadata_columns) {
@@ -424,11 +467,69 @@ void display_metadata_columns(struct metadata_columns *metadata_columns) {
 
 void display_metadata_types(struct metadata_types *metadata_types) {
   int i;
-  printf("metadata_types => num: %d, width: %d, header_offset: %lu\n", metadata_types->num, metadata_types->width, metadata_types->header_offset);
-  for (i = 0; i < metadata_types->num; ++i) {
+  printf("metadata_types => num_cols: %d, num_rows: %lu, width: %d, header_offset: %lu\n", metadata_types->num_cols, metadata_types->num_rows, metadata_types->width, metadata_types->header_offset);
+  for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = metadata_types->types[i];
     printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_type->data_type, data_type_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
   }
+}
+
+void display_metadata_item(struct metadata_item *metadata_item) {
+  printf("%s: ", metadata_item->type->name);
+  switch (metadata_item->type->data_type) {
+    case CHAR: 
+      printf("%c", *(char *)(&metadata_item->data));
+      break;
+    case INT_8: 
+      printf("%hhu", *(int8_t *)(&metadata_item->data));
+      break;
+    case INT_16: 
+      printf("%hu", *(int16_t *)(&metadata_item->data));
+      break;
+    case INT_32: 
+      printf("%u", *(int32_t *)(&metadata_item->data));
+      break;
+    case INT_64: 
+      printf("%lu", *(int64_t *)(&metadata_item->data));
+      break;
+    case FLOAT: 
+      printf("%f", *(float *)(&metadata_item->data));
+      break;
+    case DOUBLE: 
+      printf("%lf", *(double *)(&metadata_item->data));
+      break;
+    case STRING: 
+      printf("%s", (char *)(&metadata_item->data));
+      break;
+    default:
+      fprintf(stderr, "Unknown data_type %d.\n", metadata_item->type->data_type);
+      exit(EXIT_FAILURE);
+  }
+  printf(", ");
+}
+
+void display_metadata_rows(struct metadata_rows *metadata_rows) {
+  int i, j;
+  printf("metadata_rows => num_rows: %lu\n", metadata_rows->num);
+  for (i = 0; i < metadata_rows->num; ++i) {
+    printf("%d => ", i);
+    struct metadata_row *metadata_row = metadata_rows->rows[i];
+    for (j = 0; j < metadata_row->num; ++j) {
+      struct metadata_item *metadata_item = metadata_row->items[j];
+      display_metadata_item(metadata_item);
+    }
+    printf("\n");
+  }
+}
+
+void display_metadata_row(struct metadata_row *metadata_row) {
+  int i;
+  printf("metadata_row => ");
+  for (i = 0; i < metadata_row->num; ++i) {
+    struct metadata_item *metadata_item = metadata_row->items[i];
+    display_metadata_item(metadata_item);
+  }
+  printf("\n");
 }
 
 void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns) {
@@ -496,7 +597,7 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
     fprintf(stderr, "%s not found.\n", intervals_filename);
     exit(EXIT_FAILURE);
   }
-  FILE *metadata_index = fopen(metadata_index_filename, "a+b");
+  FILE *metadata_index = fopen(metadata_index_filename, "r+b");
   if (metadata_index == NULL) {
     fprintf(stderr, "%s not found.\n", metadata_index_filename);
     exit(EXIT_FAILURE);
@@ -505,6 +606,17 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
   char * line = NULL;
   size_t len = 0;
   ssize_t read;
+  uint64_t num_rows = 0;
+
+  if (fseek(metadata_index, 0, SEEK_END) != 0) {
+    err(1, "Could not seek to the end to append in '%s'.", metadata_index_filename);
+  }
+  uint64_t curr_offset = ftell(metadata_index);
+
+  if (fwrite(&num_rows, sizeof(uint64_t), 1, metadata_index) != 1) {
+    fprintf(stderr, "fwrite failure for num_rows in init_metadata_dat.\n");
+    exit(EXIT_FAILURE);
+  }
 
   while ((read = getline(&line, &len, intervals)) != -1) {
     // printf("Retrieved line of length %zu:\n%s\n", read, line);
@@ -524,12 +636,23 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
       fwrite_data_type_item(metadata_index, metadata_type, data);
     }
 
+    ++num_rows;
+
     free(fields);
     free(kline.s);
   }
 
   if (line)
     free(line);
+
+  if (fseek(metadata_index, curr_offset, SEEK_SET) != 0) {
+    err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
+  }
+
+  if (fwrite(&num_rows, sizeof(uint64_t), 1, metadata_index) != 1) {
+    fprintf(stderr, "fwrite failure for num_rows in init_metadata_dat.\n");
+    exit(EXIT_FAILURE);
+  }
 
   fclose(intervals);
   fclose(metadata_index);
@@ -571,19 +694,19 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
   fr = fread(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index);
   check_file_read(metadata_index_filename, metadata_index, GIGGLE_METADATA_EXTRA_LENGTH, fr);
 
-  fr = fread(&(metadata_types->num), sizeof(uint8_t), 1, metadata_index);
+  fr = fread(&(metadata_types->num_cols), sizeof(uint8_t), 1, metadata_index);
   check_file_read(metadata_index_filename, metadata_index, 1, fr);
   
   fr = fread(&(metadata_types->width), sizeof(uint16_t), 1, metadata_index);
   check_file_read(metadata_index_filename, metadata_index, 1, fr);
 
-  metadata_types->types = (struct metadata_type **)malloc(metadata_types->num * sizeof(struct metadata_type*));
+  metadata_types->types = (struct metadata_type **)malloc(metadata_types->num_cols * sizeof(struct metadata_type*));
   if (metadata_types->types == NULL) {
-    fprintf(stderr, "calloc failure for metadata_types->types in read_metadata_conf.\n");
+    fprintf(stderr, "malloc failure for metadata_types->types in read_metadata_conf.\n");
     exit(EXIT_FAILURE);
   }
 
-  for (i = 0; i < metadata_types->num; ++i) {
+  for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
     if (metadata_type == NULL) {
       fprintf(stderr, "calloc failure for metadata_type in read_metadata_conf.\n");
@@ -603,6 +726,9 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
 
     metadata_types->types[i] = metadata_type;
   }
+  
+  fr = fread(&(metadata_types->num_rows), sizeof(uint64_t), 1, metadata_index);
+  check_file_read(metadata_index_filename, metadata_index, 1, fr);
 
   metadata_types->header_offset = ftell(metadata_index);
 
@@ -611,8 +737,120 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
   return metadata_types;
 }
 
-struct metadata_types *read_metadata_dat() {
-  // TODO
+struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct metadata_types *metadata_types) {
+  FILE *metadata_index = fopen(metadata_index_filename, "rb");
+  if (metadata_index == NULL) {
+    fprintf(stderr, "%s not found.\n", metadata_index_filename);
+    exit(EXIT_FAILURE);
+  }
+  
+  if (fseek(metadata_index, metadata_types->header_offset, SEEK_SET) != 0) {
+    err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
+  }
+  
+  struct metadata_rows *metadata_rows = (struct metadata_rows *)malloc(sizeof(struct metadata_rows));
+  if (metadata_rows == NULL) {
+    fprintf(stderr, "malloc failure for metadata_rows in read_metadata_rows.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  metadata_rows->num = metadata_types->num_rows;
+
+  int i, j;
+  size_t fr, data_width;
+
+  metadata_rows->rows = (struct metadata_row **)malloc(metadata_rows->num * sizeof(struct metadata_row*));
+  if (metadata_rows->rows == NULL) {
+    fprintf(stderr, "malloc failure for metadata_rows->rows in read_metadata_rows.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (i = 0; i < metadata_rows->num; ++i) {
+    struct metadata_row *metadata_row = (struct metadata_row *)malloc(sizeof(struct metadata_row));
+    if (metadata_row == NULL) {
+      fprintf(stderr, "malloc failure for metadata_row in read_metadata_rows.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    metadata_row->num = metadata_types->num_cols;
+    
+    metadata_row->items = (struct metadata_item **)malloc(metadata_row->num * sizeof(struct metadata_item*));
+    if (metadata_row->items == NULL) {
+      fprintf(stderr, "malloc failure for metadata_row->items in read_metadata_rows.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    for (j = 0; j < metadata_row->num; ++j) {
+      struct metadata_item *metadata_item = (struct metadata_item *)malloc(sizeof(struct metadata_item));
+      if (metadata_item == NULL) {
+        fprintf(stderr, "malloc failure for metadata_item in read_metadata_rows.\n");
+        exit(EXIT_FAILURE);
+      }
+      metadata_item->type = metadata_types->types[j];
+      data_width = metadata_item->type->width;
+
+      fr = fread(&(metadata_item->data), data_width, 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+
+      metadata_row->items[j] = metadata_item;
+    }
+
+    metadata_rows->rows[i] = metadata_row;
+  }
+  
+  fclose(metadata_index);
+
+  return metadata_rows;
+}
+
+struct metadata_row *read_metadata_row(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id) {
+  FILE *metadata_index = fopen(metadata_index_filename, "rb");
+  if (metadata_index == NULL) {
+    fprintf(stderr, "%s not found.\n", metadata_index_filename);
+    exit(EXIT_FAILURE);
+  }
+
+  uint64_t total_offset = metadata_types->header_offset + metadata_types->width * interval_id;
+  
+  if (fseek(metadata_index, total_offset, SEEK_SET) != 0) {
+    err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
+  }
+  
+  int i;
+  size_t fr, data_width;
+
+  struct metadata_row *metadata_row = (struct metadata_row *)malloc(sizeof(struct metadata_row));
+  if (metadata_row == NULL) {
+    fprintf(stderr, "malloc failure for metadata_row in read_metadata_rows.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  metadata_row->num = metadata_types->num_cols;
+  
+  metadata_row->items = (struct metadata_item **)malloc(metadata_row->num * sizeof(struct metadata_item*));
+  if (metadata_row->items == NULL) {
+    fprintf(stderr, "malloc failure for metadata_row->items in read_metadata_rows.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (i = 0; i < metadata_row->num; ++i) {
+    struct metadata_item *metadata_item = (struct metadata_item *)malloc(sizeof(struct metadata_item));
+    if (metadata_item == NULL) {
+      fprintf(stderr, "malloc failure for metadata_item in read_metadata_rows.\n");
+      exit(EXIT_FAILURE);
+    }
+    metadata_item->type = metadata_types->types[i];
+    data_width = metadata_item->type->width;
+
+    fr = fread(&(metadata_item->data), data_width, 1, metadata_index);
+    check_file_read(metadata_index_filename, metadata_index, 1, fr);
+
+    metadata_row->items[i] = metadata_item;
+  }
+  
+  fclose(metadata_index);
+
+  return metadata_row;
 }
 
 int main(void) {
@@ -638,11 +876,23 @@ int main(void) {
   printf("Read metadata_types from %s.\n", metadata_index_filename);
   display_metadata_types(metadata_types);
 
-  // 5. Read ith interval's metadata from metadata_index.dat
-
+  // 5. Read metadata rows from metadata_index.dat
+  void *metadata_rows = read_metadata_rows(metadata_index_filename, metadata_types);
+  printf("Read metadata_rows from %s.\n", metadata_index_filename);
+  display_metadata_rows(metadata_rows);
+  
+  // 6. Read ith interval's metadata from metadata_index.dat
+  struct metadata_row *metadata_row_1 = read_metadata_row(metadata_index_filename, metadata_types, 1);
+  display_metadata_row(metadata_row_1);
+  
+  struct metadata_row *metadata_row_3 = read_metadata_row(metadata_index_filename, metadata_types, 3);
+  display_metadata_row(metadata_row_3);
 
   free_metadata_columns(metadata_columns);
   free_metadata_types(metadata_types);
+  free_metadata_rows(metadata_rows);
+  free_metadata_row(metadata_row_1);
+  free_metadata_row(metadata_row_3);
 
   return 0;
 }
