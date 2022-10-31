@@ -109,8 +109,7 @@ enum data_type type_string_to_enum(char type_string[8]) {
   else if (strcmp(type_string, "DOUBLE") == 0) type = DOUBLE;
   else if (strcmp(type_string, "STRING") == 0) type = STRING;
   else {
-    fprintf(stderr, "Invalid data type %s.\n", type_string);
-    exit(EXIT_FAILURE);
+    err(1, "Invalid data type %s.\n", type_string);
   }
   return type;
 }
@@ -142,8 +141,7 @@ uint8_t data_type_to_width(enum data_type type) {
     case STRING: 
       break;
     default:
-      fprintf(stderr, "Unknown data_type %d.\n", type);
-      exit(EXIT_FAILURE);
+      err(1, "Unknown data_type %d.\n", type);
   }
   return width;
 }
@@ -176,8 +174,7 @@ char data_type_to_char(enum data_type type) {
       type_char = 's';
       break;
     default:
-      fprintf(stderr, "Unknown data_type %d.\n", type);
-      exit(EXIT_FAILURE);
+      err(1, "Unknown data_type %d.\n", type);
   }
   return type_char;
 }
@@ -210,8 +207,7 @@ enum data_type type_char_to_enum(char type_char) {
       type = STRING;
       break;
     default:
-      fprintf(stderr, "Unknown type_char %c.\n", type_char);
-      exit(EXIT_FAILURE);
+      err(1, "Unknown type_char %c.\n", type_char);
   }
   return type;
 }
@@ -233,56 +229,49 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
     case CHAR: 
       c = *data;
       if (fwrite(&c, sizeof(char), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for CHAR in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for CHAR in fwrite_data_type_item.\n");
       }
       break;
 
     case INT_8: 
       b = atoi(data);
       if (fwrite(&b, sizeof(int8_t), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for INT_8 in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for INT_8 in fwrite_data_type_item.\n");
       }
       break;
       
     case INT_16: 
       h = atoi(data);
       if (fwrite(&h, sizeof(int16_t), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for INT_16 in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for INT_16 in fwrite_data_type_item.\n");
       }
       break;
       
     case INT_32: 
       i = atol(data);
       if (fwrite(&i, sizeof(int32_t), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for INT_32 in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for INT_32 in fwrite_data_type_item.\n");
       }
       break;
       
     case INT_64: 
       l = atoll(data);
       if (fwrite(&l, sizeof(int64_t), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for INT_64 in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for INT_64 in fwrite_data_type_item.\n");
       }
       break;
       
     case FLOAT: 
       f = atof(data);
       if (fwrite(&f, sizeof(float), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for FLOAT in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for FLOAT in fwrite_data_type_item.\n");
       }
       break;
       
     case DOUBLE: 
       d = atof(data);
       if (fwrite(&d, sizeof(double), 1, metadata_index) != 1) {
-        fprintf(stderr, "fwrite failure for DOUBLE in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for DOUBLE in fwrite_data_type_item.\n");
       }
       break;
       
@@ -290,43 +279,37 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
       snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
       s = (char *)calloc(str_width, sizeof(char));
       if (s == NULL) {
-        fprintf(stderr, "calloc failure for s in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "calloc failure for s in fwrite_data_type_item.\n");
       }
       sscanf(data, s_format, s);
 
       if (fwrite(s, sizeof(char), str_width, metadata_index) != str_width) {
-        fprintf(stderr, "fwrite failure for STRING in fwrite_data_type_item.\n");
-        exit(EXIT_FAILURE);
+        err(1, "fwrite failure for STRING in fwrite_data_type_item.\n");
       }
       free(s);
       break;
       
     default:
-      fprintf(stderr, "Unknown data_type %d.\n", type);
-      exit(EXIT_FAILURE);
+      err(1, "Unknown data_type %d.\n", type);
   }
 }
 
 struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
   FILE *metadata_conf = fopen(metadata_conf_filename, "r");
   if (metadata_conf == NULL) {
-    fprintf(stderr, "%s not found.\n", metadata_conf_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", metadata_conf_filename);
   }
 
   struct metadata_columns *metadata_columns = (struct metadata_columns *)malloc(sizeof(struct metadata_columns));
   if (metadata_columns == NULL) {
-    fprintf(stderr, "malloc failure for metadata_columns in read_metadata_conf.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_columns in read_metadata_conf.\n");
   }
   metadata_columns->num = 0;
   metadata_columns->width = 0;
 
   metadata_columns->columns = (struct metadata_column **)malloc(255 * sizeof(struct metadata_column*));
   if (metadata_columns->columns == NULL) {
-    fprintf(stderr, "malloc failure for metadata_columns->columns in read_metadata_conf.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_columns->columns in read_metadata_conf.\n");
   }
 
   void *column_set = khash_str2int_init();
@@ -346,26 +329,22 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     // printf("%d %s %s %d\n", column, name, type_string, str_len);
 
     if (metadata_columns->num == 255) {
-      fprintf(stderr, "Cannot store more than 255 columns.\n");
-      exit(EXIT_FAILURE);
+      err(1, "Cannot store more than 255 columns.\n");
     }
     
     if (str_len == 255) {
-      fprintf(stderr, "Column '%s': string length cannot be more than 254.\n", name);
-      exit(EXIT_FAILURE);
+      err(1, "Column '%s': string length cannot be more than 254.\n", name);
     }
 
     if (khash_str2int_has_key(column_set, name)) {
-      fprintf(stderr, "Cannot allow duplicate column '%s'.\n", name);
-      exit(EXIT_FAILURE);
+      err(1, "Cannot allow duplicate column '%s'.\n", name);
     } else {
       khash_str2int_set(column_set, strdup(name), 1);
     }
 
     struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
     if (metadata_type == NULL) {
-      fprintf(stderr, "calloc failure for metadata_type in read_metadata_conf.\n");
-      exit(EXIT_FAILURE);
+      err(1, "calloc failure for metadata_type in read_metadata_conf.\n");
     }
 
     strncpy(metadata_type->name, name, strlen(name) + 1);
@@ -378,8 +357,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
 
     struct metadata_column *metadata_column = (struct metadata_column *)malloc(sizeof(struct metadata_column));
     if (metadata_column == NULL) {
-      fprintf(stderr, "malloc failure for metadata_column in read_metadata_conf.\n");
-      exit(EXIT_FAILURE);
+      err(1, "malloc failure for metadata_column in read_metadata_conf.\n");
     }
 
     metadata_column->type = metadata_type;
@@ -392,8 +370,7 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
   if (metadata_columns->num < 255) {
     metadata_columns->columns = (struct metadata_column **)realloc(metadata_columns->columns, sizeof(struct metadata_column*) * metadata_columns->num);
     if (metadata_columns->columns == NULL) {
-      fprintf(stderr, "realloc failure for metadata_columns->columns in read_metadata_conf.\n");
-      exit(EXIT_FAILURE);
+      err(1, "realloc failure for metadata_columns->columns in read_metadata_conf.\n");
     }
   }
 
@@ -502,8 +479,7 @@ void display_metadata_item(struct metadata_item *metadata_item) {
       printf("%s", (char *)(&metadata_item->data));
       break;
     default:
-      fprintf(stderr, "Unknown data_type %d.\n", metadata_item->type->data_type);
-      exit(EXIT_FAILURE);
+      err(1, "Unknown data_type %d.\n", metadata_item->type->data_type);
   }
   printf(", ");
 }
@@ -535,36 +511,30 @@ void display_metadata_row(struct metadata_row *metadata_row) {
 void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *metadata_index = fopen(metadata_index_filename, "wb");
   if (metadata_index == NULL) {
-    fprintf(stderr, "%s not found.\n", metadata_index_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", metadata_index_filename);
   }
 
   int i;
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
 
   if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
-    fprintf(stderr, "fwrite failure for file marker in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for file marker in init_metadata_dat.\n");
   }
 
   if (fwrite(GIGGLE_METADATA_VERSION_MARKER, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index) != GIGGLE_METADATA_VERSION_MARKER_LENGTH) {
-    fprintf(stderr, "fwrite failure for version marker in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for version marker in init_metadata_dat.\n");
   }
 
   if (fwrite(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index) != GIGGLE_METADATA_EXTRA_LENGTH) {
-    fprintf(stderr, "fwrite failure for extra in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for extra in init_metadata_dat.\n");
   }
 
   if (fwrite(&(metadata_columns->num), sizeof(uint8_t), 1, metadata_index) != 1) {
-    fprintf(stderr, "fwrite failure for metadata_columns->num in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for metadata_columns->num in init_metadata_dat.\n");
   }
 
   if (fwrite(&(metadata_columns->width), sizeof(uint16_t), 1, metadata_index) != 1) {
-    fprintf(stderr, "fwrite failure for metadata_columns->width in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for metadata_columns->width in init_metadata_dat.\n");
   }
 
   for (i = 0; i < metadata_columns->num; ++i) {
@@ -573,18 +543,15 @@ void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *m
     
     char type_char = data_type_to_char(metadata_type->data_type);
     if (fwrite(&type_char, sizeof(char), 1, metadata_index) != 1) {
-      fprintf(stderr, "fwrite failure for type_char in init_metadata_dat.\n");
-      exit(EXIT_FAILURE);
+      err(1, "fwrite failure for type_char in init_metadata_dat.\n");
     }
 
     if (fwrite(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index) != 1) {
-      fprintf(stderr, "fwrite failure for metadata_type->width in init_metadata_dat.\n");
-      exit(EXIT_FAILURE);
+      err(1, "fwrite failure for metadata_type->width in init_metadata_dat.\n");
     }
 
     if (fwrite(metadata_type->name, sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index) != COLUMN_NAME_MAX_LENGTH) {
-      fprintf(stderr, "fwrite failure for metadata_type->name in init_metadata_dat.\n");
-      exit(EXIT_FAILURE);
+      err(1, "fwrite failure for metadata_type->name in init_metadata_dat.\n");
     }
   }
 
@@ -594,13 +561,11 @@ void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *m
 void append_metadata_dat(char *intervals_filename, char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *intervals = fopen(intervals_filename, "r");
   if (intervals == NULL) {
-    fprintf(stderr, "%s not found.\n", intervals_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", intervals_filename);
   }
   FILE *metadata_index = fopen(metadata_index_filename, "r+b");
   if (metadata_index == NULL) {
-    fprintf(stderr, "%s not found.\n", metadata_index_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", metadata_index_filename);
   }
   
   char * line = NULL;
@@ -614,8 +579,7 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
   uint64_t curr_offset = ftell(metadata_index);
 
   if (fwrite(&num_rows, sizeof(uint64_t), 1, metadata_index) != 1) {
-    fprintf(stderr, "fwrite failure for num_rows in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
   }
 
   while ((read = getline(&line, &len, intervals)) != -1) {
@@ -650,8 +614,7 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
   }
 
   if (fwrite(&num_rows, sizeof(uint64_t), 1, metadata_index) != 1) {
-    fprintf(stderr, "fwrite failure for num_rows in init_metadata_dat.\n");
-    exit(EXIT_FAILURE);
+    err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
   }
 
   fclose(intervals);
@@ -661,14 +624,12 @@ void append_metadata_dat(char *intervals_filename, char *metadata_index_filename
 struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_index_filename) {
   FILE *metadata_index = fopen(metadata_index_filename, "rb");
   if (metadata_index == NULL) {
-    fprintf(stderr, "%s not found.\n", metadata_index_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", metadata_index_filename);
   }
   
   struct metadata_types *metadata_types = (struct metadata_types *)malloc(sizeof(struct metadata_types));
   if (metadata_types == NULL) {
-    fprintf(stderr, "malloc failure for metadata_types in read_metadata_conf.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_types in read_metadata_types_from_metadata_dat.\n");
   }
 
   int i;
@@ -680,15 +641,13 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
   fr = fread(file_marker, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index);
   check_file_read(metadata_index_filename, metadata_index, GIGGLE_METADATA_FILE_MARKER_LENGTH, fr);
   if (strcmp(file_marker, GIGGLE_METADATA_FILE_MARKER) != 0) {
-    fprintf(stderr, "Not a GIGGLE Metadata Index file.\n");
-    exit(EXIT_FAILURE);
+    err(1, "Not a GIGGLE Metadata Index file.\n");
   }
 
   fr = fread(version_marker, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index);
   check_file_read(metadata_index_filename, metadata_index, GIGGLE_METADATA_VERSION_MARKER_LENGTH, fr);
   if (strcmp(version_marker, GIGGLE_METADATA_VERSION_MARKER) != 0) {
-    fprintf(stderr, "Incompatible GIGGLE Metadata Index version.\n");
-    exit(EXIT_FAILURE);
+    err(1, "Incompatible GIGGLE Metadata Index version.\n");
   }
   
   fr = fread(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index);
@@ -702,15 +661,13 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
 
   metadata_types->types = (struct metadata_type **)malloc(metadata_types->num_cols * sizeof(struct metadata_type*));
   if (metadata_types->types == NULL) {
-    fprintf(stderr, "malloc failure for metadata_types->types in read_metadata_conf.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_types->types in read_metadata_types_from_metadata_dat.\n");
   }
 
   for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
     if (metadata_type == NULL) {
-      fprintf(stderr, "calloc failure for metadata_type in read_metadata_conf.\n");
-      exit(EXIT_FAILURE);
+      err(1, "calloc failure for metadata_type in read_metadata_types_from_metadata_dat.\n");
     }
 
     char type_char;
@@ -740,8 +697,7 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
 struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct metadata_types *metadata_types) {
   FILE *metadata_index = fopen(metadata_index_filename, "rb");
   if (metadata_index == NULL) {
-    fprintf(stderr, "%s not found.\n", metadata_index_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", metadata_index_filename);
   }
   
   if (fseek(metadata_index, metadata_types->header_offset, SEEK_SET) != 0) {
@@ -750,8 +706,7 @@ struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct m
   
   struct metadata_rows *metadata_rows = (struct metadata_rows *)malloc(sizeof(struct metadata_rows));
   if (metadata_rows == NULL) {
-    fprintf(stderr, "malloc failure for metadata_rows in read_metadata_rows.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_rows in read_metadata_rows.\n");
   }
 
   metadata_rows->num = metadata_types->num_rows;
@@ -761,30 +716,26 @@ struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct m
 
   metadata_rows->rows = (struct metadata_row **)malloc(metadata_rows->num * sizeof(struct metadata_row*));
   if (metadata_rows->rows == NULL) {
-    fprintf(stderr, "malloc failure for metadata_rows->rows in read_metadata_rows.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_rows->rows in read_metadata_rows.\n");
   }
 
   for (i = 0; i < metadata_rows->num; ++i) {
     struct metadata_row *metadata_row = (struct metadata_row *)malloc(sizeof(struct metadata_row));
     if (metadata_row == NULL) {
-      fprintf(stderr, "malloc failure for metadata_row in read_metadata_rows.\n");
-      exit(EXIT_FAILURE);
+      err(1, "malloc failure for metadata_row in read_metadata_rows.\n");
     }
 
     metadata_row->num = metadata_types->num_cols;
     
     metadata_row->items = (struct metadata_item **)malloc(metadata_row->num * sizeof(struct metadata_item*));
     if (metadata_row->items == NULL) {
-      fprintf(stderr, "malloc failure for metadata_row->items in read_metadata_rows.\n");
-      exit(EXIT_FAILURE);
+      err(1, "malloc failure for metadata_row->items in read_metadata_rows.\n");
     }
 
     for (j = 0; j < metadata_row->num; ++j) {
       struct metadata_item *metadata_item = (struct metadata_item *)malloc(sizeof(struct metadata_item));
       if (metadata_item == NULL) {
-        fprintf(stderr, "malloc failure for metadata_item in read_metadata_rows.\n");
-        exit(EXIT_FAILURE);
+        err(1, "malloc failure for metadata_item in read_metadata_rows.\n");
       }
       metadata_item->type = metadata_types->types[j];
       data_width = metadata_item->type->width;
@@ -806,8 +757,7 @@ struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct m
 struct metadata_row *read_metadata_row(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id) {
   FILE *metadata_index = fopen(metadata_index_filename, "rb");
   if (metadata_index == NULL) {
-    fprintf(stderr, "%s not found.\n", metadata_index_filename);
-    exit(EXIT_FAILURE);
+    err(1, "%s not found.\n", metadata_index_filename);
   }
 
   uint64_t total_offset = metadata_types->header_offset + metadata_types->width * interval_id;
@@ -821,23 +771,20 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
 
   struct metadata_row *metadata_row = (struct metadata_row *)malloc(sizeof(struct metadata_row));
   if (metadata_row == NULL) {
-    fprintf(stderr, "malloc failure for metadata_row in read_metadata_rows.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_row in read_metadata_row.\n");
   }
 
   metadata_row->num = metadata_types->num_cols;
   
   metadata_row->items = (struct metadata_item **)malloc(metadata_row->num * sizeof(struct metadata_item*));
   if (metadata_row->items == NULL) {
-    fprintf(stderr, "malloc failure for metadata_row->items in read_metadata_rows.\n");
-    exit(EXIT_FAILURE);
+    err(1, "malloc failure for metadata_row->items in read_metadata_row.\n");
   }
 
   for (i = 0; i < metadata_row->num; ++i) {
     struct metadata_item *metadata_item = (struct metadata_item *)malloc(sizeof(struct metadata_item));
     if (metadata_item == NULL) {
-      fprintf(stderr, "malloc failure for metadata_item in read_metadata_rows.\n");
-      exit(EXIT_FAILURE);
+      err(1, "malloc failure for metadata_item in read_metadata_row.\n");
     }
     metadata_item->type = metadata_types->types[i];
     data_width = metadata_item->type->width;
