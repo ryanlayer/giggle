@@ -877,7 +877,7 @@ int main(void) {
   display_metadata_types(metadata_types);
 
   // 5. Read metadata rows from metadata_index.dat
-  void *metadata_rows = read_metadata_rows(metadata_index_filename, metadata_types);
+  struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index_filename, metadata_types);
   printf("Read metadata_rows from %s.\n", metadata_index_filename);
   display_metadata_rows(metadata_rows);
   
