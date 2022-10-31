@@ -80,9 +80,20 @@ struct metadata_types {
   struct metadata_type **types;
 };
 
+union metadata_data {
+  char c;
+  int8_t b;
+  int16_t h;
+  int32_t i;
+  int64_t l;
+  float f;
+  double d;
+  char *s;
+};
+
 struct metadata_item {
   struct metadata_type *type;
-  void *data;
+  union metadata_data data;
 };
 
 struct metadata_row {
@@ -221,7 +232,7 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
   int64_t l;
   float f;
   double d;
-  uint8_t str_width = metadata_type->width;
+  uint8_t str_width;
   char s_format[6]; // '%' + max value for int8_t + 's' + NULL -> '%255sN'
   char *s;
 
@@ -276,6 +287,7 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
       break;
       
     case STRING: 
+      str_width = metadata_type->width;
       snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
       s = (char *)calloc(str_width, sizeof(char));
       if (s == NULL) {
@@ -287,6 +299,65 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
         err(1, "fwrite failure for STRING in fwrite_data_type_item.\n");
       }
       free(s);
+      break;
+      
+    default:
+      err(1, "Unknown data_type %d.\n", type);
+  }
+}
+
+void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index, struct metadata_item *metadata_item) {
+  struct metadata_type *metadata_type = metadata_item->type;
+  enum data_type type = metadata_type->data_type;
+  uint8_t str_width;
+  char *s;
+  size_t fr;
+
+  switch (type) {
+    case CHAR: 
+      fr = fread(&(metadata_item->data.c), sizeof(char), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+
+    case INT_8: 
+      fr = fread(&(metadata_item->data.b), sizeof(int8_t), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+      
+    case INT_16: 
+      fr = fread(&(metadata_item->data.h), sizeof(int16_t), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+      
+    case INT_32: 
+      fr = fread(&(metadata_item->data.i), sizeof(int32_t), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+      
+    case INT_64: 
+      fr = fread(&(metadata_item->data.l), sizeof(int64_t), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+      
+    case FLOAT: 
+      fr = fread(&(metadata_item->data.f), sizeof(float), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+      
+    case DOUBLE: 
+      fr = fread(&(metadata_item->data.d), sizeof(double), 1, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      break;
+      
+    case STRING: 
+      str_width = metadata_type->width;
+      s = (char *)malloc(str_width * sizeof(char));
+      if (s == NULL) {
+        err(1, "malloc failure for s in fwrite_data_type_item.\n");
+      }
+      fr = fread(s, sizeof(char), str_width, metadata_index);
+      check_file_read(metadata_index_filename, metadata_index, str_width, fr);
+      metadata_item->data.s = s;
       break;
       
     default:
@@ -405,31 +476,26 @@ void free_metadata_types(struct metadata_types *metadata_types) {
   free(metadata_types);
 }
 
-void free_metadata_rows(struct metadata_rows *metadata_rows) {
-  int i, j;
-  for (i = 0; i < metadata_rows->num; ++i) {
-    struct metadata_row *metadata_row = metadata_rows->rows[i];
-
-    for (j = 0; j < metadata_row->num; ++j) {
-      struct metadata_item *metadata_item = metadata_row->items[j];
-      free(metadata_item);
-    }
-
-    free(metadata_row->items);
-    free(metadata_row);
-  }
-  free(metadata_rows->rows);
-  free(metadata_rows);
-}
-
 void free_metadata_row(struct metadata_row *metadata_row) {
   int i;
   for (i = 0; i < metadata_row->num; ++i) {
     struct metadata_item *metadata_item = metadata_row->items[i];
+    if (metadata_item->type->data_type == STRING) {
+      free(metadata_item->data.s);
+    }
     free(metadata_item);
   }
   free(metadata_row->items);
   free(metadata_row);
+}
+
+void free_metadata_rows(struct metadata_rows *metadata_rows) {
+  int i;
+  for (i = 0; i < metadata_rows->num; ++i) {
+    free_metadata_row(metadata_rows->rows[i]);
+  }
+  free(metadata_rows->rows);
+  free(metadata_rows);
 }
 
 void display_metadata_columns(struct metadata_columns *metadata_columns) {
@@ -455,28 +521,28 @@ void display_metadata_item(struct metadata_item *metadata_item) {
   printf("%s: ", metadata_item->type->name);
   switch (metadata_item->type->data_type) {
     case CHAR: 
-      printf("%c", *(char *)(&metadata_item->data));
+      printf("%c", metadata_item->data.c);
       break;
     case INT_8: 
-      printf("%hhu", *(int8_t *)(&metadata_item->data));
+      printf("%hhu", metadata_item->data.b);
       break;
     case INT_16: 
-      printf("%hu", *(int16_t *)(&metadata_item->data));
+      printf("%hu", metadata_item->data.h);
       break;
     case INT_32: 
-      printf("%u", *(int32_t *)(&metadata_item->data));
+      printf("%u", metadata_item->data.i);
       break;
     case INT_64: 
-      printf("%lu", *(int64_t *)(&metadata_item->data));
+      printf("%lu", metadata_item->data.l);
       break;
     case FLOAT: 
-      printf("%f", *(float *)(&metadata_item->data));
+      printf("%f", metadata_item->data.f);
       break;
     case DOUBLE: 
-      printf("%lf", *(double *)(&metadata_item->data));
+      printf("%lf", metadata_item->data.d);
       break;
     case STRING: 
-      printf("%s", (char *)(&metadata_item->data));
+      printf("%s", metadata_item->data.s);
       break;
     default:
       err(1, "Unknown data_type %d.\n", metadata_item->type->data_type);
@@ -712,7 +778,6 @@ struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct m
   metadata_rows->num = metadata_types->num_rows;
 
   int i, j;
-  size_t fr, data_width;
 
   metadata_rows->rows = (struct metadata_row **)malloc(metadata_rows->num * sizeof(struct metadata_row*));
   if (metadata_rows->rows == NULL) {
@@ -738,10 +803,8 @@ struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct m
         err(1, "malloc failure for metadata_item in read_metadata_rows.\n");
       }
       metadata_item->type = metadata_types->types[j];
-      data_width = metadata_item->type->width;
 
-      fr = fread(&(metadata_item->data), data_width, 1, metadata_index);
-      check_file_read(metadata_index_filename, metadata_index, 1, fr);
+      fread_data_type_item(metadata_index_filename, metadata_index, metadata_item);
 
       metadata_row->items[j] = metadata_item;
     }
@@ -787,10 +850,8 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
       err(1, "malloc failure for metadata_item in read_metadata_row.\n");
     }
     metadata_item->type = metadata_types->types[i];
-    data_width = metadata_item->type->width;
 
-    fr = fread(&(metadata_item->data), data_width, 1, metadata_index);
-    check_file_read(metadata_index_filename, metadata_index, 1, fr);
+    fread_data_type_item(metadata_index_filename, metadata_index, metadata_item);
 
     metadata_row->items[i] = metadata_item;
   }
