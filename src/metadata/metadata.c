@@ -77,6 +77,7 @@ struct metadata_types {
   uint64_t num_rows;
   uint16_t width; // total width of each data row
   uint64_t header_offset; // total header offset, end of the header file position
+  void *column_name_to_index; // khash_str2int hashmap to map column names to column indexes
   struct metadata_type **types;
 };
 
@@ -473,6 +474,7 @@ void free_metadata_types(struct metadata_types *metadata_types) {
     free(metadata_type);
   }
   free(metadata_types->types);
+  khash_str2int_destroy_free(metadata_types->column_name_to_index);
   free(metadata_types);
 }
 
@@ -704,6 +706,8 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
   char version_marker[3];
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
 
+  metadata_types->column_name_to_index = khash_str2int_init();
+
   fr = fread(file_marker, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index);
   check_file_read(metadata_index_filename, metadata_index, GIGGLE_METADATA_FILE_MARKER_LENGTH, fr);
   if (strcmp(file_marker, GIGGLE_METADATA_FILE_MARKER) != 0) {
@@ -746,6 +750,8 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
 
     fr = fread(&(metadata_type->name), sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index);
     check_file_read(metadata_index_filename, metadata_index, COLUMN_NAME_MAX_LENGTH, fr);
+
+    khash_str2int_set(metadata_types->column_name_to_index, strdup(metadata_type->name), i);
 
     metadata_types->types[i] = metadata_type;
   }
