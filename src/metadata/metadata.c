@@ -118,6 +118,7 @@ enum comparison {
 
 struct query_filter {
   struct metadata_type *type;
+  uint8_t column_id;
   enum comparison comparison;
   union metadata_data data;
 };
@@ -1029,9 +1030,10 @@ struct query_filter *parse_query_filter_string(struct metadata_types *metadata_t
     err(1, "malloc failure for query_filter in parse_query_filter_string.\n");
   }
 
-  int start_comparison, end_comparison, column_id, lookup_result;
+  int start_comparison, end_comparison, lookup_result;
   char *data_string;
   char null_tmp;
+  int column_id;
 
   query_filter->comparison = comparison_string_to_enum(query_filter_string, &start_comparison, &end_comparison);
   
@@ -1046,11 +1048,100 @@ struct query_filter *parse_query_filter_string(struct metadata_types *metadata_t
   }
 
   query_filter->type = metadata_types->types[column_id];
+  query_filter->column_id = column_id;
 
   data_string = query_filter_string + end_comparison + 1;
   query_filter->data = parse_query_filter_data_string(query_filter->type, data_string);
 
   return query_filter;
+}
+
+int perform_metadata_comparison(struct metadata_type *metadata_type, enum comparison comparison, union metadata_data source, union metadata_data target) {
+  enum data_type type = metadata_type->data_type;
+  int less, equal, greater;
+  int result;
+  char c;
+  int8_t b;
+  int16_t h;
+  int32_t i;
+  int64_t l;
+  float f;
+  double d;
+  int s;
+
+  switch (type) {
+    case CHAR: 
+      c = source.c - target.c;
+      less = (c < 0); equal = (c == 0); greater = (c > 0);
+      break;
+    case INT_8: 
+      b = source.b - target.b;
+      less = (b < 0); equal = (b == 0); greater = (b > 0);
+      break;
+    case INT_16: 
+      h = source.h - target.h;
+      less = (h < 0); equal = (h == 0); greater = (h > 0);
+      break;
+    case INT_32: 
+      i = source.i - target.i;
+      less = (i < 0); equal = (i == 0); greater = (i > 0);
+      break;
+    case INT_64: 
+      l = source.l - target.l;
+      less = (l < 0); equal = (l == 0); greater = (l > 0);
+      break;
+    case FLOAT: 
+      f = source.f - target.f;
+      less = (f < 0); equal = (f == 0); greater = (f > 0);
+      break;
+    case DOUBLE: 
+      d = source.d - target.d;
+      less = (d < 0); equal = (d == 0); greater = (d > 0);
+      break;
+    case STRING: 
+      s = strcmp(source.s, target.s);
+      less = (s < 0); equal = (s == 0); greater = (s > 0);
+      break;
+    default:
+      err(1, "Unknown data_type %d.\n", type);
+  }
+  
+  switch (comparison) {
+    case EQUAL: 
+      result = equal;
+      break;
+    case NOT_EQUAL: 
+      result = !equal;
+      break;
+    case LESS: 
+      result = less;
+      break;
+    case GREATER: 
+      result = greater;
+      break;
+    case LESS_EQUAL: 
+      result = less || equal;
+      break;
+    case GREATER_EQUAL: 
+      result = greater || equal;
+      break;
+    default:
+      err(1, "Unknown comparison %d.\n", comparison);
+  }
+
+  return result;
+}
+
+int filter_metadata_row(struct metadata_row *metadata_row, struct query_filter *query_filter) {  
+  struct metadata_type *metadata_type = query_filter->type;
+  enum comparison comparison = query_filter->comparison;
+  uint8_t column_id = query_filter->column_id;
+  union metadata_data target = query_filter->data;
+
+  struct metadata_item *metadata_item = metadata_row->items[column_id];
+  union metadata_data source = metadata_item->data;
+
+  return perform_metadata_comparison(metadata_type, comparison, source, target);
 }
 
 int main(void) {
@@ -1089,8 +1180,8 @@ int main(void) {
   display_metadata_row(metadata_row_3, 3);
 
   // 7. Read query filter
-  char query_filter_string_1[] = "feature>string1";
-  char query_filter_string_2[] = "score<=7.5";
+  char query_filter_string_1[] = "feature<my_feature";
+  char query_filter_string_2[] = "score>=456.5";
   struct query_filter *query_filter_1 = parse_query_filter_string(metadata_types, query_filter_string_1);
   struct query_filter *query_filter_2 = parse_query_filter_string(metadata_types, query_filter_string_2);
   printf("\nParsed query filter string: %s\n", query_filter_string_1);
@@ -1098,6 +1189,16 @@ int main(void) {
   printf("\nParsed query filter string: %s\n", query_filter_string_2);
   display_query_filter(query_filter_2);
 
+  // 8. Filter rows using query filters
+  int row_1_filter_1 = filter_metadata_row(metadata_row_1, query_filter_1);
+  int row_1_filter_2 = filter_metadata_row(metadata_row_1, query_filter_2);
+  int row_3_filter_1 = filter_metadata_row(metadata_row_3, query_filter_1);
+  int row_3_filter_2 = filter_metadata_row(metadata_row_3, query_filter_2);
+  printf("\nFiltered rows using query filters\n");
+  printf("row_1_filter_1: %d, row_1_filter_2: %d\n", row_1_filter_1, row_1_filter_2);
+  printf("row_3_filter_1: %d, row_3_filter_2: %d\n", row_3_filter_1, row_3_filter_2);
+
+  // free memory
   free_query_filter(query_filter_1);
   free_query_filter(query_filter_2);
   free_metadata_row(metadata_row_1);
