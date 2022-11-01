@@ -107,6 +107,21 @@ struct metadata_rows {
   struct metadata_row **rows; // data rows
 };
 
+enum comparison {
+  EQUAL,
+  NOT_EQUAL,
+  LESS,
+  GREATER,
+  LESS_EQUAL,
+  GREATER_EQUAL
+};
+
+struct query_filter {
+  struct metadata_type *type;
+  enum comparison comparison;
+  union metadata_data data;
+};
+
 enum data_type type_string_to_enum(char type_string[8]) {
   enum data_type type;
   for(int i = 0; type_string[i]; ++i){
@@ -224,6 +239,20 @@ enum data_type type_char_to_enum(char type_char) {
   return type;
 }
 
+// this function is not responsible for
+// freeing the allocated memory for the string
+char *safe_sscanf(uint8_t str_width, char *data) {
+  char s_format[6]; // '%' + max value for int8_t + 's' + NULL -> '%255sN'
+  char *s;
+  snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
+  s = (char *)calloc(str_width, sizeof(char));
+  if (s == NULL) {
+    err(1, "calloc failure for s in fwrite_data_type_item.\n");
+  }
+  sscanf(data, s_format, s);
+  return s;
+}
+
 void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_type, char *data) {
   enum data_type type = metadata_type->data_type;
   char c;
@@ -233,9 +262,8 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
   int64_t l;
   float f;
   double d;
-  uint8_t str_width;
-  char s_format[6]; // '%' + max value for int8_t + 's' + NULL -> '%255sN'
   char *s;
+  uint8_t str_width;
 
   switch (type) {
     case CHAR: 
@@ -289,13 +317,7 @@ void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_
       
     case STRING: 
       str_width = metadata_type->width;
-      snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
-      s = (char *)calloc(str_width, sizeof(char));
-      if (s == NULL) {
-        err(1, "calloc failure for s in fwrite_data_type_item.\n");
-      }
-      sscanf(data, s_format, s);
-
+      s = safe_sscanf(str_width, data);
       if (fwrite(s, sizeof(char), str_width, metadata_index) != str_width) {
         err(1, "fwrite failure for STRING in fwrite_data_type_item.\n");
       }
@@ -364,6 +386,105 @@ void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index, s
     default:
       err(1, "Unknown data_type %d.\n", type);
   }
+}
+
+union metadata_data parse_query_filter_data_string(struct metadata_type *metadata_type, char *data) {
+  union metadata_data metadata_data;
+  enum data_type type = metadata_type->data_type;
+  char *s;
+
+  switch (type) {
+    case CHAR: 
+      metadata_data.c = *data;
+      break;
+
+    case INT_8: 
+      metadata_data.b = atoi(data);
+      break;
+      
+    case INT_16: 
+      metadata_data.h = atoi(data);
+      break;
+      
+    case INT_32: 
+      metadata_data.i = atol(data);
+      break;
+      
+    case INT_64: 
+      metadata_data.l = atoll(data);
+      break;
+      
+    case FLOAT: 
+      metadata_data.f = atof(data);
+      break;
+      
+    case DOUBLE: 
+      metadata_data.d = atof(data);
+      break;
+      
+    case STRING: 
+      metadata_data.s = safe_sscanf(metadata_type->width, data);
+      break;
+      
+    default:
+      err(1, "Unknown data_type %d.\n", type);
+  }
+
+  return metadata_data;
+}
+
+enum comparison comparison_string_to_enum(char *query_filter_string, int *start_comparison, int *end_comparison) {
+  int i, start = -1, end;
+  for(i = 0; query_filter_string[i]; ++i) {
+    if (!(isalpha(query_filter_string[i]) || query_filter_string[i] == '_')) { // column name ended
+      start = end = i;
+      // TODO: if the first character of the string data is 
+      // allowed to be =, escape logic needs to be implemented 
+      if (query_filter_string[i+1] == '=') {
+        end = i+1;
+      }
+      break;
+    }
+  }
+
+  if (start == -1) {
+    err(1, "Comparison operator not found.\n");
+  }
+
+  enum comparison comparison;
+  if (start == end) {
+    switch (query_filter_string[start]) {
+      case '<': 
+        comparison = LESS;
+        break;
+      case '>': 
+        comparison = GREATER;
+        break;
+      default:
+        err(1, "Unknown comparison operator %c.\n", query_filter_string[start]);
+    }
+  } else {
+    switch (query_filter_string[start]) {
+      case '=': 
+        comparison = EQUAL;
+        break;
+      case '!': 
+        comparison = NOT_EQUAL;
+        break;
+      case '<': 
+        comparison = LESS_EQUAL;
+        break;
+      case '>': 
+        comparison = GREATER_EQUAL;
+        break;
+      default:
+        err(1, "Unknown comparison operator %c=.\n", query_filter_string[start]);
+    }
+  }
+
+  *start_comparison = start;
+  *end_comparison = end;
+  return comparison;
 }
 
 struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
@@ -491,6 +612,13 @@ void free_metadata_row(struct metadata_row *metadata_row) {
   free(metadata_row);
 }
 
+void free_query_filter(struct query_filter *query_filter) {
+  if (query_filter->type->data_type == STRING) {
+    free(query_filter->data.s);
+  }
+  free(query_filter);
+}
+
 void free_metadata_rows(struct metadata_rows *metadata_rows) {
   int i;
   for (i = 0; i < metadata_rows->num; ++i) {
@@ -519,60 +647,88 @@ void display_metadata_types(struct metadata_types *metadata_types) {
   }
 }
 
-void display_metadata_item(struct metadata_item *metadata_item) {
-  printf("%s: ", metadata_item->type->name);
-  switch (metadata_item->type->data_type) {
+void display_metadata_data(struct metadata_type *type, union metadata_data data) {
+  printf("%s: ", type->name);
+  switch (type->data_type) {
     case CHAR: 
-      printf("%c", metadata_item->data.c);
+      printf("%c", data.c);
       break;
     case INT_8: 
-      printf("%hhu", metadata_item->data.b);
+      printf("%hhu", data.b);
       break;
     case INT_16: 
-      printf("%hu", metadata_item->data.h);
+      printf("%hu", data.h);
       break;
     case INT_32: 
-      printf("%u", metadata_item->data.i);
+      printf("%u", data.i);
       break;
     case INT_64: 
-      printf("%lu", metadata_item->data.l);
+      printf("%lu", data.l);
       break;
     case FLOAT: 
-      printf("%f", metadata_item->data.f);
+      printf("%f", data.f);
       break;
     case DOUBLE: 
-      printf("%lf", metadata_item->data.d);
+      printf("%lf", data.d);
       break;
     case STRING: 
-      printf("%s", metadata_item->data.s);
+      printf("%s", data.s);
       break;
     default:
-      err(1, "Unknown data_type %d.\n", metadata_item->type->data_type);
+      err(1, "Unknown data_type %d.\n", type->data_type);
   }
-  printf(", ");
+}
+
+void display_comparison(enum comparison comparison) {
+  switch (comparison) {
+    case EQUAL: 
+      printf("==");
+      break;
+    case NOT_EQUAL: 
+      printf("!=");
+      break;
+    case LESS: 
+      printf("<");
+      break;
+    case GREATER: 
+      printf(">");
+      break;
+    case LESS_EQUAL: 
+      printf("<=");
+      break;
+    case GREATER_EQUAL: 
+      printf(">=");
+      break;
+    default:
+      err(1, "Unknown comparison %d.\n", comparison);
+  }
+}
+
+void display_metadata_row(struct metadata_row *metadata_row, int row_id) {
+  int i;
+  printf("metadata_row %d => ", row_id);
+  for (i = 0; i < metadata_row->num; ++i) {
+    struct metadata_item *metadata_item = metadata_row->items[i];
+    display_metadata_data(metadata_item->type, metadata_item->data);
+    printf(", ");
+  }
+  printf("\n");
 }
 
 void display_metadata_rows(struct metadata_rows *metadata_rows) {
   int i, j;
   printf("metadata_rows => num_rows: %lu\n", metadata_rows->num);
   for (i = 0; i < metadata_rows->num; ++i) {
-    printf("%d => ", i);
     struct metadata_row *metadata_row = metadata_rows->rows[i];
-    for (j = 0; j < metadata_row->num; ++j) {
-      struct metadata_item *metadata_item = metadata_row->items[j];
-      display_metadata_item(metadata_item);
-    }
-    printf("\n");
+    display_metadata_row(metadata_row, i);
   }
 }
 
-void display_metadata_row(struct metadata_row *metadata_row) {
+void display_query_filter(struct query_filter *query_filter) {
   int i;
-  printf("metadata_row => ");
-  for (i = 0; i < metadata_row->num; ++i) {
-    struct metadata_item *metadata_item = metadata_row->items[i];
-    display_metadata_item(metadata_item);
-  }
+  display_metadata_data(query_filter->type, query_filter->data);
+  printf(", comparison: ");
+  display_comparison(query_filter->comparison);
   printf("\n");
 }
 
@@ -867,6 +1023,36 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
   return metadata_row;
 }
 
+struct query_filter *parse_query_filter_string(struct metadata_types *metadata_types, char *query_filter_string) {
+  struct query_filter *query_filter = (struct query_filter *)malloc(sizeof(struct query_filter));
+  if (query_filter == NULL) {
+    err(1, "malloc failure for query_filter in parse_query_filter_string.\n");
+  }
+
+  int start_comparison, end_comparison, column_id, lookup_result;
+  char *data_string;
+  char null_tmp;
+
+  query_filter->comparison = comparison_string_to_enum(query_filter_string, &start_comparison, &end_comparison);
+  
+  null_tmp = query_filter_string[start_comparison];
+  query_filter_string[start_comparison] = 0; // null-terminate the column name after parsing comparison operator
+
+  lookup_result = khash_str2int_get(metadata_types->column_name_to_index, query_filter_string, &column_id);
+  query_filter_string[start_comparison] = null_tmp;
+
+  if (lookup_result == -1) {
+    err(1, "Column %s not found in metadata.\n", query_filter_string);
+  }
+
+  query_filter->type = metadata_types->types[column_id];
+
+  data_string = query_filter_string + end_comparison + 1;
+  query_filter->data = parse_query_filter_data_string(query_filter->type, data_string);
+
+  return query_filter;
+}
+
 int main(void) {
   char *metadata_conf_filename = "metadata.conf";
   char *metadata_index_filename = "metadata_index.dat";
@@ -874,39 +1060,51 @@ int main(void) {
 
   // 1. Read metadata.conf
   struct metadata_columns *metadata_columns = read_metadata_conf(metadata_conf_filename);
-  printf("Created metadata_columns from %s.\n", metadata_conf_filename);
+  printf("\nCreated metadata_columns from %s\n", metadata_conf_filename);
   display_metadata_columns(metadata_columns);
 
   // 2. Write header in metadata_index.dat
   init_metadata_dat(metadata_index_filename, metadata_columns);
-  printf("Initialized Metadata Index in %s.\n", metadata_index_filename);
+  printf("\nInitialized Metadata Index in %s\n", metadata_index_filename);
 
   // 3. Read intervals.tsv and append data to metadata_index.dat
   append_metadata_dat(intervals_filename, metadata_index_filename, metadata_columns);
-  printf("Appended Metadata from %s to %s.\n", intervals_filename, metadata_index_filename);
+  printf("\nAppended Metadata from %s to %s\n", intervals_filename, metadata_index_filename);
 
   // 4. Read metadata_types from metadata_index.dat
   struct metadata_types *metadata_types = read_metadata_types_from_metadata_dat(metadata_index_filename);
-  printf("Read metadata_types from %s.\n", metadata_index_filename);
+  printf("\nRead metadata_types from %s\n", metadata_index_filename);
   display_metadata_types(metadata_types);
 
   // 5. Read metadata rows from metadata_index.dat
   struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index_filename, metadata_types);
-  printf("Read metadata_rows from %s.\n", metadata_index_filename);
+  printf("\nRead metadata_rows from %s\n", metadata_index_filename);
   display_metadata_rows(metadata_rows);
   
   // 6. Read ith interval's metadata from metadata_index.dat
   struct metadata_row *metadata_row_1 = read_metadata_row(metadata_index_filename, metadata_types, 1);
-  display_metadata_row(metadata_row_1);
-  
   struct metadata_row *metadata_row_3 = read_metadata_row(metadata_index_filename, metadata_types, 3);
-  display_metadata_row(metadata_row_3);
+  printf("\nRead metadata_rows 1 and 3 from %s\n", metadata_index_filename);
+  display_metadata_row(metadata_row_1, 1);  
+  display_metadata_row(metadata_row_3, 3);
 
-  free_metadata_columns(metadata_columns);
-  free_metadata_types(metadata_types);
-  free_metadata_rows(metadata_rows);
+  // 7. Read query filter
+  char query_filter_string_1[] = "feature>string1";
+  char query_filter_string_2[] = "score<=7.5";
+  struct query_filter *query_filter_1 = parse_query_filter_string(metadata_types, query_filter_string_1);
+  struct query_filter *query_filter_2 = parse_query_filter_string(metadata_types, query_filter_string_2);
+  printf("\nParsed query filter string: %s\n", query_filter_string_1);
+  display_query_filter(query_filter_1);
+  printf("\nParsed query filter string: %s\n", query_filter_string_2);
+  display_query_filter(query_filter_2);
+
+  free_query_filter(query_filter_1);
+  free_query_filter(query_filter_2);
   free_metadata_row(metadata_row_1);
   free_metadata_row(metadata_row_3);
+  free_metadata_rows(metadata_rows);
+  free_metadata_types(metadata_types);
+  free_metadata_columns(metadata_columns);
 
   return 0;
 }
