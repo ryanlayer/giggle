@@ -712,15 +712,13 @@ void display_comparison(enum comparison comparison) {
   }
 }
 
-void display_metadata_item(struct metadata_item *metadata_item, int row_id, int column_id) {
-  printf("metadata_row_%d_col_%d => ", row_id, column_id);
+void display_metadata_item(struct metadata_item *metadata_item) {
   display_metadata_data(metadata_item->type, metadata_item->data);
   printf("\n");
 }
 
-void display_metadata_row(struct metadata_row *metadata_row, int row_id) {
+void display_metadata_row(struct metadata_row *metadata_row) {
   int i;
-  printf("metadata_row %d => ", row_id);
   for (i = 0; i < metadata_row->num; ++i) {
     struct metadata_item *metadata_item = metadata_row->items[i];
     display_metadata_data(metadata_item->type, metadata_item->data);
@@ -734,7 +732,8 @@ void display_metadata_rows(struct metadata_rows *metadata_rows) {
   printf("metadata_rows => num_rows: %lu\n", metadata_rows->num);
   for (i = 0; i < metadata_rows->num; ++i) {
     struct metadata_row *metadata_row = metadata_rows->rows[i];
-    display_metadata_row(metadata_row, i);
+    printf("metadata_row %d => ", i);
+    display_metadata_row(metadata_row);
   }
 }
 
@@ -1046,7 +1045,7 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
   return metadata_row;
 }
 
-struct metadata_item *read_metadata_item(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, uint8_t column_id) {
+struct metadata_item *read_metadata_item_by_column_id(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, uint8_t column_id) {
   FILE *metadata_index = fopen(metadata_index_filename, "rb");
   if (metadata_index == NULL) {
     err(1, "%s not found.\n", metadata_index_filename);
@@ -1062,7 +1061,7 @@ struct metadata_item *read_metadata_item(char *metadata_index_filename, struct m
 
   struct metadata_item *metadata_item = (struct metadata_item *)malloc(sizeof(struct metadata_item));
   if (metadata_item == NULL) {
-    err(1, "malloc failure for metadata_item in read_metadata_item.\n");
+    err(1, "malloc failure for metadata_item in read_metadata_item_by_column_id.\n");
   }
   metadata_item->type = metadata_types->types[column_id];
 
@@ -1071,6 +1070,16 @@ struct metadata_item *read_metadata_item(char *metadata_index_filename, struct m
   fclose(metadata_index);
 
   return metadata_item;
+}
+
+struct metadata_item *read_metadata_item_by_column_name(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, char *column_name) {
+  int lookup_result, column_id;
+
+  lookup_result = khash_str2int_get(metadata_types->column_name_to_index, column_name, &column_id);
+  if (lookup_result == -1) {
+    err(1, "Column %s not found in metadata.\n", column_name);
+  }
+  return read_metadata_item_by_column_id(metadata_index_filename, metadata_types, interval_id, column_id);
 }
 
 struct query_filter *parse_query_filter_string(struct metadata_types *metadata_types, char *query_filter_string) {
@@ -1090,11 +1099,11 @@ struct query_filter *parse_query_filter_string(struct metadata_types *metadata_t
   query_filter_string[start_comparison] = 0; // null-terminate the column name after parsing comparison operator
 
   lookup_result = khash_str2int_get(metadata_types->column_name_to_index, query_filter_string, &column_id);
-  query_filter_string[start_comparison] = null_tmp;
-
   if (lookup_result == -1) {
     err(1, "Column %s not found in metadata.\n", query_filter_string);
   }
+
+  query_filter_string[start_comparison] = null_tmp; // restore what null-terminator replaced
 
   query_filter->type = metadata_types->types[column_id];
   query_filter->column_id = column_id;
@@ -1230,15 +1239,19 @@ int main(void) {
   struct metadata_row *metadata_row_1 = read_metadata_row(metadata_index_filename, metadata_types, 1);
   struct metadata_row *metadata_row_3 = read_metadata_row(metadata_index_filename, metadata_types, 3);
   printf("\nRead metadata_rows 1 and 3 from %s\n", metadata_index_filename);
-  display_metadata_row(metadata_row_1, 1);  
-  display_metadata_row(metadata_row_3, 3);
+  printf("metadata_row 1 => ");
+  display_metadata_row(metadata_row_1);  
+  printf("metadata_row 3 => ");
+  display_metadata_row(metadata_row_3);
 
   // 7. Read ith interval's jth metadata column from metadata_index.dat
-  struct metadata_item *metadata_row_0_col_2 = read_metadata_item(metadata_index_filename, metadata_types, 0, 2);
-  struct metadata_item *metadata_row_2_col_3 = read_metadata_item(metadata_index_filename, metadata_types, 2, 3);
-  printf("\nRead metadata_items row_0_col_0 and row_2_col_4 from %s\n", metadata_index_filename);
-  display_metadata_item(metadata_row_0_col_2, 0, 2);  
-  display_metadata_item(metadata_row_2_col_3, 2, 3);
+  struct metadata_item *metadata_row_0_col_2 = read_metadata_item_by_column_id(metadata_index_filename, metadata_types, 0, 2);
+  struct metadata_item *metadata_row_2_score = read_metadata_item_by_column_name(metadata_index_filename, metadata_types, 2, "score");
+  printf("\nRead metadata_items metadata_row_0_col_2 and metadata_row_2_score from %s\n", metadata_index_filename);
+  printf("metadata_row_0_col_2 => ");
+  display_metadata_item(metadata_row_0_col_2);  
+  printf("metadata_row_2_score => ");
+  display_metadata_item(metadata_row_2_score);
 
   // 8. Read query filter
   char query_filter_string_1[] = "feature<my_feature";
@@ -1261,16 +1274,16 @@ int main(void) {
 
   // 10. Filter items using query filters
   int row_0_col_2 = filter_metadata_row_by_item(metadata_row_0_col_2, query_filter_1);
-  int row_2_col_3 = filter_metadata_row_by_item(metadata_row_2_col_3, query_filter_2);
+  int row_2_score = filter_metadata_row_by_item(metadata_row_2_score, query_filter_2);
   printf("\nFiltered items using query filters\n");
   printf("row_0_col_2: %d\n", row_0_col_2);
-  printf("row_2_col_3: %d\n", row_2_col_3);
+  printf("row_2_score: %d\n", row_2_score);
 
   // free memory
   free_query_filter(query_filter_1);
   free_query_filter(query_filter_2);
   free_metadata_item(metadata_row_0_col_2);
-  free_metadata_item(metadata_row_2_col_3);
+  free_metadata_item(metadata_row_2_score);
   free_metadata_row(metadata_row_1);
   free_metadata_row(metadata_row_3);
   free_metadata_rows(metadata_rows);
