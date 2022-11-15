@@ -23,8 +23,8 @@ clean:
 
 HTS_ROOT=../../lib/htslib
 
-metadata:
-	cd src/metadata && gcc metadata.c -I$(HTS_ROOT) $(HTS_ROOT)/libhts.a -o bin/metadata -g && bin/metadata
+mdt1:
+	cd src/metadata && gcc metadata_index.c query_filter.c metadata_test1.c -I$(HTS_ROOT) $(HTS_ROOT)/libhts.a -o bin/metadata_test1 -g && bin/metadata_test1
 
-metadata-mem:
-	cd src/metadata && valgrind --leak-check=full --show-leak-kinds=all bin/metadata
+mdt1-mem:
+	cd src/metadata && valgrind --leak-check=full --show-leak-kinds=all bin/metadata_test1
