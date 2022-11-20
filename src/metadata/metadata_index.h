@@ -117,8 +117,8 @@ enum data_type type_char_to_enum(char type_char);
 
 char *safe_sscanf(uint8_t str_width, char *data);
 
-void fwrite_data_type_item(FILE *metadata_index, struct metadata_type *metadata_type, char *data);
-void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index, struct metadata_item *metadata_item);
+void fwrite_data_type_item(FILE *metadata_index_fp, struct metadata_type *metadata_type, char *data);
+void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp, struct metadata_item *metadata_item);
 
 struct metadata_columns *read_metadata_conf(char *metadata_conf_filename);
 void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns);
