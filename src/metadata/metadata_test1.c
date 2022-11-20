@@ -4,7 +4,7 @@
 
 int main(void) {
   char *metadata_conf_filename = "metadata.conf";
-  char *metadata_index_filename = "metadata_index.dat";
+  char *metadata_index_filename = "metadata_index1.dat";
   char *intervals_filename = "intervals.tsv";
 
   // 1. Read metadata.conf
