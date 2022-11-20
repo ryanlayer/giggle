@@ -172,10 +172,14 @@ int perform_metadata_comparison(struct metadata_type *metadata_type, enum compar
       break;
     case FLOAT: 
       f = source.f - target.f;
+      // note: float equality comparison may not always work as expected
+      // due to rounding errors 
       less = (f < 0); equal = (f == 0); greater = (f > 0);
       break;
     case DOUBLE: 
       d = source.d - target.d;
+      // note: double equality comparison may not always work as expected
+      // due to rounding errors 
       less = (d < 0); equal = (d == 0); greater = (d > 0);
       break;
     case STRING: 
@@ -214,6 +218,10 @@ int perform_metadata_comparison(struct metadata_type *metadata_type, enum compar
 
 int filter_metadata_row_by_item(struct metadata_item *metadata_item, struct query_filter *query_filter) {  
   struct metadata_type *metadata_type = query_filter->type;
+  struct metadata_type *item_metadata_type = metadata_item->type;
+  if (strcmp(metadata_type->name, item_metadata_type->name) != 0) {
+    err(1, "The query filter metadata type '%s' does not match the item metadata type '%s'.\n", metadata_type->name, item_metadata_type->name);
+  }
   enum comparison comparison = query_filter->comparison;
   uint8_t column_id = query_filter->column_id;
   union metadata_data target = query_filter->data;
