@@ -100,6 +100,7 @@ struct metadata_rows {
 struct metadata_index {
   char *metadata_conf_filename;
   char *metadata_index_filename;
+  struct metadata_columns *metadata_columns;
 };
 
 // TODO: remove this after integrating with main codebase

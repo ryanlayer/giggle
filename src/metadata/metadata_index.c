@@ -724,6 +724,14 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   }
   metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
+
+  // 1. Read metadata.conf
+  struct metadata_columns *metadata_columns = read_metadata_conf(metadata_conf_filename);
+
+  // 2. Write header in metadata_index.dat
+  init_metadata_dat(metadata_index_filename, metadata_columns);
+
+  metadata_index->metadata_columns = metadata_columns;
   return metadata_index;
 }
 
@@ -780,6 +788,7 @@ void free_metadata_rows(struct metadata_rows *metadata_rows) {
 void metadata_index_destroy(struct metadata_index **metadata_index) {
   free((*metadata_index)->metadata_conf_filename);
   free((*metadata_index)->metadata_index_filename);
+  free_metadata_columns((*metadata_index)->metadata_columns);
   free(*metadata_index);
   *metadata_index = NULL;
 }
