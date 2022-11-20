@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <sysexits.h>
+#include <htslib/kstring.h>
 
 #define COLUMN_NAME_MAX_LENGTH 32
 #define GIGGLE_METADATA_FILE_MARKER_LENGTH 7
@@ -102,6 +103,8 @@ struct metadata_index {
   char *metadata_index_filename;
   struct metadata_columns *metadata_columns;
   FILE *metadata_index_fp;
+  uint64_t header_offset; // total header offset, end of the header file position
+  uint64_t num_rows;
 };
 
 // TODO: remove this after integrating with main codebase
@@ -127,6 +130,8 @@ struct metadata_item *read_metadata_item_by_column_id(char *metadata_index_filen
 struct metadata_item *read_metadata_item_by_column_name(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, char *column_name);
 
 struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename);
+uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
+void metadata_index_store(struct metadata_index *metadata_index);
 
 void free_metadata_columns(struct metadata_columns *metadata_columns);
 void free_metadata_types(struct metadata_types *metadata_types);

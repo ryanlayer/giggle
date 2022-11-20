@@ -2,7 +2,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <htslib/kstring.h>
 #include <htslib/khash_str2int.h>
 #include "metadata_index.h"
 
@@ -435,6 +434,7 @@ void init_metadata_index_dat(struct metadata_index *metadata_index) {
 
   int i;
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
+  metadata_index->num_rows = 0;
 
   if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
     err(1, "fwrite failure for file marker in init_metadata_dat.\n");
@@ -472,6 +472,12 @@ void init_metadata_index_dat(struct metadata_index *metadata_index) {
     if (fwrite(metadata_type->name, sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index_fp) != COLUMN_NAME_MAX_LENGTH) {
       err(1, "fwrite failure for metadata_type->name in init_metadata_dat.\n");
     }
+  }
+
+  metadata_index->header_offset = ftell(metadata_index_fp);
+
+  if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
   }
 }
 
@@ -785,6 +791,41 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   return metadata_index;
 }
 
+uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line) {
+  struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
+  int fields_length;
+  int *fields;
+  fields = ksplit(line, '\t', &fields_length);
+
+  // TODO: Write file_id before metadata columns
+
+  for (int i = 0; i < metadata_columns->num_cols; ++i) {
+    struct metadata_column *metadata_column = metadata_columns->columns[i];
+    int column = metadata_column->column;
+    struct metadata_type *metadata_type = metadata_column->type;
+    char *data = line->s + fields[column - 1];
+    fwrite_data_type_item(metadata_index_fp, metadata_type, data);
+  }
+
+  free(fields);
+  metadata_index->num_rows++;
+}
+
+void metadata_index_store(struct metadata_index *metadata_index) {
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
+
+  if (fseek(metadata_index_fp, metadata_index->header_offset, SEEK_SET) != 0) {
+    err(1, "Could not seek to metadata start in '%s'.", metadata_index->metadata_index_filename);
+  }
+
+  if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for num_rows in metadata_index_store.\n");
+  }
+
+  fclose(metadata_index_fp);
+}
+
 void free_metadata_columns(struct metadata_columns *metadata_columns) {
   int i;
   for (i = 0; i < metadata_columns->num_cols; ++i) {
@@ -839,7 +880,6 @@ void metadata_index_destroy(struct metadata_index **metadata_index) {
   free((*metadata_index)->metadata_conf_filename);
   free((*metadata_index)->metadata_index_filename);
   free_metadata_columns((*metadata_index)->metadata_columns);
-  fclose((*metadata_index)->metadata_index_fp);
   free(*metadata_index);
   *metadata_index = NULL;
 }
