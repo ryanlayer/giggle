@@ -97,6 +97,11 @@ struct metadata_rows {
   struct metadata_row **rows; // data rows
 };
 
+struct metadata_index {
+  char *metadata_conf_filename;
+  char *metadata_index_filename;
+};
+
 // TODO: remove this after integrating with main codebase
 void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs);
 
@@ -119,11 +124,15 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
 struct metadata_item *read_metadata_item_by_column_id(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, uint8_t column_id);
 struct metadata_item *read_metadata_item_by_column_name(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, char *column_name);
 
+struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename);
+
 void free_metadata_columns(struct metadata_columns *metadata_columns);
 void free_metadata_types(struct metadata_types *metadata_types);
 void free_metadata_item(struct metadata_item *metadata_item);
 void free_metadata_row(struct metadata_row *metadata_row);
 void free_metadata_rows(struct metadata_rows *metadata_rows);
+
+void metadata_index_destroy(struct metadata_index **metadata_index);
 
 void display_metadata_columns(struct metadata_columns *metadata_columns);
 void display_metadata_types(struct metadata_types *metadata_types);

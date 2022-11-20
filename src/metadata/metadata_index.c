@@ -711,6 +711,21 @@ struct metadata_item *read_metadata_item_by_column_name(char *metadata_index_fil
   return read_metadata_item_by_column_id(metadata_index_filename, metadata_types, interval_id, column_id);
 }
 
+struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename) {
+  if (metadata_conf_filename == NULL) {
+    err(1, "metadata_conf_filename cannot be NULL.\n");
+  }
+  if (metadata_index_filename == NULL) {
+    err(1, "metadata_index_filename cannot be NULL.\n");
+  }
+  struct metadata_index *metadata_index = (struct metadata_index *)malloc(sizeof(struct metadata_index));
+  if (metadata_index == NULL) {
+    err(1, "malloc failure for metadata_index in metadata_index_init.\n");
+  }
+  metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
+  metadata_index->metadata_index_filename = strdup(metadata_index_filename);
+  return metadata_index;
+}
 
 void free_metadata_columns(struct metadata_columns *metadata_columns) {
   int i;
@@ -760,6 +775,13 @@ void free_metadata_rows(struct metadata_rows *metadata_rows) {
   }
   free(metadata_rows->rows);
   free(metadata_rows);
+}
+
+void metadata_index_destroy(struct metadata_index **metadata_index) {
+  free((*metadata_index)->metadata_conf_filename);
+  free((*metadata_index)->metadata_index_filename);
+  free(*metadata_index);
+  *metadata_index = NULL;
 }
 
 void display_metadata_columns(struct metadata_columns *metadata_columns) {

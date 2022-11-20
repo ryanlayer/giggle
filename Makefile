@@ -28,3 +28,9 @@ mdt1:
 
 mdt1-mem:
 	cd src/metadata && valgrind --leak-check=full --show-leak-kinds=all bin/metadata_test1
+
+mdt2:
+	cd src/metadata && gcc metadata_index.c query_filter.c metadata_test2.c -I$(HTS_ROOT) $(HTS_ROOT)/libhts.a -o bin/metadata_test2 -g && bin/metadata_test2
+
+mdt2-mem:
+	cd src/metadata && valgrind --leak-check=full --show-leak-kinds=all bin/metadata_test2
