@@ -101,6 +101,7 @@ struct metadata_index {
   char *metadata_conf_filename;
   char *metadata_index_filename;
   struct metadata_columns *metadata_columns;
+  FILE *metadata_index_fp;
 };
 
 // TODO: remove this after integrating with main codebase

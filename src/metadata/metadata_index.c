@@ -424,6 +424,57 @@ void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *m
   fclose(metadata_index);
 }
 
+void init_metadata_index_dat(struct metadata_index *metadata_index) {
+  struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
+  char *metadata_index_filename = metadata_index->metadata_index_filename;
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
+  if (metadata_index_fp == NULL) {
+    err(1, "%s not found.\n", metadata_index_filename);
+  }
+  metadata_index->metadata_index_fp = metadata_index_fp;
+
+  int i;
+  char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
+
+  if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
+    err(1, "fwrite failure for file marker in init_metadata_dat.\n");
+  }
+
+  if (fwrite(GIGGLE_METADATA_VERSION_MARKER, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_VERSION_MARKER_LENGTH) {
+    err(1, "fwrite failure for version marker in init_metadata_dat.\n");
+  }
+
+  if (fwrite(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index_fp) != GIGGLE_METADATA_EXTRA_LENGTH) {
+    err(1, "fwrite failure for extra in init_metadata_dat.\n");
+  }
+
+  if (fwrite(&(metadata_columns->num_cols), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for metadata_columns->num_cols in init_metadata_dat.\n");
+  }
+
+  if (fwrite(&(metadata_columns->row_width), sizeof(uint16_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for metadata_columns->row_width in init_metadata_dat.\n");
+  }
+
+  for (i = 0; i < metadata_columns->num_cols; ++i) {
+    struct metadata_column *metadata_column = metadata_columns->columns[i];
+    struct metadata_type *metadata_type = metadata_column->type;
+    
+    char type_char = data_type_to_char(metadata_type->data_type);
+    if (fwrite(&type_char, sizeof(char), 1, metadata_index_fp) != 1) {
+      err(1, "fwrite failure for type_char in init_metadata_dat.\n");
+    }
+
+    if (fwrite(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
+      err(1, "fwrite failure for metadata_type->width in init_metadata_dat.\n");
+    }
+
+    if (fwrite(metadata_type->name, sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index_fp) != COLUMN_NAME_MAX_LENGTH) {
+      err(1, "fwrite failure for metadata_type->name in init_metadata_dat.\n");
+    }
+  }
+}
+
 void append_metadata_dat(char *intervals_filename, char *metadata_index_filename, struct metadata_columns *metadata_columns) {
   FILE *intervals = fopen(intervals_filename, "r");
   if (intervals == NULL) {
@@ -726,12 +777,11 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
 
   // 1. Read metadata.conf
-  struct metadata_columns *metadata_columns = read_metadata_conf(metadata_conf_filename);
+  metadata_index->metadata_columns = read_metadata_conf(metadata_conf_filename);
 
   // 2. Write header in metadata_index.dat
-  init_metadata_dat(metadata_index_filename, metadata_columns);
+  init_metadata_index_dat(metadata_index);
 
-  metadata_index->metadata_columns = metadata_columns;
   return metadata_index;
 }
 
@@ -789,6 +839,7 @@ void metadata_index_destroy(struct metadata_index **metadata_index) {
   free((*metadata_index)->metadata_conf_filename);
   free((*metadata_index)->metadata_index_filename);
   free_metadata_columns((*metadata_index)->metadata_columns);
+  fclose((*metadata_index)->metadata_index_fp);
   free(*metadata_index);
   *metadata_index = NULL;
 }
