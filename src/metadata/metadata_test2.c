@@ -43,6 +43,22 @@ int main(void) {
 
   // 4. metadata_index_destroy
   metadata_index_destroy(&metadata_index);
+
+  // 1. metadata_index_load
+  metadata_index = metadata_index_load(metadata_index_filename);
   
+  // 2. Read ith metadata_row
+
+  // 3. Display ith metadata_row
+
+  // 4. Read query filter
+  
+  // 5. Filter row using query filter
+  // item = read_metadata_item_by_column_name
+  // is_filtered = filter_metadata_row_by_item(item, filter)
+
+  // 6. metadata_index_destroy
+  metadata_index_destroy(&metadata_index);
+
   return 0;
 }

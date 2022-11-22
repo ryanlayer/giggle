@@ -630,6 +630,94 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
   return metadata_types;
 }
 
+void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata_index) {
+  metadata_index->metadata_conf_filename = NULL;
+  metadata_index->metadata_columns = NULL;
+
+  char *metadata_index_filename = metadata_index->metadata_index_filename;
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
+  if (metadata_index_fp == NULL) {
+    err(1, "%s not found.\n", metadata_index_filename);
+  }
+  metadata_index->metadata_index_fp = metadata_index_fp;
+  
+  struct metadata_types *metadata_types = (struct metadata_types *)malloc(sizeof(struct metadata_types));
+  if (metadata_types == NULL) {
+    err(1, "malloc failure for metadata_types in read_metadata_types_from_metadata_dat.\n");
+  }
+  metadata_index->metadata_types = metadata_types;
+
+  int i;
+  size_t fr;
+  char file_marker[7];
+  char version_marker[3];
+  char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
+  uint16_t col_offset = 0;
+
+  metadata_types->column_name_to_index = khash_str2int_init();
+
+  fr = fread(file_marker, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp);
+  check_file_read(metadata_index_filename, metadata_index_fp, GIGGLE_METADATA_FILE_MARKER_LENGTH, fr);
+  if (strcmp(file_marker, GIGGLE_METADATA_FILE_MARKER) != 0) {
+    err(1, "Not a GIGGLE Metadata Index file.\n");
+  }
+
+  fr = fread(version_marker, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index_fp);
+  check_file_read(metadata_index_filename, metadata_index_fp, GIGGLE_METADATA_VERSION_MARKER_LENGTH, fr);
+  if (strcmp(version_marker, GIGGLE_METADATA_VERSION_MARKER) != 0) {
+    err(1, "Incompatible GIGGLE Metadata Index version.\n");
+  }
+  
+  fr = fread(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index_fp);
+  check_file_read(metadata_index_filename, metadata_index_fp, GIGGLE_METADATA_EXTRA_LENGTH, fr);
+
+  fr = fread(&(metadata_types->num_cols), sizeof(uint8_t), 1, metadata_index_fp);
+  check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
+  
+  fr = fread(&(metadata_types->row_width), sizeof(uint16_t), 1, metadata_index_fp);
+  check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
+
+  metadata_types->col_offsets = (uint16_t *)malloc(metadata_types->num_cols * sizeof(uint16_t));
+  if (metadata_types->col_offsets == NULL) {
+    err(1, "malloc failure for metadata_types->col_offsets in read_metadata_types_from_metadata_dat.\n");
+  }
+  
+  metadata_types->types = (struct metadata_type **)malloc(metadata_types->num_cols * sizeof(struct metadata_type*));
+  if (metadata_types->types == NULL) {
+    err(1, "malloc failure for metadata_types->types in read_metadata_types_from_metadata_dat.\n");
+  }
+
+  for (i = 0; i < metadata_types->num_cols; ++i) {
+    struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
+    if (metadata_type == NULL) {
+      err(1, "calloc failure for metadata_type in read_metadata_types_from_metadata_dat.\n");
+    }
+
+    char type_char;
+    fr = fread(&type_char, sizeof(char), 1, metadata_index_fp);
+    check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
+    metadata_type->data_type = type_char_to_enum(type_char);
+
+    fr = fread(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index_fp);
+    check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
+
+    fr = fread(&(metadata_type->name), sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index_fp);
+    check_file_read(metadata_index_filename, metadata_index_fp, COLUMN_NAME_MAX_LENGTH, fr);
+
+    khash_str2int_set(metadata_types->column_name_to_index, strdup(metadata_type->name), i);
+
+    metadata_types->col_offsets[i] = col_offset;
+    col_offset += metadata_type->width;
+
+    metadata_types->types[i] = metadata_type;
+  }
+  
+  fr = fread(&(metadata_types->num_rows), sizeof(uint64_t), 1, metadata_index_fp);
+  check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
+
+  metadata_types->header_offset = ftell(metadata_index_fp);
+}
+
 struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct metadata_types *metadata_types) {
   FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
   if (metadata_index_fp == NULL) {
@@ -782,10 +870,12 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
 
-  // 1. Read metadata.conf
+  metadata_index->metadata_types = NULL;
+
+  // Read metadata.conf
   metadata_index->metadata_columns = read_metadata_conf(metadata_conf_filename);
 
-  // 2. Write header in metadata_index.dat
+  // Write header in metadata_index.dat
   init_metadata_index_dat(metadata_index);
 
   return metadata_index;
@@ -822,8 +912,22 @@ void metadata_index_store(struct metadata_index *metadata_index) {
   if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
     err(1, "fwrite failure for num_rows in metadata_index_store.\n");
   }
+}
 
-  fclose(metadata_index_fp);
+struct metadata_index *metadata_index_load(char *metadata_index_filename) {
+  if (metadata_index_filename == NULL) {
+    err(1, "metadata_index_filename cannot be NULL.\n");
+  }
+  struct metadata_index *metadata_index = (struct metadata_index *)malloc(sizeof(struct metadata_index));
+  if (metadata_index == NULL) {
+    err(1, "malloc failure for metadata_index in metadata_index_init.\n");
+  }
+  metadata_index->metadata_index_filename = strdup(metadata_index_filename);
+
+  // Read metadata_types from metadata_index.dat
+  read_metadata_types_from_metadata_index_dat(metadata_index);
+
+  return metadata_index;
 }
 
 void free_metadata_columns(struct metadata_columns *metadata_columns) {
@@ -877,9 +981,17 @@ void free_metadata_rows(struct metadata_rows *metadata_rows) {
 }
 
 void metadata_index_destroy(struct metadata_index **metadata_index) {
-  free((*metadata_index)->metadata_conf_filename);
+  if ((*metadata_index)->metadata_conf_filename) {
+    free((*metadata_index)->metadata_conf_filename);
+  }
   free((*metadata_index)->metadata_index_filename);
-  free_metadata_columns((*metadata_index)->metadata_columns);
+  if ((*metadata_index)->metadata_columns) {
+    free_metadata_columns((*metadata_index)->metadata_columns);
+  }
+  if ((*metadata_index)->metadata_types) {
+    free_metadata_types((*metadata_index)->metadata_types);
+  }
+  fclose((*metadata_index)->metadata_index_fp);
   free(*metadata_index);
   *metadata_index = NULL;
 }

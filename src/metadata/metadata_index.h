@@ -102,6 +102,7 @@ struct metadata_index {
   char *metadata_conf_filename;
   char *metadata_index_filename;
   struct metadata_columns *metadata_columns;
+  struct metadata_types *metadata_types;
   FILE *metadata_index_fp;
   uint64_t header_offset; // total header offset, end of the header file position
   uint64_t num_rows;
@@ -129,9 +130,12 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
 struct metadata_item *read_metadata_item_by_column_id(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, uint8_t column_id);
 struct metadata_item *read_metadata_item_by_column_name(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, char *column_name);
 
+void init_metadata_index_dat(struct metadata_index *metadata_index);
 struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename);
 uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
 void metadata_index_store(struct metadata_index *metadata_index);
+void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata_index);
+struct metadata_index *metadata_index_load(char *metadata_index_filename);
 
 void free_metadata_columns(struct metadata_columns *metadata_columns);
 void free_metadata_types(struct metadata_types *metadata_types);
