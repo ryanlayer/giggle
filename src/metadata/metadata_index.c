@@ -284,7 +284,7 @@ void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp
 }
 
 
-struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
+void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_conf_filename) {
   FILE *metadata_conf_fp = fopen(metadata_conf_filename, "r");
   if (metadata_conf_fp == NULL) {
     err(1, "%s not found.\n", metadata_conf_filename);
@@ -354,7 +354,6 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     metadata_column->column = column;
     
     metadata_columns->columns[metadata_columns->num_cols++] = metadata_column;
-
   }
 
   if (metadata_columns->num_cols < 255) {
@@ -370,21 +369,16 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     free(line);
 
   fclose(metadata_conf_fp);
-  return metadata_columns;
+
+  metadata_index->metadata_columns = metadata_columns;
 }
 
-void init_metadata_index_dat(struct metadata_index *metadata_index) {
+void write_metadata_index_header(struct metadata_index *metadata_index) {
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
-  char *metadata_index_filename = metadata_index->metadata_index_filename;
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
-  metadata_index->metadata_index_fp = metadata_index_fp;
-
+  
   int i;
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
-  metadata_index->num_rows = 0;
 
   if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
     err(1, "fwrite failure for file marker in init_metadata_dat.\n");
@@ -663,13 +657,20 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
 
+  metadata_index->num_rows = 0;
   metadata_index->metadata_types = NULL;
 
   // Read metadata.conf
-  metadata_index->metadata_columns = read_metadata_conf(metadata_conf_filename);
+  read_metadata_conf(metadata_index, metadata_conf_filename);
+
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
+  if (metadata_index_fp == NULL) {
+    err(1, "%s not found.\n", metadata_index_filename);
+  }
+  metadata_index->metadata_index_fp = metadata_index_fp;
 
   // Write header in metadata_index.dat
-  init_metadata_index_dat(metadata_index);
+  write_metadata_index_header(metadata_index);
 
   return metadata_index;
 }
