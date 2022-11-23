@@ -122,11 +122,10 @@ void fwrite_data_type_item(FILE *metadata_index_fp, struct metadata_type *metada
 void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp, struct metadata_item *metadata_item);
 
 void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_conf_filename);
-
 void write_metadata_index_header(struct metadata_index *metadata_index);
+void read_metadata_index_header(struct metadata_index *metadata_index);
 
 uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
-void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata_index);
 
 void metadata_columns_destroy(struct metadata_columns *metadata_columns);
 void metadata_types_destroy(struct metadata_types *metadata_types);

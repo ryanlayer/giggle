@@ -425,17 +425,9 @@ void write_metadata_index_header(struct metadata_index *metadata_index) {
   }
 }
 
-void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata_index) {
-  metadata_index->metadata_conf_filename = NULL;
-  metadata_index->metadata_columns = NULL;
-
+void read_metadata_index_header(struct metadata_index *metadata_index) {  
   char *metadata_index_filename = metadata_index->metadata_index_filename;
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
-  metadata_index->metadata_index_fp = metadata_index_fp;
-  
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = (struct metadata_types *)malloc(sizeof(struct metadata_types));
   if (metadata_types == NULL) {
     err(1, "malloc failure for metadata_types in read_metadata_types_from_metadata_dat.\n");
@@ -718,8 +710,17 @@ struct metadata_index *metadata_index_load(char *metadata_index_filename) {
   }
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
 
-  // Read metadata_types from metadata_index.dat
-  read_metadata_types_from_metadata_index_dat(metadata_index);
+  metadata_index->metadata_conf_filename = NULL;
+  metadata_index->metadata_columns = NULL;
+
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
+  if (metadata_index_fp == NULL) {
+    err(1, "%s not found.\n", metadata_index_filename);
+  }
+  metadata_index->metadata_index_fp = metadata_index_fp;
+  
+  // Read header from metadata_index.dat
+  read_metadata_index_header(metadata_index);
 
   return metadata_index;
 }
