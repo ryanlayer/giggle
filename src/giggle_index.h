@@ -9,6 +9,7 @@
 #include "jsw_avltree.h"
 #include "pq.h"
 #include "offset_index.h"
+#include "metadata_index.h"
 
 #define PROGRAM_NAME  "giggle"
 #define MAJOR_VERSION "0"
@@ -68,6 +69,7 @@ struct giggle_index
     struct chrm_index *chrm_idx; //<! chrom string/root_id index pairs
     struct file_index *file_idx;
     struct offset_index *offset_idx; //<! file_index/offse pair list
+    struct metadata_index *metadata_idx; //<! metadata of each interval
     char *data_dir; //<! database directory
     char *root_ids_file_name; //<! root_ids file name
 };
@@ -401,6 +403,11 @@ void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi);
 uint64_t giggle_bulk_insert(char *input_path_name,
                             char *output_path_name,
                             uint32_t force);
+
+uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
+                                          char *output_path_name,
+                                          char *metadata_conf_name,
+                                          uint32_t force);
 
 uint32_t giggle_get_indexed_files(char *index_dir_name,
                                   char ***names,

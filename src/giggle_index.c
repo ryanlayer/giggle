@@ -14,6 +14,7 @@
 #include "cache.h"
 #include "giggle_index.h"
 #include "offset_index.h"
+#include "metadata_index.h"
 #include "ll.h"
 #include "lists.h"
 #include "file_read.h"
@@ -2190,10 +2191,20 @@ struct file_data *file_index_get(struct file_index *fi, uint32_t id)
 //}}}
 //}}}
 
-//{{{ uint64_t giggle_bulk_insert(char *input_path_name,
 uint64_t giggle_bulk_insert(char *input_path_name,
                             char *output_path_name,
                             uint32_t force)
+{
+    return giggle_bulk_insert_with_metadata(input_path_name,
+                                            output_path_name,
+                                            NULL,
+                                            force);
+}
+
+uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
+                                          char *output_path_name,
+                                          char *metadata_conf_name,
+                                          uint32_t force)
 {
     // Make the output directory
     struct stat st = {0};
@@ -2234,6 +2245,19 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     gi->offset_idx = offset_index_init(1000, offset_index_file_name);
     free(offset_index_file_name);
  
+    //init metadata index
+    if (metadata_conf_name != NULL) {
+        char *metadata_index_file_name = NULL;
+        int ret = asprintf(&metadata_index_file_name,
+                        "%s/%s",
+                        gi->data_dir,
+                        METADATA_INDEX_FILE_NAME);
+        gi->metadata_idx = metadata_index_init(metadata_conf_name, metadata_index_file_name);
+        free(metadata_index_file_name);
+    } else {
+        gi->metadata_idx = NULL;
+    }
+
     //init chrm index
     char *chrm_index_file_name = NULL;
     ret = asprintf(&chrm_index_file_name,
@@ -2305,7 +2329,9 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     chrm_index_store(gi->chrm_idx);
     file_index_store(gi->file_idx);
     offset_index_store(gi->offset_idx);
-
+    if (gi->metadata_idx)
+        metadata_index_store(gi->metadata_idx);
+    
     uint64_t num_intervals = gi->offset_idx->index->num;
 
     if (gi->root_ids_file_name != NULL)
@@ -2316,6 +2342,8 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     free(gi->root_ids);
     file_index_destroy(&(gi->file_idx));
     offset_index_destroy(&(gi->offset_idx));
+    if (gi->metadata_idx)
+        metadata_index_destroy(&(gi->metadata_idx));
     chrm_index_destroy(&(gi->chrm_idx));
     free(gi);
     gi = NULL;

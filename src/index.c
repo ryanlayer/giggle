@@ -97,9 +97,10 @@ int index_main(int argc, char **argv, char *full_cmd)
     struct giggle_index *gi;
         
     if (s_is_set == 1) {
-        uint64_t num_intervals = giggle_bulk_insert(input_dir_name,
-                                                    output_dir_name,
-                                                    f_is_set);
+        uint64_t num_intervals = giggle_bulk_insert_with_metadata(input_dir_name,
+                                                                  output_dir_name,
+                                                                  metadata_conf_name,
+                                                                  f_is_set);
         fprintf(stderr, "Indexed %" PRIu64 " intervals.\n", num_intervals);
     } else {
         gi = giggle_init(num_chrms,

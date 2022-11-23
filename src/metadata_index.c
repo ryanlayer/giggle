@@ -6,6 +6,8 @@
 #include "util.h"
 #include "metadata_index.h"
 
+char *METADATA_INDEX_FILE_NAME = "metadata_index.dat";
+
 enum data_type data_type_string_to_enum(char type_string[8]) {
   enum data_type type;
   for(int i = 0; type_string[i]; ++i){

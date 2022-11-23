@@ -15,6 +15,8 @@
 #define GIGGLE_METADATA_VERSION_MARKER "000"
 #define GIGGLE_METADATA_EXTRA_LENGTH 6
 
+char *METADATA_INDEX_FILE_NAME;
+
 /*
 input
 <column number> <column name> <data type> <optional, string length>
