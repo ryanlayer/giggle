@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "metadata_index.h"
-#include "query_filter.h"
+#include "../metadata_index.h"
+#include "../query_filter.h"
 
 void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs)
 {

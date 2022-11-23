@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <htslib/khash_str2int.h>
-#include "../util.h"
+#include "util.h"
 #include "metadata_index.h"
 
 enum data_type data_type_string_to_enum(char type_string[8]) {
