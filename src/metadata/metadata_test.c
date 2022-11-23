@@ -83,8 +83,8 @@ int main(void) {
   print_metadata_item(metadata_row_2_score);
 
   // 4. Read query filter
-  char query_filter_string_1[] = "feature<my_feature";
-  char query_filter_string_2[] = "score>=456.5";
+  char *query_filter_string_1 = "feature<my_feature";
+  char *query_filter_string_2 = "score>=456.5";
   struct query_filter *query_filter_1 = parse_query_filter_string(metadata_index, query_filter_string_1);
   struct query_filter *query_filter_2 = parse_query_filter_string(metadata_index, query_filter_string_2);
   printf("\nParsed query filter string: %s\n", query_filter_string_1);
