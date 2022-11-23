@@ -2,7 +2,7 @@
 #include "metadata_index.h"
 #include "query_filter.h"
 
-void metadata_intervals_metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, char *intervals_filename) {
+void metadata_index_add_all_intervals_from_file(struct metadata_index *metadata_index, uint32_t file_id, char *intervals_filename) {
   struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
   FILE *intervals = fopen(intervals_filename, "r");
   if (intervals == NULL) {
@@ -35,27 +35,28 @@ int main(void) {
 
   // 1. metadata_index_init
   struct metadata_index *metadata_index = metadata_index_init(metadata_conf_filename, metadata_index_filename);
-  printf("\nCreated metadata_columns from %s\n", metadata_conf_filename);
-  print_metadata_columns(metadata_index->metadata_columns);
   printf("\nInitialized Metadata Index in %s\n", metadata_index_filename);
+  print_metadata_columns(metadata_index->metadata_columns);
   
   // 2. metadata_index_add 
   char *intervals_filename1 = "intervals1.tsv";
   uint32_t file_id1 = 5; 
-  metadata_intervals_metadata_index_add(metadata_index, file_id1, intervals_filename1);
+  metadata_index_add_all_intervals_from_file(metadata_index, file_id1, intervals_filename1);
   printf("\nAppended Metadata from %s to %s\n", intervals_filename1, metadata_index_filename);
   
   // 3. metadata_index_store
   metadata_index_store(metadata_index);
+  printf("\nStored Metadata Index in %s\n", metadata_index_filename);
 
   // 4. metadata_index_destroy
   metadata_index_destroy(&metadata_index);
+  printf("\nDestroyed Metadata Index\n");
 
   // B. Search
 
   // 1. metadata_index_load
   metadata_index = metadata_index_load(metadata_index_filename);
-  printf("\nRead metadata_types from %s\n", metadata_index_filename);
+  printf("\nLoaded Metadata Index from %s\n", metadata_index_filename);
   print_metadata_types(metadata_index->metadata_types);
   
   // 2.i. Read metadata rows from metadata_index.dat
