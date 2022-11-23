@@ -311,18 +311,21 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     err(1, "%s not found.\n", metadata_conf_filename);
   }
 
-  metadata_index->num_cols = 0;
-  metadata_index->row_width = 0;
+  uint8_t num_cols = 0;
+  uint16_t col_offset = 0;
 
   metadata_index->types = (struct metadata_type **)malloc(255 * sizeof(struct metadata_type*));
   if (metadata_index->types == NULL) {
     err(1, "malloc failure for metadata_index->types in read_metadata_conf.\n");
   }
-  uint8_t *columns = (uint8_t *)malloc(255 * sizeof(uint8_t));
-  if (columns == NULL) {
-    err(1, "malloc failure for columns in read_metadata_conf.\n");
+  metadata_index->columns = (uint8_t *)malloc(255 * sizeof(uint8_t));
+  if (metadata_index->columns == NULL) {
+    err(1, "malloc failure for metadata_index->columns in read_metadata_conf.\n");
   }
-  metadata_index->columns = columns;
+  metadata_index->col_offsets = (uint16_t *)malloc(255 * sizeof(uint16_t));
+  if (metadata_index->col_offsets == NULL) {
+    err(1, "malloc failure for metadata_index->col_offsets in read_metadata_conf.\n");
+  }
 
   metadata_index->column_name_to_index = khash_str2int_init();
 
@@ -340,7 +343,7 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     sscanf(line, "%hhu %255s %7s %hhu", &column, name, type_string, &str_len);
     // printf("%d %s %s %d\n", column, name, type_string, str_len);
 
-    if (metadata_index->num_cols == 255) {
+    if (num_cols == 255) {
       err(1, "Cannot store more than 255 columns.\n");
     }
     
@@ -351,7 +354,7 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     if (khash_str2int_has_key(metadata_index->column_name_to_index, name)) {
       err(1, "Cannot allow duplicate column '%s'.\n", name);
     } else {
-      khash_str2int_set(metadata_index->column_name_to_index, strdup(name), column);
+      khash_str2int_set(metadata_index->column_name_to_index, strdup(name), num_cols);
     }
 
     struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
@@ -365,24 +368,32 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     if (metadata_type->data_type == STRING) {
       metadata_type->width = str_len + 1;
     }
-    metadata_index->row_width += metadata_type->width;
 
-    metadata_index->types[metadata_index->num_cols] = metadata_type;
-    metadata_index->columns[metadata_index->num_cols] = column;
-    metadata_index->num_cols++;
+    metadata_index->col_offsets[num_cols] = col_offset;
+    col_offset += metadata_type->width;
+
+    metadata_index->types[num_cols] = metadata_type;
+    metadata_index->columns[num_cols] = column;
+    num_cols++;
   }
 
-  if (metadata_index->num_cols < 255) {
-    metadata_index->types = (struct metadata_type **)realloc(metadata_index->types, sizeof(struct metadata_type*) * metadata_index->num_cols);
+  if (num_cols < 255) {
+    metadata_index->types = (struct metadata_type **)realloc(metadata_index->types, sizeof(struct metadata_type*) * num_cols);
     if (metadata_index->types == NULL) {
       err(1, "realloc failure for metadata_index->types in read_metadata_conf.\n");
     }
-
-    metadata_index->columns = (uint8_t *)realloc(metadata_index->columns, sizeof(uint8_t) * metadata_index->num_cols);
+    metadata_index->columns = (uint8_t *)realloc(metadata_index->columns, sizeof(uint8_t) * num_cols);
     if (metadata_index->columns == NULL) {
       err(1, "realloc failure for metadata_index->columns in read_metadata_conf.\n");
     }
+    metadata_index->col_offsets = (uint16_t *)realloc(metadata_index->col_offsets, sizeof(uint16_t) * num_cols);
+    if (metadata_index->col_offsets == NULL) {
+      err(1, "realloc failure for metadata_index->col_offsets in read_metadata_conf.\n");
+    }
   }
+
+  metadata_index->num_cols = num_cols;
+  metadata_index->row_width = col_offset;
 
   if (line)
     free(line);
@@ -532,7 +543,7 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   // Read metadata.conf
   read_metadata_conf(metadata_index, metadata_conf_filename);
 
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb+");
   if (metadata_index_fp == NULL) {
     err(1, "%s not found.\n", metadata_index_filename);
   }

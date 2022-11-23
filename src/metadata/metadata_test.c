@@ -47,16 +47,19 @@ int main(void) {
   metadata_index_store(metadata_index);
   printf("\nStored Metadata Index in %s\n", metadata_index_filename);
 
-  // 4. metadata_index_destroy
-  metadata_index_destroy(&metadata_index);
-  printf("\nDestroyed Metadata Index\n");
+  int RELOAD_INDEX = 1;
+  if (RELOAD_INDEX) {
+    // 4. metadata_index_destroy
+    metadata_index_destroy(&metadata_index);
+    printf("\nDestroyed Metadata Index\n");
 
-  // B. Search
+    // B. Search
 
-  // 1. metadata_index_load
-  metadata_index = metadata_index_load(metadata_index_filename);
-  printf("\nLoaded Metadata Index from %s\n", metadata_index_filename);
-  print_metadata_index(metadata_index);
+    // 1. metadata_index_load
+    metadata_index = metadata_index_load(metadata_index_filename);
+    printf("\nLoaded Metadata Index from %s\n", metadata_index_filename);
+    print_metadata_index(metadata_index);
+  }
   
   // 2.i. Read metadata rows from metadata_index.dat
   struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index);
