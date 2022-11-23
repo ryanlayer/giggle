@@ -122,7 +122,6 @@ void fwrite_data_type_item(FILE *metadata_index_fp, struct metadata_type *metada
 void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp, struct metadata_item *metadata_item);
 
 struct metadata_columns *read_metadata_conf(char *metadata_conf_filename);
-struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_index_filename);
 struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index);
 struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, uint64_t interval_id);
 struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *metadata_index, uint64_t interval_id, uint8_t column_id);
