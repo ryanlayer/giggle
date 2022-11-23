@@ -324,7 +324,7 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
   }
   metadata_index->columns = columns;
 
-  void *column_set = khash_str2int_init();
+  metadata_index->column_name_to_index = khash_str2int_init();
 
   char * line = NULL;
   size_t len = 0;
@@ -348,10 +348,10 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
       err(1, "Column '%s': string length cannot be more than 254.\n", name);
     }
 
-    if (khash_str2int_has_key(column_set, name)) {
+    if (khash_str2int_has_key(metadata_index->column_name_to_index, name)) {
       err(1, "Cannot allow duplicate column '%s'.\n", name);
     } else {
-      khash_str2int_set(column_set, strdup(name), 1);
+      khash_str2int_set(metadata_index->column_name_to_index, strdup(name), column);
     }
 
     struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
@@ -383,8 +383,6 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
       err(1, "realloc failure for metadata_index->columns in read_metadata_conf.\n");
     }
   }
-
-  khash_str2int_destroy_free(column_set);
 
   if (line)
     free(line);
