@@ -23,6 +23,7 @@ int index_help(int exit_code)
 "             -s  Files are sorted\n"
 "             -i  Files to index (e.g. data/*.gz)\n"
 "             -o  Index output directory\n"
+"             -m  Metadata config file\n"
 "             -f  For reindex if output directory exists\n",
             PROGRAM_NAME, VERSION, PROGRAM_NAME);
     return exit_code;
@@ -35,15 +36,17 @@ int index_main(int argc, char **argv, char *full_cmd)
     uint32_t num_chrms = 100;
     int c;
     char *input_dir_name = NULL,
-         *output_dir_name = NULL;
+         *output_dir_name = NULL,
+         *metadata_conf_name = NULL;
     char *i_type = "i";
 
     int i_is_set = 0,
         o_is_set = 0,
         s_is_set = 0,
-        f_is_set = 0;
+        f_is_set = 0,
+        m_is_set = 0;
 
-    while((c = getopt (argc, argv, "i:o:fsh")) != -1) {
+    while((c = getopt (argc, argv, "i:o:m:fsh")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -52,6 +55,10 @@ int index_main(int argc, char **argv, char *full_cmd)
             case 'o':
                 o_is_set = 1;
                 output_dir_name = optarg;
+                break;
+            case 'm':
+                m_is_set = 1;
+                metadata_conf_name = optarg;
                 break;
             case 'f':
                 f_is_set = 1;
@@ -63,7 +70,8 @@ int index_main(int argc, char **argv, char *full_cmd)
                 return index_help(EX_OK);
             case '?':
                  if ( (optopt == 'i') ||
-                      (optopt == 'o') )
+                      (optopt == 'o') ||
+                      (optopt == 'm') )
                         fprintf (stderr, "Option -%c requires an argument.\n",
                                 optopt);
                     else if (isprint (optopt))
