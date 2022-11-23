@@ -110,6 +110,7 @@ char *safe_sscanf(uint8_t str_width, char *data);
 void fwrite_data_type_item(FILE *metadata_index_fp, struct metadata_type *metadata_type, char *data);
 void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp, struct metadata_item *metadata_item);
 
+struct metadata_index *metadata_index_new();
 void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_conf_filename);
 void write_metadata_index_header(struct metadata_index *metadata_index);
 void read_metadata_index_header(struct metadata_index *metadata_index);
