@@ -605,7 +605,9 @@ void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata
   metadata_types->header_offset = ftell(metadata_index_fp);
 }
 
-struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct metadata_types *metadata_types) {
+struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index) {
+  char *metadata_index_filename = metadata_index->metadata_index_filename;
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
   FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
   if (metadata_index_fp == NULL) {
     err(1, "%s not found.\n", metadata_index_filename);
@@ -662,7 +664,9 @@ struct metadata_rows *read_metadata_rows(char *metadata_index_filename, struct m
   return metadata_rows;
 }
 
-struct metadata_row *read_metadata_row(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id) {
+struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, uint64_t interval_id) {
+  char *metadata_index_filename = metadata_index->metadata_index_filename;
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
   FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
   if (metadata_index_fp == NULL) {
     err(1, "%s not found.\n", metadata_index_filename);
@@ -706,7 +710,9 @@ struct metadata_row *read_metadata_row(char *metadata_index_filename, struct met
   return metadata_row;
 }
 
-struct metadata_item *read_metadata_item_by_column_id(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, uint8_t column_id) {
+struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *metadata_index, uint64_t interval_id, uint8_t column_id) {
+  char *metadata_index_filename = metadata_index->metadata_index_filename;
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
   FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
   if (metadata_index_fp == NULL) {
     err(1, "%s not found.\n", metadata_index_filename);
@@ -733,14 +739,15 @@ struct metadata_item *read_metadata_item_by_column_id(char *metadata_index_filen
   return metadata_item;
 }
 
-struct metadata_item *read_metadata_item_by_column_name(char *metadata_index_filename, struct metadata_types *metadata_types, uint64_t interval_id, char *column_name) {
+struct metadata_item *read_metadata_item_by_column_name(struct metadata_index *metadata_index, uint64_t interval_id, char *column_name) {
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
   int lookup_result, column_id;
 
   lookup_result = khash_str2int_get(metadata_types->column_name_to_index, column_name, &column_id);
   if (lookup_result == -1) {
     err(1, "Column %s not found in metadata.\n", column_name);
   }
-  return read_metadata_item_by_column_id(metadata_index_filename, metadata_types, interval_id, column_id);
+  return read_metadata_item_by_column_id(metadata_index, interval_id, column_id);
 }
 
 struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename) {

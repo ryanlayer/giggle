@@ -60,13 +60,13 @@ int main(void) {
   print_metadata_types(metadata_index->metadata_types);
   
   // 2.i. Read metadata rows from metadata_index.dat
-  struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index_filename, metadata_index->metadata_types);
+  struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index);
   printf("\nRead metadata_rows from %s\n", metadata_index_filename);
   print_metadata_rows(metadata_rows);
 
   // 2.ii. Read ith metadata_row
-  struct metadata_row *metadata_row_1 = read_metadata_row(metadata_index_filename, metadata_index->metadata_types, 1);
-  struct metadata_row *metadata_row_3 = read_metadata_row(metadata_index_filename, metadata_index->metadata_types, 3);
+  struct metadata_row *metadata_row_1 = read_metadata_row(metadata_index, 1);
+  struct metadata_row *metadata_row_3 = read_metadata_row(metadata_index, 3);
   printf("\nRead metadata_rows 1 and 3 from %s\n", metadata_index_filename);
   printf("metadata_row 1 => ");
   print_metadata_row(metadata_row_1);  
@@ -74,8 +74,8 @@ int main(void) {
   print_metadata_row(metadata_row_3);
 
   // 2.iii. Read ith interval's jth metadata column from metadata_index.dat
-  struct metadata_item *metadata_row_0_col_2 = read_metadata_item_by_column_id(metadata_index_filename, metadata_index->metadata_types, 0, 2);
-  struct metadata_item *metadata_row_2_score = read_metadata_item_by_column_name(metadata_index_filename, metadata_index->metadata_types, 2, "score");
+  struct metadata_item *metadata_row_0_col_2 = read_metadata_item_by_column_id(metadata_index, 0, 2);
+  struct metadata_item *metadata_row_2_score = read_metadata_item_by_column_name(metadata_index, 2, "score");
   printf("\nRead metadata_items metadata_row_0_col_2 and metadata_row_2_score from %s\n", metadata_index_filename);
   printf("metadata_row_0_col_2 => ");
   print_metadata_item(metadata_row_0_col_2);  
@@ -85,8 +85,8 @@ int main(void) {
   // 4. Read query filter
   char query_filter_string_1[] = "feature<my_feature";
   char query_filter_string_2[] = "score>=456.5";
-  struct query_filter *query_filter_1 = parse_query_filter_string(metadata_index->metadata_types, query_filter_string_1);
-  struct query_filter *query_filter_2 = parse_query_filter_string(metadata_index->metadata_types, query_filter_string_2);
+  struct query_filter *query_filter_1 = parse_query_filter_string(metadata_index, query_filter_string_1);
+  struct query_filter *query_filter_2 = parse_query_filter_string(metadata_index, query_filter_string_2);
   printf("\nParsed query filter string: %s\n", query_filter_string_1);
   print_query_filter(query_filter_1);
   printf("\nParsed query filter string: %s\n", query_filter_string_2);

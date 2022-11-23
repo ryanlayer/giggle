@@ -104,7 +104,8 @@ enum comparison comparison_string_to_enum(char *query_filter_string, int *start_
   return comparison;
 }
 
-struct query_filter *parse_query_filter_string(struct metadata_types *metadata_types, char *query_filter_string) {
+struct query_filter *parse_query_filter_string(struct metadata_index *metadata_index, char *query_filter_string) {
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
   struct query_filter *query_filter = (struct query_filter *)malloc(sizeof(struct query_filter));
   if (query_filter == NULL) {
     err(1, "malloc failure for query_filter in parse_query_filter_string.\n");
