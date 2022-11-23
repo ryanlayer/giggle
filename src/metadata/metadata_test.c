@@ -29,7 +29,7 @@ void metadata_intervals_metadata_index_add(struct metadata_index *metadata_index
 
 int main(void) {
   char *metadata_conf_filename = "metadata.conf";
-  char *metadata_index_filename = "metadata_index2.dat";
+  char *metadata_index_filename = "metadata_index.dat";
 
   // A. Index
 
