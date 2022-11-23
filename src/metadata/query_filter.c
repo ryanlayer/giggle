@@ -237,14 +237,14 @@ int filter_metadata_row_by_row(struct metadata_row *metadata_row, struct query_f
   return filter_metadata_row_by_item(metadata_item, query_filter);
 }
 
-void free_query_filter(struct query_filter *query_filter) {
+void query_filter_destroy(struct query_filter *query_filter) {
   if (query_filter->type->data_type == STRING) {
     free(query_filter->data.s);
   }
   free(query_filter);
 }
 
-void display_comparison(enum comparison comparison) {
+void print_comparison(enum comparison comparison) {
   switch (comparison) {
     case EQUAL: 
       printf("==");
@@ -269,10 +269,10 @@ void display_comparison(enum comparison comparison) {
   }
 }
 
-void display_query_filter(struct query_filter *query_filter) {
+void print_query_filter(struct query_filter *query_filter) {
   int i;
-  display_metadata_data(query_filter->type, query_filter->data);
+  print_metadata_data(query_filter->type, query_filter->data);
   printf(", comparison: ");
-  display_comparison(query_filter->comparison);
+  print_comparison(query_filter->comparison);
   printf("\n");
 }

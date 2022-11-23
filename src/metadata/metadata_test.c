@@ -36,7 +36,7 @@ int main(void) {
   // 1. metadata_index_init
   struct metadata_index *metadata_index = metadata_index_init(metadata_conf_filename, metadata_index_filename);
   printf("\nCreated metadata_columns from %s\n", metadata_conf_filename);
-  display_metadata_columns(metadata_index->metadata_columns);
+  print_metadata_columns(metadata_index->metadata_columns);
   printf("\nInitialized Metadata Index in %s\n", metadata_index_filename);
   
   // 2. metadata_index_add 
@@ -56,30 +56,30 @@ int main(void) {
   // 1. metadata_index_load
   metadata_index = metadata_index_load(metadata_index_filename);
   printf("\nRead metadata_types from %s\n", metadata_index_filename);
-  display_metadata_types(metadata_index->metadata_types);
+  print_metadata_types(metadata_index->metadata_types);
   
   // 2.i. Read metadata rows from metadata_index.dat
   struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index_filename, metadata_index->metadata_types);
   printf("\nRead metadata_rows from %s\n", metadata_index_filename);
-  display_metadata_rows(metadata_rows);
+  print_metadata_rows(metadata_rows);
 
   // 2.ii. Read ith metadata_row
   struct metadata_row *metadata_row_1 = read_metadata_row(metadata_index_filename, metadata_index->metadata_types, 1);
   struct metadata_row *metadata_row_3 = read_metadata_row(metadata_index_filename, metadata_index->metadata_types, 3);
   printf("\nRead metadata_rows 1 and 3 from %s\n", metadata_index_filename);
   printf("metadata_row 1 => ");
-  display_metadata_row(metadata_row_1);  
+  print_metadata_row(metadata_row_1);  
   printf("metadata_row 3 => ");
-  display_metadata_row(metadata_row_3);
+  print_metadata_row(metadata_row_3);
 
   // 2.iii. Read ith interval's jth metadata column from metadata_index.dat
   struct metadata_item *metadata_row_0_col_2 = read_metadata_item_by_column_id(metadata_index_filename, metadata_index->metadata_types, 0, 2);
   struct metadata_item *metadata_row_2_score = read_metadata_item_by_column_name(metadata_index_filename, metadata_index->metadata_types, 2, "score");
   printf("\nRead metadata_items metadata_row_0_col_2 and metadata_row_2_score from %s\n", metadata_index_filename);
   printf("metadata_row_0_col_2 => ");
-  display_metadata_item(metadata_row_0_col_2);  
+  print_metadata_item(metadata_row_0_col_2);  
   printf("metadata_row_2_score => ");
-  display_metadata_item(metadata_row_2_score);
+  print_metadata_item(metadata_row_2_score);
 
   // 4. Read query filter
   char query_filter_string_1[] = "feature<my_feature";
@@ -87,9 +87,9 @@ int main(void) {
   struct query_filter *query_filter_1 = parse_query_filter_string(metadata_index->metadata_types, query_filter_string_1);
   struct query_filter *query_filter_2 = parse_query_filter_string(metadata_index->metadata_types, query_filter_string_2);
   printf("\nParsed query filter string: %s\n", query_filter_string_1);
-  display_query_filter(query_filter_1);
+  print_query_filter(query_filter_1);
   printf("\nParsed query filter string: %s\n", query_filter_string_2);
-  display_query_filter(query_filter_2);
+  print_query_filter(query_filter_2);
 
   // 5.i. Filter rows using query filters
   int row_1_filter_1 = filter_metadata_row_by_row(metadata_row_1, query_filter_1);
@@ -109,13 +109,13 @@ int main(void) {
 
   // 6. metadata_index_destroy
   metadata_index_destroy(&metadata_index);
-  free_query_filter(query_filter_1);
-  free_query_filter(query_filter_2);
-  free_metadata_item(metadata_row_0_col_2);
-  free_metadata_item(metadata_row_2_score);
-  free_metadata_row(metadata_row_1);
-  free_metadata_row(metadata_row_3);
-  free_metadata_rows(metadata_rows);
+  query_filter_destroy(query_filter_1);
+  query_filter_destroy(query_filter_2);
+  metadata_item_destroy(metadata_row_0_col_2);
+  metadata_item_destroy(metadata_row_2_score);
+  metadata_row_destroy(metadata_row_1);
+  metadata_row_destroy(metadata_row_3);
+  metadata_rows_destroy(metadata_rows);
 
   return 0;
 }

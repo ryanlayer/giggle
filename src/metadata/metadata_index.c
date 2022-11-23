@@ -930,7 +930,7 @@ struct metadata_index *metadata_index_load(char *metadata_index_filename) {
   return metadata_index;
 }
 
-void free_metadata_columns(struct metadata_columns *metadata_columns) {
+void metadata_columns_destroy(struct metadata_columns *metadata_columns) {
   int i;
   for (i = 0; i < metadata_columns->num_cols; ++i) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
@@ -942,7 +942,7 @@ void free_metadata_columns(struct metadata_columns *metadata_columns) {
   free(metadata_columns);
 }
 
-void free_metadata_types(struct metadata_types *metadata_types) {
+void metadata_types_destroy(struct metadata_types *metadata_types) {
   int i;
   for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = metadata_types->types[i];
@@ -954,27 +954,27 @@ void free_metadata_types(struct metadata_types *metadata_types) {
   free(metadata_types);
 }
 
-void free_metadata_item(struct metadata_item *metadata_item) {
+void metadata_item_destroy(struct metadata_item *metadata_item) {
   if (metadata_item->type->data_type == STRING) {
     free(metadata_item->data.s);
   }
   free(metadata_item);
 }
 
-void free_metadata_row(struct metadata_row *metadata_row) {
+void metadata_row_destroy(struct metadata_row *metadata_row) {
   int i;
   for (i = 0; i < metadata_row->num; ++i) {
     struct metadata_item *metadata_item = metadata_row->items[i];
-    free_metadata_item(metadata_item);
+    metadata_item_destroy(metadata_item);
   }
   free(metadata_row->items);
   free(metadata_row);
 }
 
-void free_metadata_rows(struct metadata_rows *metadata_rows) {
+void metadata_rows_destroy(struct metadata_rows *metadata_rows) {
   int i;
   for (i = 0; i < metadata_rows->num; ++i) {
-    free_metadata_row(metadata_rows->rows[i]);
+    metadata_row_destroy(metadata_rows->rows[i]);
   }
   free(metadata_rows->rows);
   free(metadata_rows);
@@ -986,17 +986,17 @@ void metadata_index_destroy(struct metadata_index **metadata_index) {
   }
   free((*metadata_index)->metadata_index_filename);
   if ((*metadata_index)->metadata_columns) {
-    free_metadata_columns((*metadata_index)->metadata_columns);
+    metadata_columns_destroy((*metadata_index)->metadata_columns);
   }
   if ((*metadata_index)->metadata_types) {
-    free_metadata_types((*metadata_index)->metadata_types);
+    metadata_types_destroy((*metadata_index)->metadata_types);
   }
   fclose((*metadata_index)->metadata_index_fp);
   free(*metadata_index);
   *metadata_index = NULL;
 }
 
-void display_metadata_columns(struct metadata_columns *metadata_columns) {
+void print_metadata_columns(struct metadata_columns *metadata_columns) {
   int i;
   printf("metadata_columns => num_cols: %d, row_width: %d\n", metadata_columns->num_cols, metadata_columns->row_width);
   for (i = 0; i < metadata_columns->num_cols; ++i) {
@@ -1006,7 +1006,7 @@ void display_metadata_columns(struct metadata_columns *metadata_columns) {
   }
 }
 
-void display_metadata_types(struct metadata_types *metadata_types) {
+void print_metadata_types(struct metadata_types *metadata_types) {
   int i;
   printf("metadata_types => num_cols: %d, num_rows: %lu, row_width: %d, header_offset: %lu\n", metadata_types->num_cols, metadata_types->num_rows, metadata_types->row_width, metadata_types->header_offset);
   for (i = 0; i < metadata_types->num_cols; ++i) {
@@ -1015,7 +1015,7 @@ void display_metadata_types(struct metadata_types *metadata_types) {
   }
 }
 
-void display_metadata_data(struct metadata_type *type, union metadata_data data) {
+void print_metadata_data(struct metadata_type *type, union metadata_data data) {
   printf("%s: ", type->name);
   switch (type->data_type) {
     case CHAR: 
@@ -1047,27 +1047,27 @@ void display_metadata_data(struct metadata_type *type, union metadata_data data)
   }
 }
 
-void display_metadata_item(struct metadata_item *metadata_item) {
-  display_metadata_data(metadata_item->type, metadata_item->data);
+void print_metadata_item(struct metadata_item *metadata_item) {
+  print_metadata_data(metadata_item->type, metadata_item->data);
   printf("\n");
 }
 
-void display_metadata_row(struct metadata_row *metadata_row) {
+void print_metadata_row(struct metadata_row *metadata_row) {
   int i;
   for (i = 0; i < metadata_row->num; ++i) {
     struct metadata_item *metadata_item = metadata_row->items[i];
-    display_metadata_data(metadata_item->type, metadata_item->data);
+    print_metadata_data(metadata_item->type, metadata_item->data);
     printf(", ");
   }
   printf("\n");
 }
 
-void display_metadata_rows(struct metadata_rows *metadata_rows) {
+void print_metadata_rows(struct metadata_rows *metadata_rows) {
   int i, j;
   printf("metadata_rows => num_rows: %lu\n", metadata_rows->num);
   for (i = 0; i < metadata_rows->num; ++i) {
     struct metadata_row *metadata_row = metadata_rows->rows[i];
     printf("metadata_row %d => ", i);
-    display_metadata_row(metadata_row);
+    print_metadata_row(metadata_row);
   }
 }

@@ -137,19 +137,19 @@ void metadata_index_store(struct metadata_index *metadata_index);
 void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata_index);
 struct metadata_index *metadata_index_load(char *metadata_index_filename);
 
-void free_metadata_columns(struct metadata_columns *metadata_columns);
-void free_metadata_types(struct metadata_types *metadata_types);
-void free_metadata_item(struct metadata_item *metadata_item);
-void free_metadata_row(struct metadata_row *metadata_row);
-void free_metadata_rows(struct metadata_rows *metadata_rows);
+void metadata_columns_destroy(struct metadata_columns *metadata_columns);
+void metadata_types_destroy(struct metadata_types *metadata_types);
+void metadata_item_destroy(struct metadata_item *metadata_item);
+void metadata_row_destroy(struct metadata_row *metadata_row);
+void metadata_rows_destroy(struct metadata_rows *metadata_rows);
 
 void metadata_index_destroy(struct metadata_index **metadata_index);
 
-void display_metadata_columns(struct metadata_columns *metadata_columns);
-void display_metadata_types(struct metadata_types *metadata_types);
-void display_metadata_data(struct metadata_type *type, union metadata_data data);
-void display_metadata_item(struct metadata_item *metadata_item);
-void display_metadata_row(struct metadata_row *metadata_row);
-void display_metadata_rows(struct metadata_rows *metadata_rows);
+void print_metadata_columns(struct metadata_columns *metadata_columns);
+void print_metadata_types(struct metadata_types *metadata_types);
+void print_metadata_data(struct metadata_type *type, union metadata_data data);
+void print_metadata_item(struct metadata_item *metadata_item);
+void print_metadata_row(struct metadata_row *metadata_row);
+void print_metadata_rows(struct metadata_rows *metadata_rows);
 
 #endif

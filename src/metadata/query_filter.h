@@ -28,9 +28,9 @@ int perform_metadata_comparison(struct metadata_type *metadata_type, enum compar
 int filter_metadata_row_by_item(struct metadata_item *metadata_item, struct query_filter *query_filter);  
 int filter_metadata_row_by_row(struct metadata_row *metadata_row, struct query_filter *query_filter);  
 
-void free_query_filter(struct query_filter *query_filter);
+void query_filter_destroy(struct query_filter *query_filter);
 
-void display_comparison(enum comparison comparison);
-void display_query_filter(struct query_filter *query_filter);
+void print_comparison(enum comparison comparison);
+void print_query_filter(struct query_filter *query_filter);
 
 #endif
