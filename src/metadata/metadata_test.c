@@ -3,7 +3,6 @@
 #include "query_filter.h"
 
 void metadata_index_add_all_intervals_from_file(struct metadata_index *metadata_index, uint32_t file_id, char *intervals_filename) {
-  struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
   FILE *intervals = fopen(intervals_filename, "r");
   if (intervals == NULL) {
     err(1, "%s not found.\n", intervals_filename);
@@ -37,7 +36,7 @@ int main(void) {
   struct metadata_index *metadata_index = metadata_index_init(metadata_conf_filename, metadata_index_filename);
   printf("\nInitialized Metadata Index in %s\n", metadata_index_filename);
   print_metadata_index(metadata_index);
-  print_metadata_columns(metadata_index->metadata_columns);
+  print_metadata_columns(metadata_index);
 
   // 2. metadata_index_add 
   char *intervals_filename1 = "intervals1.tsv";

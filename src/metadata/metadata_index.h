@@ -51,26 +51,6 @@ struct metadata_type {
   char name[COLUMN_NAME_MAX_LENGTH]; 
 };
 
-struct metadata_column {
-  uint8_t column; // column number
-  struct metadata_type *type;
-};
-
-struct metadata_columns {
-  uint8_t num_cols; // max item count = 255
-  uint16_t row_width; // total width of each data row
-  struct metadata_column **columns;
-};
-
-struct metadata_types {
-  uint8_t num_cols;
-  uint16_t row_width; // total width of each data row
-  uint64_t num_rows;
-  void *column_name_to_index; // khash_str2int hashmap to map column names to column indexes
-  uint16_t *col_offsets; // offset of ith column in a data row
-  struct metadata_type **types;
-};
-
 union metadata_data {
   char c;
   int8_t b;
@@ -97,14 +77,26 @@ struct metadata_rows {
   struct metadata_row **rows; // data rows
 };
 
+struct metadata_types {
+  uint8_t num_cols;
+  uint16_t row_width; // total width of each data row
+  uint64_t num_rows;
+  void *column_name_to_index; // khash_str2int hashmap to map column names to column indexes
+  uint16_t *col_offsets; // offset of ith column in a data row
+  struct metadata_type **types;
+};
+
 struct metadata_index {
+  // members used only for operations used in indexing- init, add 
   char *metadata_conf_filename;
+  uint8_t *columns; // column numbers in the conf file
+
+  // other members, always used
   char *metadata_index_filename;
-  struct metadata_columns *metadata_columns;
-  struct metadata_types *metadata_types;
   FILE *metadata_index_fp;
   uint64_t header_offset; // total header offset, end of the header file position
   uint64_t num_rows;
+  struct metadata_types *metadata_types;
 };
 
 // TODO: remove this after integrating with main codebase
@@ -124,12 +116,9 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
 void write_metadata_index_header(struct metadata_index *metadata_index);
 void read_metadata_index_header(struct metadata_index *metadata_index);
 
-uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
-
-void metadata_columns_destroy(struct metadata_columns *metadata_columns);
 void metadata_types_destroy(struct metadata_types *metadata_types);
 
-void print_metadata_columns(struct metadata_columns *metadata_columns);
+void print_metadata_columns(struct metadata_index *metadata_index);
 void print_metadata_types(struct metadata_types *metadata_types);
 void print_metadata_index(struct metadata_index *metadata_index);
 void print_metadata_data(struct metadata_type *type, union metadata_data data);
@@ -140,6 +129,7 @@ void print_metadata_rows(struct metadata_rows *metadata_rows);
 // public interfaces
 
 struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename);
+uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
 void metadata_index_store(struct metadata_index *metadata_index);
 struct metadata_index *metadata_index_load(char *metadata_index_filename);
 void metadata_index_destroy(struct metadata_index **metadata_index);

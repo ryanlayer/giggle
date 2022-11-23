@@ -290,17 +290,23 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     err(1, "%s not found.\n", metadata_conf_filename);
   }
 
-  struct metadata_columns *metadata_columns = (struct metadata_columns *)malloc(sizeof(struct metadata_columns));
-  if (metadata_columns == NULL) {
-    err(1, "malloc failure for metadata_columns in read_metadata_conf.\n");
+  struct metadata_types *metadata_types = (struct metadata_types *)malloc(sizeof(struct metadata_types));
+  if (metadata_types == NULL) {
+    err(1, "malloc failure for metadata_types in read_metadata_conf.\n");
   }
-  metadata_columns->num_cols = 0;
-  metadata_columns->row_width = 0;
+  metadata_types->num_cols = 0;
+  metadata_types->row_width = 0;
+  metadata_index->metadata_types = metadata_types;
 
-  metadata_columns->columns = (struct metadata_column **)malloc(255 * sizeof(struct metadata_column*));
-  if (metadata_columns->columns == NULL) {
-    err(1, "malloc failure for metadata_columns->columns in read_metadata_conf.\n");
+  metadata_types->types = (struct metadata_type **)malloc(255 * sizeof(struct metadata_type*));
+  if (metadata_types->types == NULL) {
+    err(1, "malloc failure for metadata_types->columns in read_metadata_conf.\n");
   }
+  uint8_t *columns = (uint8_t *)malloc(255 * sizeof(uint8_t));
+  if (columns == NULL) {
+    err(1, "malloc failure for columns in read_metadata_conf.\n");
+  }
+  metadata_index->columns = columns;
 
   void *column_set = khash_str2int_init();
 
@@ -318,7 +324,7 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     sscanf(line, "%hhu %255s %7s %hhu", &column, name, type_string, &str_len);
     // printf("%d %s %s %d\n", column, name, type_string, str_len);
 
-    if (metadata_columns->num_cols == 255) {
+    if (metadata_types->num_cols == 255) {
       err(1, "Cannot store more than 255 columns.\n");
     }
     
@@ -343,23 +349,22 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     if (metadata_type->data_type == STRING) {
       metadata_type->width = str_len + 1;
     }
-    metadata_columns->row_width += metadata_type->width;
+    metadata_types->row_width += metadata_type->width;
 
-    struct metadata_column *metadata_column = (struct metadata_column *)malloc(sizeof(struct metadata_column));
-    if (metadata_column == NULL) {
-      err(1, "malloc failure for metadata_column in read_metadata_conf.\n");
-    }
-
-    metadata_column->type = metadata_type;
-    metadata_column->column = column;
-    
-    metadata_columns->columns[metadata_columns->num_cols++] = metadata_column;
+    metadata_types->types[metadata_types->num_cols] = metadata_type;
+    metadata_index->columns[metadata_types->num_cols] = column;
+    metadata_types->num_cols++;
   }
 
-  if (metadata_columns->num_cols < 255) {
-    metadata_columns->columns = (struct metadata_column **)realloc(metadata_columns->columns, sizeof(struct metadata_column*) * metadata_columns->num_cols);
-    if (metadata_columns->columns == NULL) {
-      err(1, "realloc failure for metadata_columns->columns in read_metadata_conf.\n");
+  if (metadata_types->num_cols < 255) {
+    metadata_types->types = (struct metadata_type **)realloc(metadata_types->types, sizeof(struct metadata_type*) * metadata_types->num_cols);
+    if (metadata_types->types == NULL) {
+      err(1, "realloc failure for metadata_types->types in read_metadata_conf.\n");
+    }
+
+    metadata_index->columns = (uint8_t *)realloc(metadata_index->columns, sizeof(uint8_t) * metadata_types->num_cols);
+    if (metadata_index->columns == NULL) {
+      err(1, "realloc failure for metadata_index->columns in read_metadata_conf.\n");
     }
   }
 
@@ -369,13 +374,11 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     free(line);
 
   fclose(metadata_conf_fp);
-
-  metadata_index->metadata_columns = metadata_columns;
 }
 
 void write_metadata_index_header(struct metadata_index *metadata_index) {
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
-  struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
   
   int i;
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
@@ -392,17 +395,16 @@ void write_metadata_index_header(struct metadata_index *metadata_index) {
     err(1, "fwrite failure for extra in init_metadata_dat.\n");
   }
 
-  if (fwrite(&(metadata_columns->num_cols), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for metadata_columns->num_cols in init_metadata_dat.\n");
+  if (fwrite(&(metadata_types->num_cols), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for metadata_types->num_cols in init_metadata_dat.\n");
   }
 
-  if (fwrite(&(metadata_columns->row_width), sizeof(uint16_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for metadata_columns->row_width in init_metadata_dat.\n");
+  if (fwrite(&(metadata_types->row_width), sizeof(uint16_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for metadata_types->row_width in init_metadata_dat.\n");
   }
 
-  for (i = 0; i < metadata_columns->num_cols; ++i) {
-    struct metadata_column *metadata_column = metadata_columns->columns[i];
-    struct metadata_type *metadata_type = metadata_column->type;
+  for (i = 0; i < metadata_types->num_cols; ++i) {
+    struct metadata_type *metadata_type = metadata_types->types[i];
     
     char type_char = data_type_enum_to_char(metadata_type->data_type);
     if (fwrite(&type_char, sizeof(char), 1, metadata_index_fp) != 1) {
@@ -668,7 +670,8 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
 }
 
 uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line) {
-  struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
+  uint8_t *columns = metadata_index->columns;
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   int fields_length;
   int *fields;
@@ -676,10 +679,9 @@ uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file
 
   // TODO: Write file_id before metadata columns
 
-  for (int i = 0; i < metadata_columns->num_cols; ++i) {
-    struct metadata_column *metadata_column = metadata_columns->columns[i];
-    int column = metadata_column->column;
-    struct metadata_type *metadata_type = metadata_column->type;
+  for (int i = 0; i < metadata_types->num_cols; ++i) {
+    struct metadata_type *metadata_type = metadata_types->types[i];
+    int column = columns[i];
     char *data = line->s + fields[column - 1];
     fwrite_data_type_item(metadata_index_fp, metadata_type, data);
   }
@@ -713,7 +715,7 @@ struct metadata_index *metadata_index_load(char *metadata_index_filename) {
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
 
   metadata_index->metadata_conf_filename = NULL;
-  metadata_index->metadata_columns = NULL;
+  metadata_index->columns = NULL;
 
   FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
   if (metadata_index_fp == NULL) {
@@ -725,18 +727,6 @@ struct metadata_index *metadata_index_load(char *metadata_index_filename) {
   read_metadata_index_header(metadata_index);
 
   return metadata_index;
-}
-
-void metadata_columns_destroy(struct metadata_columns *metadata_columns) {
-  int i;
-  for (i = 0; i < metadata_columns->num_cols; ++i) {
-    struct metadata_column *metadata_column = metadata_columns->columns[i];
-    struct metadata_type *metadata_type = metadata_column->type;
-    free(metadata_type);
-    free(metadata_column);
-  }
-  free(metadata_columns->columns);
-  free(metadata_columns);
 }
 
 void metadata_types_destroy(struct metadata_types *metadata_types) {
@@ -782,8 +772,8 @@ void metadata_index_destroy(struct metadata_index **metadata_index) {
     free((*metadata_index)->metadata_conf_filename);
   }
   free((*metadata_index)->metadata_index_filename);
-  if ((*metadata_index)->metadata_columns) {
-    metadata_columns_destroy((*metadata_index)->metadata_columns);
+  if ((*metadata_index)->columns) {
+    free((*metadata_index)->columns);
   }
   if ((*metadata_index)->metadata_types) {
     metadata_types_destroy((*metadata_index)->metadata_types);
@@ -793,13 +783,14 @@ void metadata_index_destroy(struct metadata_index **metadata_index) {
   *metadata_index = NULL;
 }
 
-void print_metadata_columns(struct metadata_columns *metadata_columns) {
+void print_metadata_columns(struct metadata_index *metadata_index) {
   int i;
-  printf("metadata_columns => num_cols: %d, row_width: %d\n", metadata_columns->num_cols, metadata_columns->row_width);
-  for (i = 0; i < metadata_columns->num_cols; ++i) {
-    struct metadata_column *metadata_column = metadata_columns->columns[i];
-    struct metadata_type *metadata_type = metadata_column->type;
-    printf("%d => column: %d, data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_column->column, metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
+  struct metadata_types *metadata_types = metadata_index->metadata_types;
+  uint8_t *columns = metadata_index->columns;
+  printf("metadata_columns => num_cols: %d, row_width: %d\n", metadata_types->num_cols, metadata_types->row_width);
+  for (i = 0; i < metadata_types->num_cols; ++i) {
+    struct metadata_type *metadata_type = metadata_types->types[i];
+    printf("%d => column: %d, data_type: %d, type_char: %c, name: %s, width: %d\n", i, columns[i], metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
   }
 }
 
