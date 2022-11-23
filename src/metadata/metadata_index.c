@@ -521,11 +521,8 @@ void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata
 
 struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index) {
   char *metadata_index_filename = metadata_index->metadata_index_filename;
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = metadata_index->metadata_types;
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
   
   if (fseek(metadata_index_fp, metadata_types->header_offset, SEEK_SET) != 0) {
     err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
@@ -572,19 +569,14 @@ struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index) 
 
     metadata_rows->rows[i] = metadata_row;
   }
-  
-  fclose(metadata_index_fp);
 
   return metadata_rows;
 }
 
 struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, uint64_t interval_id) {
   char *metadata_index_filename = metadata_index->metadata_index_filename;
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = metadata_index->metadata_types;
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
 
   uint64_t total_offset = metadata_types->header_offset + metadata_types->row_width * interval_id;
   
@@ -618,19 +610,14 @@ struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, ui
 
     metadata_row->items[i] = metadata_item;
   }
-  
-  fclose(metadata_index_fp);
 
   return metadata_row;
 }
 
 struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *metadata_index, uint64_t interval_id, uint8_t column_id) {
   char *metadata_index_filename = metadata_index->metadata_index_filename;
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = metadata_index->metadata_types;
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
 
   uint64_t total_offset = metadata_types->header_offset + metadata_types->row_width * interval_id + metadata_types->col_offsets[column_id];
   
@@ -648,8 +635,6 @@ struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *met
 
   fread_data_type_item(metadata_index_filename, metadata_index_fp, metadata_item);
   
-  fclose(metadata_index_fp);
-
   return metadata_item;
 }
 
