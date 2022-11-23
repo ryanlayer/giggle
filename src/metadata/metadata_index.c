@@ -283,6 +283,28 @@ void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp
   }
 }
 
+struct metadata_index *metadata_index_new() {
+  struct metadata_index *metadata_index = (struct metadata_index *)malloc(sizeof(struct metadata_index));
+  if (metadata_index == NULL) {
+    err(1, "malloc failure for metadata_index in metadata_index_init.\n");
+  }
+
+  metadata_index->metadata_conf_filename = NULL;
+  metadata_index->columns = NULL;
+  metadata_index->metadata_index_filename = NULL;
+  metadata_index->metadata_index_fp = NULL;
+  metadata_index->column_name_to_index = NULL;
+  metadata_index->col_offsets = NULL;
+  metadata_index->types = NULL;
+
+  metadata_index->num_cols = -1;
+  metadata_index->row_width = -1;
+  metadata_index->num_rows = -1;
+  metadata_index->header_offset = -1;
+
+  return metadata_index;
+}
+
 void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_conf_filename) {
   FILE *metadata_conf_fp = fopen(metadata_conf_filename, "r");
   if (metadata_conf_fp == NULL) {
@@ -495,6 +517,91 @@ void read_metadata_index_header(struct metadata_index *metadata_index) {
   metadata_index->header_offset = ftell(metadata_index_fp);
 }
 
+struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename) {
+  if (metadata_conf_filename == NULL) {
+    err(1, "metadata_conf_filename cannot be NULL.\n");
+  }
+  if (metadata_index_filename == NULL) {
+    err(1, "metadata_index_filename cannot be NULL.\n");
+  }
+
+  struct metadata_index *metadata_index = metadata_index_new();
+  metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
+  metadata_index->metadata_index_filename = strdup(metadata_index_filename);
+
+  metadata_index->num_rows = 0;
+
+  // Read metadata.conf
+  read_metadata_conf(metadata_index, metadata_conf_filename);
+
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
+  if (metadata_index_fp == NULL) {
+    err(1, "%s not found.\n", metadata_index_filename);
+  }
+  metadata_index->metadata_index_fp = metadata_index_fp;
+
+  // Write header in metadata_index.dat
+  write_metadata_index_header(metadata_index);
+
+  return metadata_index;
+}
+
+uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line) {
+  uint8_t *columns = metadata_index->columns;
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
+  int fields_length;
+  int *fields;
+  fields = ksplit(line, '\t', &fields_length);
+
+  // TODO: Write file_id before metadata columns
+
+  for (int i = 0; i < metadata_index->num_cols; ++i) {
+    struct metadata_type *metadata_type = metadata_index->types[i];
+    int column = columns[i];
+    char *data = line->s + fields[column - 1];
+    fwrite_data_type_item(metadata_index_fp, metadata_type, data);
+  }
+
+  free(fields);
+  metadata_index->num_rows++;
+}
+
+void metadata_index_store(struct metadata_index *metadata_index) {
+  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
+
+  uint64_t total_offset = metadata_index->header_offset - sizeof(uint64_t);
+
+  if (fseek(metadata_index_fp, total_offset, SEEK_SET) != 0) {
+    err(1, "Could not seek to metadata start in '%s'.", metadata_index->metadata_index_filename);
+  }
+
+  if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
+    err(1, "fwrite failure for num_rows in metadata_index_store.\n");
+  }
+}
+
+struct metadata_index *metadata_index_load(char *metadata_index_filename) {
+  if (metadata_index_filename == NULL) {
+    err(1, "metadata_index_filename cannot be NULL.\n");
+  }
+  struct metadata_index *metadata_index = metadata_index_new();
+  metadata_index->metadata_index_filename = strdup(metadata_index_filename);
+
+  metadata_index->metadata_conf_filename = NULL;
+  metadata_index->columns = NULL;
+
+  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
+  if (metadata_index_fp == NULL) {
+    err(1, "%s not found.\n", metadata_index_filename);
+  }
+  metadata_index->metadata_index_fp = metadata_index_fp;
+  
+  // Read header from metadata_index.dat
+  read_metadata_index_header(metadata_index);
+
+  return metadata_index;
+}
+
 struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index) {
   char *metadata_index_filename = metadata_index->metadata_index_filename;
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
@@ -621,113 +728,6 @@ struct metadata_item *read_metadata_item_by_column_name(struct metadata_index *m
   return read_metadata_item_by_column_id(metadata_index, interval_id, column_id);
 }
 
-struct metadata_index *metadata_index_new() {
-  struct metadata_index *metadata_index = (struct metadata_index *)malloc(sizeof(struct metadata_index));
-  if (metadata_index == NULL) {
-    err(1, "malloc failure for metadata_index in metadata_index_init.\n");
-  }
-  
-  metadata_index->metadata_conf_filename = NULL;
-  metadata_index->columns = NULL;
-  metadata_index->metadata_index_filename = NULL;
-  metadata_index->metadata_index_fp = NULL;
-  metadata_index->column_name_to_index = NULL;
-  metadata_index->col_offsets = NULL;
-  metadata_index->types = NULL;
-
-  metadata_index->num_cols = -1;
-  metadata_index->row_width = -1;
-  metadata_index->num_rows = -1;
-  metadata_index->header_offset = -1;
-
-  return metadata_index;
-}
-
-struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename) {
-  if (metadata_conf_filename == NULL) {
-    err(1, "metadata_conf_filename cannot be NULL.\n");
-  }
-  if (metadata_index_filename == NULL) {
-    err(1, "metadata_index_filename cannot be NULL.\n");
-  }
-
-  struct metadata_index *metadata_index = metadata_index_new();
-  metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
-  metadata_index->metadata_index_filename = strdup(metadata_index_filename);
-
-  metadata_index->num_rows = 0;
-
-  // Read metadata.conf
-  read_metadata_conf(metadata_index, metadata_conf_filename);
-
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
-  metadata_index->metadata_index_fp = metadata_index_fp;
-
-  // Write header in metadata_index.dat
-  write_metadata_index_header(metadata_index);
-
-  return metadata_index;
-}
-
-uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line) {
-  uint8_t *columns = metadata_index->columns;
-  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
-  int fields_length;
-  int *fields;
-  fields = ksplit(line, '\t', &fields_length);
-
-  // TODO: Write file_id before metadata columns
-
-  for (int i = 0; i < metadata_index->num_cols; ++i) {
-    struct metadata_type *metadata_type = metadata_index->types[i];
-    int column = columns[i];
-    char *data = line->s + fields[column - 1];
-    fwrite_data_type_item(metadata_index_fp, metadata_type, data);
-  }
-
-  free(fields);
-  metadata_index->num_rows++;
-}
-
-void metadata_index_store(struct metadata_index *metadata_index) {
-  FILE *metadata_index_fp = metadata_index->metadata_index_fp;
-
-  uint64_t total_offset = metadata_index->header_offset - sizeof(uint64_t);
-
-  if (fseek(metadata_index_fp, total_offset, SEEK_SET) != 0) {
-    err(1, "Could not seek to metadata start in '%s'.", metadata_index->metadata_index_filename);
-  }
-
-  if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for num_rows in metadata_index_store.\n");
-  }
-}
-
-struct metadata_index *metadata_index_load(char *metadata_index_filename) {
-  if (metadata_index_filename == NULL) {
-    err(1, "metadata_index_filename cannot be NULL.\n");
-  }
-  struct metadata_index *metadata_index = metadata_index_new();
-  metadata_index->metadata_index_filename = strdup(metadata_index_filename);
-
-  metadata_index->metadata_conf_filename = NULL;
-  metadata_index->columns = NULL;
-
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
-  metadata_index->metadata_index_fp = metadata_index_fp;
-  
-  // Read header from metadata_index.dat
-  read_metadata_index_header(metadata_index);
-
-  return metadata_index;
-}
-
 void metadata_item_destroy(struct metadata_item *metadata_item) {
   if (metadata_item->type->data_type == STRING) {
     free(metadata_item->data.s);
@@ -777,20 +777,6 @@ void metadata_index_destroy(struct metadata_index **metadata_index_ptr) {
   free(metadata_index);
 
   *metadata_index_ptr = NULL;
-}
-
-void print_metadata_index(struct metadata_index *metadata_index) {
-  int i;
-  uint8_t *columns = metadata_index->columns;
-  printf("metadata_index => num_cols: %d, num_rows: %lu, row_width: %d, header_offset: %lu\n", metadata_index->num_cols, metadata_index->num_rows, metadata_index->row_width, metadata_index->header_offset);
-  for (i = 0; i < metadata_index->num_cols; ++i) {
-    struct metadata_type *metadata_type = metadata_index->types[i];
-    if (columns) {
-      printf("%d => column: %d, data_type: %d, type_char: %c, name: %s, width: %d\n", i, columns[i], metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
-    } else {
-      printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i, metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
-    }
-  }
 }
 
 void print_metadata_data(struct metadata_type *type, union metadata_data data) {
@@ -847,5 +833,19 @@ void print_metadata_rows(struct metadata_rows *metadata_rows) {
     struct metadata_row *metadata_row = metadata_rows->rows[i];
     printf("metadata_row %d => ", i);
     print_metadata_row(metadata_row);
+  }
+}
+
+void print_metadata_index(struct metadata_index *metadata_index) {
+  int i;
+  uint8_t *columns = metadata_index->columns;
+  printf("metadata_index => num_cols: %d, num_rows: %lu, row_width: %d, header_offset: %lu\n", metadata_index->num_cols, metadata_index->num_rows, metadata_index->row_width, metadata_index->header_offset);
+  for (i = 0; i < metadata_index->num_cols; ++i) {
+    struct metadata_type *metadata_type = metadata_index->types[i];
+    if (columns) {
+      printf("%d => column: %d, data_type: %d, type_char: %c, name: %s, width: %d\n", i, columns[i], metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
+    } else {
+      printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i, metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
+    }
   }
 }
