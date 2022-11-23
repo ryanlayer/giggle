@@ -122,25 +122,12 @@ void fwrite_data_type_item(FILE *metadata_index_fp, struct metadata_type *metada
 void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp, struct metadata_item *metadata_item);
 
 struct metadata_columns *read_metadata_conf(char *metadata_conf_filename);
-struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index);
-struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, uint64_t interval_id);
-struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *metadata_index, uint64_t interval_id, uint8_t column_id);
-struct metadata_item *read_metadata_item_by_column_name(struct metadata_index *metadata_index, uint64_t interval_id, char *column_name);
-
 void init_metadata_index_dat(struct metadata_index *metadata_index);
-struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename);
 uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
-void metadata_index_store(struct metadata_index *metadata_index);
 void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata_index);
-struct metadata_index *metadata_index_load(char *metadata_index_filename);
 
 void metadata_columns_destroy(struct metadata_columns *metadata_columns);
 void metadata_types_destroy(struct metadata_types *metadata_types);
-void metadata_item_destroy(struct metadata_item *metadata_item);
-void metadata_row_destroy(struct metadata_row *metadata_row);
-void metadata_rows_destroy(struct metadata_rows *metadata_rows);
-
-void metadata_index_destroy(struct metadata_index **metadata_index);
 
 void print_metadata_columns(struct metadata_columns *metadata_columns);
 void print_metadata_types(struct metadata_types *metadata_types);
@@ -148,5 +135,22 @@ void print_metadata_data(struct metadata_type *type, union metadata_data data);
 void print_metadata_item(struct metadata_item *metadata_item);
 void print_metadata_row(struct metadata_row *metadata_row);
 void print_metadata_rows(struct metadata_rows *metadata_rows);
+
+// public interfaces
+
+struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *metadata_index_filename);
+void metadata_index_store(struct metadata_index *metadata_index);
+struct metadata_index *metadata_index_load(char *metadata_index_filename);
+void metadata_index_destroy(struct metadata_index **metadata_index);
+
+struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index);
+void metadata_rows_destroy(struct metadata_rows *metadata_rows);
+
+struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, uint64_t interval_id);
+void metadata_row_destroy(struct metadata_row *metadata_row);
+
+struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *metadata_index, uint64_t interval_id, uint8_t column_id);
+struct metadata_item *read_metadata_item_by_column_name(struct metadata_index *metadata_index, uint64_t interval_id, char *column_name);
+void metadata_item_destroy(struct metadata_item *metadata_item);
 
 #endif
