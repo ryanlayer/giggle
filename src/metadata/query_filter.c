@@ -128,13 +128,13 @@ struct query_filter *parse_query_filter_string(struct metadata_index *metadata_i
     err(1, "Column %s not found in metadata.\n", query_filter_string);
   }
 
-  free(query_filter_string);
-
   query_filter->type = metadata_types->types[column_id];
   query_filter->column_id = column_id;
 
   data_string = query_filter_string + end_comparison + 1;
   query_filter->data = parse_query_filter_data_string(query_filter->type, data_string);
+  
+  free(query_filter_string);
 
   return query_filter;
 }
