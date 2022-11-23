@@ -131,7 +131,7 @@ char *safe_sscanf(uint8_t str_width, char *data) {
   snprintf(s_format, sizeof(s_format), "%%%ds", str_width - 1);
   s = (char *)calloc(str_width, sizeof(char));
   if (s == NULL) {
-    err(1, "calloc failure for s in fwrite_data_type_item.\n");
+    err(1, "calloc failure for s in safe_sscanf.\n");
   }
   sscanf(data, s_format, s);
   return s;
@@ -275,7 +275,7 @@ void fread_data_type_item(char *metadata_index_filename, FILE *metadata_index_fp
 struct metadata_index *metadata_index_new() {
   struct metadata_index *metadata_index = (struct metadata_index *)malloc(sizeof(struct metadata_index));
   if (metadata_index == NULL) {
-    err(1, "malloc failure for metadata_index in metadata_index_init.\n");
+    err(1, "malloc failure for metadata_index in metadata_index_new.\n");
   }
 
   metadata_index->metadata_conf_filename = NULL;
@@ -397,23 +397,23 @@ void write_metadata_index_header(struct metadata_index *metadata_index) {
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
 
   if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
-    err(1, "fwrite failure for file marker in init_metadata_dat.\n");
+    err(1, "fwrite failure for file marker in write_metadata_index_header.\n");
   }
 
   if (fwrite(GIGGLE_METADATA_VERSION_MARKER, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_VERSION_MARKER_LENGTH) {
-    err(1, "fwrite failure for version marker in init_metadata_dat.\n");
+    err(1, "fwrite failure for version marker in write_metadata_index_header.\n");
   }
 
   if (fwrite(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index_fp) != GIGGLE_METADATA_EXTRA_LENGTH) {
-    err(1, "fwrite failure for extra in init_metadata_dat.\n");
+    err(1, "fwrite failure for extra in write_metadata_index_header.\n");
   }
 
   if (fwrite(&(metadata_index->num_cols), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for metadata_index->num_cols in init_metadata_dat.\n");
+    err(1, "fwrite failure for metadata_index->num_cols in write_metadata_index_header.\n");
   }
 
   if (fwrite(&(metadata_index->row_width), sizeof(uint16_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for metadata_index->row_width in init_metadata_dat.\n");
+    err(1, "fwrite failure for metadata_index->row_width in write_metadata_index_header.\n");
   }
 
   for (i = 0; i < metadata_index->num_cols; ++i) {
@@ -421,20 +421,20 @@ void write_metadata_index_header(struct metadata_index *metadata_index) {
     
     char type_char = data_type_enum_to_char(metadata_type->data_type);
     if (fwrite(&type_char, sizeof(char), 1, metadata_index_fp) != 1) {
-      err(1, "fwrite failure for type_char in init_metadata_dat.\n");
+      err(1, "fwrite failure for type_char in write_metadata_index_header.\n");
     }
 
     if (fwrite(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
-      err(1, "fwrite failure for metadata_type->width in init_metadata_dat.\n");
+      err(1, "fwrite failure for metadata_type->width in write_metadata_index_header.\n");
     }
 
     if (fwrite(metadata_type->name, sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index_fp) != COLUMN_NAME_MAX_LENGTH) {
-      err(1, "fwrite failure for metadata_type->name in init_metadata_dat.\n");
+      err(1, "fwrite failure for metadata_type->name in write_metadata_index_header.\n");
     }
   }
 
   if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
+    err(1, "fwrite failure for num_rows in write_metadata_index_header.\n");
   }
 
   metadata_index->header_offset = ftell(metadata_index_fp);
@@ -476,18 +476,18 @@ void read_metadata_index_header(struct metadata_index *metadata_index) {
 
   metadata_index->col_offsets = (uint16_t *)malloc(metadata_index->num_cols * sizeof(uint16_t));
   if (metadata_index->col_offsets == NULL) {
-    err(1, "malloc failure for metadata_index->col_offsets in read_metadata_index_from_metadata_dat.\n");
+    err(1, "malloc failure for metadata_index->col_offsets in read_metadata_index_header.\n");
   }
   
   metadata_index->types = (struct metadata_type **)malloc(metadata_index->num_cols * sizeof(struct metadata_type*));
   if (metadata_index->types == NULL) {
-    err(1, "malloc failure for metadata_index->types in read_metadata_index_from_metadata_dat.\n");
+    err(1, "malloc failure for metadata_index->types in read_metadata_index_header.\n");
   }
 
   for (i = 0; i < metadata_index->num_cols; ++i) {
     struct metadata_type *metadata_type = (struct metadata_type *)calloc(1, sizeof(struct metadata_type));
     if (metadata_type == NULL) {
-      err(1, "calloc failure for metadata_type in read_metadata_index_from_metadata_dat.\n");
+      err(1, "calloc failure for metadata_type in read_metadata_index_header.\n");
     }
 
     char type_char;
