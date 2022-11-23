@@ -373,56 +373,6 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
   return metadata_columns;
 }
 
-void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *metadata_columns) {
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "wb");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
-
-  int i;
-  char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
-
-  if (fwrite(GIGGLE_METADATA_FILE_MARKER, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_FILE_MARKER_LENGTH) {
-    err(1, "fwrite failure for file marker in init_metadata_dat.\n");
-  }
-
-  if (fwrite(GIGGLE_METADATA_VERSION_MARKER, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index_fp) != GIGGLE_METADATA_VERSION_MARKER_LENGTH) {
-    err(1, "fwrite failure for version marker in init_metadata_dat.\n");
-  }
-
-  if (fwrite(extra, sizeof(char), GIGGLE_METADATA_EXTRA_LENGTH, metadata_index_fp) != GIGGLE_METADATA_EXTRA_LENGTH) {
-    err(1, "fwrite failure for extra in init_metadata_dat.\n");
-  }
-
-  if (fwrite(&(metadata_columns->num_cols), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for metadata_columns->num_cols in init_metadata_dat.\n");
-  }
-
-  if (fwrite(&(metadata_columns->row_width), sizeof(uint16_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for metadata_columns->row_width in init_metadata_dat.\n");
-  }
-
-  for (i = 0; i < metadata_columns->num_cols; ++i) {
-    struct metadata_column *metadata_column = metadata_columns->columns[i];
-    struct metadata_type *metadata_type = metadata_column->type;
-    
-    char type_char = data_type_enum_to_char(metadata_type->data_type);
-    if (fwrite(&type_char, sizeof(char), 1, metadata_index_fp) != 1) {
-      err(1, "fwrite failure for type_char in init_metadata_dat.\n");
-    }
-
-    if (fwrite(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index_fp) != 1) {
-      err(1, "fwrite failure for metadata_type->width in init_metadata_dat.\n");
-    }
-
-    if (fwrite(metadata_type->name, sizeof(char), COLUMN_NAME_MAX_LENGTH, metadata_index_fp) != COLUMN_NAME_MAX_LENGTH) {
-      err(1, "fwrite failure for metadata_type->name in init_metadata_dat.\n");
-    }
-  }
-
-  fclose(metadata_index_fp);
-}
-
 void init_metadata_index_dat(struct metadata_index *metadata_index) {
   struct metadata_columns *metadata_columns = metadata_index->metadata_columns;
   char *metadata_index_filename = metadata_index->metadata_index_filename;
@@ -479,69 +429,6 @@ void init_metadata_index_dat(struct metadata_index *metadata_index) {
   if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
     err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
   }
-}
-
-void append_metadata_dat(char *intervals_filename, char *metadata_index_filename, struct metadata_columns *metadata_columns) {
-  FILE *intervals_fp = fopen(intervals_filename, "r");
-  if (intervals_fp == NULL) {
-    err(1, "%s not found.\n", intervals_filename);
-  }
-  FILE *metadata_index_fp = fopen(metadata_index_filename, "r+b");
-  if (metadata_index_fp == NULL) {
-    err(1, "%s not found.\n", metadata_index_filename);
-  }
-  
-  char * line = NULL;
-  size_t len = 0;
-  ssize_t read;
-  uint64_t num_rows = 0;
-
-  if (fseek(metadata_index_fp, 0, SEEK_END) != 0) {
-    err(1, "Could not seek to the end to append in '%s'.", metadata_index_filename);
-  }
-  uint64_t curr_offset = ftell(metadata_index_fp);
-
-  if (fwrite(&num_rows, sizeof(uint64_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
-  }
-
-  while ((read = getline(&line, &len, intervals_fp)) != -1) {
-    // printf("Retrieved line of length %zu:\n%s\n", read, line);
-    
-    kstring_t kline = {0, 0, NULL};
-    kputs(line, &kline);
-
-    int fields_length;
-    int *fields;
-    fields = ksplit(&kline, '\t', &fields_length);
-
-    for (int i = 0; i < metadata_columns->num_cols; ++i) {
-      struct metadata_column *metadata_column = metadata_columns->columns[i];
-      int column = metadata_column->column;
-      struct metadata_type *metadata_type = metadata_column->type;
-      char *data = kline.s + fields[column - 1];
-      fwrite_data_type_item(metadata_index_fp, metadata_type, data);
-    }
-
-    ++num_rows;
-
-    free(fields);
-    free(kline.s);
-  }
-
-  if (line)
-    free(line);
-
-  if (fseek(metadata_index_fp, curr_offset, SEEK_SET) != 0) {
-    err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
-  }
-
-  if (fwrite(&num_rows, sizeof(uint64_t), 1, metadata_index_fp) != 1) {
-    err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
-  }
-
-  fclose(intervals_fp);
-  fclose(metadata_index_fp);
 }
 
 struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_index_filename) {
