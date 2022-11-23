@@ -105,7 +105,6 @@ enum comparison comparison_string_to_enum(char *query_filter_string, int *start_
 }
 
 struct query_filter *parse_query_filter_string(struct metadata_index *metadata_index, char *query_filter_string_original) {
-  struct metadata_types *metadata_types = metadata_index->metadata_types;
   struct query_filter *query_filter = (struct query_filter *)malloc(sizeof(struct query_filter));
   if (query_filter == NULL) {
     err(1, "malloc failure for query_filter in parse_query_filter_string.\n");
@@ -123,12 +122,12 @@ struct query_filter *parse_query_filter_string(struct metadata_index *metadata_i
   null_tmp = query_filter_string[start_comparison];
   query_filter_string[start_comparison] = 0; // null-terminate the column name after parsing comparison operator
 
-  lookup_result = khash_str2int_get(metadata_types->column_name_to_index, query_filter_string, &column_id);
+  lookup_result = khash_str2int_get(metadata_index->column_name_to_index, query_filter_string, &column_id);
   if (lookup_result == -1) {
     err(1, "Column %s not found in metadata.\n", query_filter_string);
   }
 
-  query_filter->type = metadata_types->types[column_id];
+  query_filter->type = metadata_index->types[column_id];
   query_filter->column_id = column_id;
 
   data_string = query_filter_string + end_comparison + 1;

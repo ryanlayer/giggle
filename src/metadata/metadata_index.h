@@ -77,15 +77,6 @@ struct metadata_rows {
   struct metadata_row **rows; // data rows
 };
 
-struct metadata_types {
-  uint8_t num_cols;
-  uint16_t row_width; // total width of each data row
-  uint64_t num_rows;
-  void *column_name_to_index; // khash_str2int hashmap to map column names to column indexes
-  uint16_t *col_offsets; // offset of ith column in a data row
-  struct metadata_type **types;
-};
-
 struct metadata_index {
   // members used only for operations used in indexing- init, add 
   char *metadata_conf_filename;
@@ -94,9 +85,16 @@ struct metadata_index {
   // other members, always used
   char *metadata_index_filename;
   FILE *metadata_index_fp;
-  uint64_t header_offset; // total header offset, end of the header file position
+  
+  uint8_t num_cols;
+  uint16_t row_width; // total width of each data row
   uint64_t num_rows;
-  struct metadata_types *metadata_types;
+
+  void *column_name_to_index; // khash_str2int hashmap to map column names to column indexes
+  uint16_t *col_offsets; // offset of ith column in a data row
+
+  struct metadata_type **types;
+  uint64_t header_offset; // total header offset, end of the header file position
 };
 
 // TODO: remove this after integrating with main codebase
@@ -116,10 +114,6 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
 void write_metadata_index_header(struct metadata_index *metadata_index);
 void read_metadata_index_header(struct metadata_index *metadata_index);
 
-void metadata_types_destroy(struct metadata_types *metadata_types);
-
-void print_metadata_columns(struct metadata_index *metadata_index);
-void print_metadata_types(struct metadata_types *metadata_types);
 void print_metadata_index(struct metadata_index *metadata_index);
 void print_metadata_data(struct metadata_type *type, union metadata_data data);
 void print_metadata_item(struct metadata_item *metadata_item);

@@ -36,7 +36,6 @@ int main(void) {
   struct metadata_index *metadata_index = metadata_index_init(metadata_conf_filename, metadata_index_filename);
   printf("\nInitialized Metadata Index in %s\n", metadata_index_filename);
   print_metadata_index(metadata_index);
-  print_metadata_columns(metadata_index);
 
   // 2. metadata_index_add 
   char *intervals_filename1 = "intervals1.tsv";
@@ -57,7 +56,7 @@ int main(void) {
   // 1. metadata_index_load
   metadata_index = metadata_index_load(metadata_index_filename);
   printf("\nLoaded Metadata Index from %s\n", metadata_index_filename);
-  print_metadata_types(metadata_index->metadata_types);
+  print_metadata_index(metadata_index);
   
   // 2.i. Read metadata rows from metadata_index.dat
   struct metadata_rows *metadata_rows = read_metadata_rows(metadata_index);
