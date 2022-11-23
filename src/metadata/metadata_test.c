@@ -36,8 +36,9 @@ int main(void) {
   // 1. metadata_index_init
   struct metadata_index *metadata_index = metadata_index_init(metadata_conf_filename, metadata_index_filename);
   printf("\nInitialized Metadata Index in %s\n", metadata_index_filename);
+  print_metadata_index(metadata_index);
   print_metadata_columns(metadata_index->metadata_columns);
-  
+
   // 2. metadata_index_add 
   char *intervals_filename1 = "intervals1.tsv";
   uint32_t file_id1 = 5; 

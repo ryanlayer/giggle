@@ -66,7 +66,6 @@ struct metadata_types {
   uint8_t num_cols;
   uint16_t row_width; // total width of each data row
   uint64_t num_rows;
-  uint64_t header_offset; // total header offset, end of the header file position
   void *column_name_to_index; // khash_str2int hashmap to map column names to column indexes
   uint16_t *col_offsets; // offset of ith column in a data row
   struct metadata_type **types;
@@ -132,6 +131,7 @@ void metadata_types_destroy(struct metadata_types *metadata_types);
 
 void print_metadata_columns(struct metadata_columns *metadata_columns);
 void print_metadata_types(struct metadata_types *metadata_types);
+void print_metadata_index(struct metadata_index *metadata_index);
 void print_metadata_data(struct metadata_type *type, union metadata_data data);
 void print_metadata_item(struct metadata_item *metadata_item);
 void print_metadata_row(struct metadata_row *metadata_row);

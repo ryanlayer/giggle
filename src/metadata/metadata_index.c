@@ -418,11 +418,11 @@ void write_metadata_index_header(struct metadata_index *metadata_index) {
     }
   }
 
-  metadata_index->header_offset = ftell(metadata_index_fp);
-
   if (fwrite(&(metadata_index->num_rows), sizeof(uint64_t), 1, metadata_index_fp) != 1) {
     err(1, "fwrite failure for num_rows in append_metadata_dat.\n");
   }
+
+  metadata_index->header_offset = ftell(metadata_index_fp);
 }
 
 void read_metadata_index_header(struct metadata_index *metadata_index) {  
@@ -502,7 +502,7 @@ void read_metadata_index_header(struct metadata_index *metadata_index) {
   fr = fread(&(metadata_types->num_rows), sizeof(uint64_t), 1, metadata_index_fp);
   check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
 
-  metadata_types->header_offset = ftell(metadata_index_fp);
+  metadata_index->header_offset = ftell(metadata_index_fp);
 }
 
 struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index) {
@@ -510,7 +510,7 @@ struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index) 
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = metadata_index->metadata_types;
   
-  if (fseek(metadata_index_fp, metadata_types->header_offset, SEEK_SET) != 0) {
+  if (fseek(metadata_index_fp, metadata_index->header_offset, SEEK_SET) != 0) {
     err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
   }
   
@@ -564,7 +564,7 @@ struct metadata_row *read_metadata_row(struct metadata_index *metadata_index, ui
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = metadata_index->metadata_types;
 
-  uint64_t total_offset = metadata_types->header_offset + metadata_types->row_width * interval_id;
+  uint64_t total_offset = metadata_index->header_offset + metadata_types->row_width * interval_id;
   
   if (fseek(metadata_index_fp, total_offset, SEEK_SET) != 0) {
     err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
@@ -605,7 +605,7 @@ struct metadata_item *read_metadata_item_by_column_id(struct metadata_index *met
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
   struct metadata_types *metadata_types = metadata_index->metadata_types;
 
-  uint64_t total_offset = metadata_types->header_offset + metadata_types->row_width * interval_id + metadata_types->col_offsets[column_id];
+  uint64_t total_offset = metadata_index->header_offset + metadata_types->row_width * interval_id + metadata_types->col_offsets[column_id];
   
   if (fseek(metadata_index_fp, total_offset, SEEK_SET) != 0) {
     err(1, "Could not seek to metadata start in '%s'.", metadata_index_filename);
@@ -691,7 +691,9 @@ uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file
 void metadata_index_store(struct metadata_index *metadata_index) {
   FILE *metadata_index_fp = metadata_index->metadata_index_fp;
 
-  if (fseek(metadata_index_fp, metadata_index->header_offset, SEEK_SET) != 0) {
+  uint64_t total_offset = metadata_index->header_offset - sizeof(uint64_t);
+
+  if (fseek(metadata_index_fp, total_offset, SEEK_SET) != 0) {
     err(1, "Could not seek to metadata start in '%s'.", metadata_index->metadata_index_filename);
   }
 
@@ -803,11 +805,16 @@ void print_metadata_columns(struct metadata_columns *metadata_columns) {
 
 void print_metadata_types(struct metadata_types *metadata_types) {
   int i;
-  printf("metadata_types => num_cols: %d, num_rows: %lu, row_width: %d, header_offset: %lu\n", metadata_types->num_cols, metadata_types->num_rows, metadata_types->row_width, metadata_types->header_offset);
+  printf("metadata_types => num_cols: %d, num_rows: %lu, row_width: %d\n", metadata_types->num_cols, metadata_types->num_rows, metadata_types->row_width);
   for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = metadata_types->types[i];
     printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
   }
+}
+
+void print_metadata_index(struct metadata_index *metadata_index) {
+  int i;
+  printf("metadata_index => header_offset: %lu\n", metadata_index->header_offset);
 }
 
 void print_metadata_data(struct metadata_type *type, union metadata_data data) {
