@@ -17,7 +17,7 @@ void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs)
     }
 }
 
-enum data_type type_string_to_enum(char type_string[8]) {
+enum data_type data_type_string_to_enum(char type_string[8]) {
   enum data_type type;
   for(int i = 0; type_string[i]; ++i){
     type_string[i] = toupper(type_string[i]);
@@ -36,39 +36,7 @@ enum data_type type_string_to_enum(char type_string[8]) {
   return type;
 }
 
-uint8_t data_type_to_width(enum data_type type) {
-  uint8_t width = 0;
-  switch (type) {
-    case CHAR: 
-      width = sizeof(char);
-      break;
-    case INT_8: 
-      width = sizeof(int8_t);
-      break;
-    case INT_16: 
-      width = sizeof(int16_t);
-      break;
-    case INT_32: 
-      width = sizeof(int32_t);
-      break;
-    case INT_64: 
-      width = sizeof(int64_t);
-      break;
-    case FLOAT: 
-      width = sizeof(float);
-      break;
-    case DOUBLE: 
-      width = sizeof(double);
-      break;
-    case STRING: 
-      break;
-    default:
-      err(1, "Unknown data_type %d.\n", type);
-  }
-  return width;
-}
-
-char data_type_to_char(enum data_type type) {
+char data_type_enum_to_char(enum data_type type) {
   char type_char = 0;
   switch (type) {
     case CHAR: 
@@ -101,7 +69,7 @@ char data_type_to_char(enum data_type type) {
   return type_char;
 }
 
-enum data_type type_char_to_enum(char type_char) {
+enum data_type data_type_char_to_enum(char type_char) {
   enum data_type type;
   switch (type_char) {
     case 'c': 
@@ -132,6 +100,38 @@ enum data_type type_char_to_enum(char type_char) {
       err(1, "Unknown type_char %c.\n", type_char);
   }
   return type;
+}
+
+uint8_t get_width_of_data_type(enum data_type type) {
+  uint8_t width = 0;
+  switch (type) {
+    case CHAR: 
+      width = sizeof(char);
+      break;
+    case INT_8: 
+      width = sizeof(int8_t);
+      break;
+    case INT_16: 
+      width = sizeof(int16_t);
+      break;
+    case INT_32: 
+      width = sizeof(int32_t);
+      break;
+    case INT_64: 
+      width = sizeof(int64_t);
+      break;
+    case FLOAT: 
+      width = sizeof(float);
+      break;
+    case DOUBLE: 
+      width = sizeof(double);
+      break;
+    case STRING: 
+      break;
+    default:
+      err(1, "Unknown data_type %d.\n", type);
+  }
+  return width;
 }
 
 // this function is not responsible for
@@ -338,8 +338,8 @@ struct metadata_columns *read_metadata_conf(char *metadata_conf_filename) {
     }
 
     strncpy(metadata_type->name, name, strlen(name) + 1);
-    metadata_type->data_type = type_string_to_enum(type_string);
-    metadata_type->width += data_type_to_width(metadata_type->data_type);
+    metadata_type->data_type = data_type_string_to_enum(type_string);
+    metadata_type->width += get_width_of_data_type(metadata_type->data_type);
     if (metadata_type->data_type == STRING) {
       metadata_type->width = str_len + 1;
     }
@@ -406,7 +406,7 @@ void init_metadata_dat(char *metadata_index_filename, struct metadata_columns *m
     struct metadata_column *metadata_column = metadata_columns->columns[i];
     struct metadata_type *metadata_type = metadata_column->type;
     
-    char type_char = data_type_to_char(metadata_type->data_type);
+    char type_char = data_type_enum_to_char(metadata_type->data_type);
     if (fwrite(&type_char, sizeof(char), 1, metadata_index_fp) != 1) {
       err(1, "fwrite failure for type_char in init_metadata_dat.\n");
     }
@@ -460,7 +460,7 @@ void init_metadata_index_dat(struct metadata_index *metadata_index) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
     struct metadata_type *metadata_type = metadata_column->type;
     
-    char type_char = data_type_to_char(metadata_type->data_type);
+    char type_char = data_type_enum_to_char(metadata_type->data_type);
     if (fwrite(&type_char, sizeof(char), 1, metadata_index_fp) != 1) {
       err(1, "fwrite failure for type_char in init_metadata_dat.\n");
     }
@@ -604,7 +604,7 @@ struct metadata_types *read_metadata_types_from_metadata_dat(char *metadata_inde
     char type_char;
     fr = fread(&type_char, sizeof(char), 1, metadata_index_fp);
     check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
-    metadata_type->data_type = type_char_to_enum(type_char);
+    metadata_type->data_type = data_type_char_to_enum(type_char);
 
     fr = fread(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index_fp);
     check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
@@ -696,7 +696,7 @@ void read_metadata_types_from_metadata_index_dat(struct metadata_index *metadata
     char type_char;
     fr = fread(&type_char, sizeof(char), 1, metadata_index_fp);
     check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
-    metadata_type->data_type = type_char_to_enum(type_char);
+    metadata_type->data_type = data_type_char_to_enum(type_char);
 
     fr = fread(&(metadata_type->width), sizeof(uint8_t), 1, metadata_index_fp);
     check_file_read(metadata_index_filename, metadata_index_fp, 1, fr);
@@ -1002,7 +1002,7 @@ void print_metadata_columns(struct metadata_columns *metadata_columns) {
   for (i = 0; i < metadata_columns->num_cols; ++i) {
     struct metadata_column *metadata_column = metadata_columns->columns[i];
     struct metadata_type *metadata_type = metadata_column->type;
-    printf("%d => column: %d, data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_column->column, metadata_type->data_type, data_type_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
+    printf("%d => column: %d, data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_column->column, metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
   }
 }
 
@@ -1011,7 +1011,7 @@ void print_metadata_types(struct metadata_types *metadata_types) {
   printf("metadata_types => num_cols: %d, num_rows: %lu, row_width: %d, header_offset: %lu\n", metadata_types->num_cols, metadata_types->num_rows, metadata_types->row_width, metadata_types->header_offset);
   for (i = 0; i < metadata_types->num_cols; ++i) {
     struct metadata_type *metadata_type = metadata_types->types[i];
-    printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_type->data_type, data_type_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
+    printf("%d => data_type: %d, type_char: %c, name: %s, width: %d\n", i,metadata_type->data_type, data_type_enum_to_char(metadata_type->data_type), metadata_type->name, metadata_type->width);
   }
 }
 

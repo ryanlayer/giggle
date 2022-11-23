@@ -111,10 +111,10 @@ struct metadata_index {
 // TODO: remove this after integrating with main codebase
 void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs);
 
-enum data_type type_string_to_enum(char type_string[8]);
-uint8_t data_type_to_width(enum data_type type);
-char data_type_to_char(enum data_type type);
-enum data_type type_char_to_enum(char type_char);
+enum data_type data_type_string_to_enum(char type_string[8]);
+char data_type_enum_to_char(enum data_type type);
+enum data_type data_type_char_to_enum(char type_char);
+uint8_t get_width_of_data_type(enum data_type type);
 
 char *safe_sscanf(uint8_t str_width, char *data);
 
