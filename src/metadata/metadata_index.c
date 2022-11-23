@@ -326,10 +326,12 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
     // printf("Retrieved line of length %zu:\n%s\n", read, line);
 
     uint8_t column;
-    char name[256];
+    char name[COLUMN_NAME_MAX_LENGTH] = {0};
     char type_string[8];
     uint8_t str_len = 0;
-    sscanf(line, "%hhu %255s %7s %hhu", &column, name, type_string, &str_len);
+
+    // 31 in %31s = COLUMN_NAME_MAX_LENGTH - 1
+    sscanf(line, "%hhu %31s %7s %hhu", &column, name, type_string, &str_len); 
     // printf("%d %s %s %d\n", column, name, type_string, str_len);
 
     if (num_cols == 255) {
@@ -351,7 +353,7 @@ void read_metadata_conf(struct metadata_index *metadata_index, char *metadata_co
       err(1, "calloc failure for metadata_type in read_metadata_conf.\n");
     }
 
-    strncpy(metadata_type->name, name, strlen(name) + 1);
+    memcpy(metadata_type->name, name, COLUMN_NAME_MAX_LENGTH);
     metadata_type->data_type = data_type_string_to_enum(type_string);
     metadata_type->width += get_width_of_data_type(metadata_type->data_type);
     if (metadata_type->data_type == STRING) {
@@ -446,8 +448,8 @@ void read_metadata_index_header(struct metadata_index *metadata_index) {
 
   int i;
   size_t fr;
-  char file_marker[7];
-  char version_marker[3];
+  char file_marker[GIGGLE_METADATA_FILE_MARKER_LENGTH];
+  char version_marker[GIGGLE_METADATA_VERSION_MARKER_LENGTH];
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
   uint16_t col_offset = 0;
 
