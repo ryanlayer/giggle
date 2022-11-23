@@ -97,9 +97,6 @@ struct metadata_index {
   uint64_t header_offset; // total header offset, end of the header file position
 };
 
-// TODO: remove this after integrating with main codebase
-void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs);
-
 enum data_type data_type_string_to_enum(char type_string[8]);
 char data_type_enum_to_char(enum data_type type);
 enum data_type data_type_char_to_enum(char type_char);

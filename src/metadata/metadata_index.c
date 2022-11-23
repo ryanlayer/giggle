@@ -3,19 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <htslib/khash_str2int.h>
+#include "../util.h"
 #include "metadata_index.h"
-
-// TODO: remove this after integrating with main codebase
-void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs)
-{
-    if (exp != obs) {
-        if (feof(fp))
-            errx(EX_IOERR,
-                 "Error reading file \"%s\": End of file",
-                 file_name);
-        err(EX_IOERR, "Error reading file \"%s\"", file_name);
-    }
-}
 
 enum data_type data_type_string_to_enum(char type_string[8]) {
   enum data_type type;

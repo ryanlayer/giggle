@@ -2,6 +2,17 @@
 #include "metadata_index.h"
 #include "query_filter.h"
 
+void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs)
+{
+    if (exp != obs) {
+        if (feof(fp))
+            errx(EX_IOERR,
+                 "Error reading file \"%s\": End of file",
+                 file_name);
+        err(EX_IOERR, "Error reading file \"%s\"", file_name);
+    }
+}
+
 void metadata_index_add_all_intervals_from_file(struct metadata_index *metadata_index, uint32_t file_id, char *intervals_filename) {
   FILE *intervals = fopen(intervals_filename, "r");
   if (intervals == NULL) {
