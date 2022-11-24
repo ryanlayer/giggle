@@ -10,6 +10,7 @@
 #include "pq.h"
 #include "offset_index.h"
 #include "metadata_index.h"
+#include "query_filter.h"
 
 #define PROGRAM_NAME  "giggle"
 #define MAJOR_VERSION "0"
@@ -87,6 +88,13 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
                                         uint32_t start,
                                         uint32_t end,
                                         struct giggle_query_result *gqr);
+
+struct giggle_query_result *giggle_query_with_query_filter(struct giggle_index *gi,
+                                                           char *chrm,
+                                                           uint32_t start,
+                                                           uint32_t end,
+                                                           struct query_filter *query_filter,
+                                                           struct giggle_query_result *gqr);
 
 void giggle_query_result_destroy(struct giggle_query_result **gqr);
 

@@ -1288,12 +1288,21 @@ struct giggle_index *giggle_load_with_metadata(char *data_dir,
 }
 //}}}
 
-//{{{struct giggle_query_result *giggle_query(struct giggle_index *gi,
 struct giggle_query_result *giggle_query(struct giggle_index *gi,
                                         char *chrm,
                                         uint32_t start,
                                         uint32_t end,
                                         struct giggle_query_result *_gqr)
+{
+    return giggle_query_with_query_filter(gi, chrm, start, end, NULL, _gqr);
+}
+
+struct giggle_query_result *giggle_query_with_query_filter(struct giggle_index *gi,
+                                                           char *chrm,
+                                                           uint32_t start,
+                                                           uint32_t end,
+                                                           struct query_filter *query_filter,
+                                                           struct giggle_query_result *_gqr)
 {
 #if GIGGLE_QUERY_TRACE
     fprintf(stderr, "giggle_query\t%s\t%u\t%u\n", chrm, start, end);

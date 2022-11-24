@@ -415,6 +415,12 @@ int search_main(int argc, char **argv, char *full_cmd)
     if (gi == NULL)
         errx(1, "Error loading giggle index %s.", index_dir_name);
 
+    struct query_filter *query_filter = NULL;
+    if (query_filter_string != NULL) {
+        query_filter = parse_query_filter_string(gi->metadata_idx, query_filter_string);
+        // print_query_filter(query_filter);
+    }
+
     struct giggle_query_result *gqr = NULL;
 
     uint32_t num_intervals = 0;
@@ -432,7 +438,7 @@ int search_main(int argc, char **argv, char *full_cmd)
                 char *region;
                 ret = asprintf(&region, "%s", regions + last);
                 if (parse_region(region, &chrm, &start, &end) == 0) {
-                    gqr = giggle_query(gi, chrm, start, end, gqr);
+                    gqr = giggle_query_with_query_filter(gi, chrm, start, end, query_filter, gqr);
                     free(region);
                 } else {
                     errx(EX_USAGE,
@@ -463,7 +469,7 @@ int search_main(int argc, char **argv, char *full_cmd)
                                                   &end,
                                                   &offset,
                                                   &line) >= 0 ) {
-            gqr = giggle_query(gi, chrm, start, end, gqr);
+            gqr = giggle_query_with_query_filter(gi, chrm, start, end, query_filter, gqr);
             if ( (o_is_set == 1) && (gqr->num_hits > 0) ) {
                 char *str;
                 input_file_get_curr_line_bgzf(q_f, &str);
@@ -513,6 +519,8 @@ int search_main(int argc, char **argv, char *full_cmd)
                                       o_is_set);
 
     giggle_query_result_destroy(&gqr);
+    if (query_filter)
+        query_filter_destroy(query_filter);
     giggle_index_destroy(&gi);
     cache.destroy();
     free(full_cmd);
