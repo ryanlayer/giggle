@@ -520,7 +520,7 @@ int search_main(int argc, char **argv, char *full_cmd)
 
     giggle_query_result_destroy(&gqr);
     if (query_filter)
-        query_filter_destroy(query_filter);
+        query_filter_destroy(&query_filter);
     giggle_index_destroy(&gi);
     cache.destroy();
     free(full_cmd);

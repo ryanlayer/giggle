@@ -125,7 +125,7 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
 uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file_id, kstring_t *line);
 void metadata_index_store(struct metadata_index *metadata_index);
 struct metadata_index *metadata_index_load(char *metadata_index_filename);
-void metadata_index_destroy(struct metadata_index **metadata_index);
+void metadata_index_destroy(struct metadata_index **metadata_index_ptr);
 
 struct metadata_rows *read_metadata_rows(struct metadata_index *metadata_index);
 void metadata_rows_destroy(struct metadata_rows *metadata_rows);

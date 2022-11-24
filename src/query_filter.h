@@ -33,6 +33,6 @@ void print_query_filter(struct query_filter *query_filter);
 struct query_filter *parse_query_filter_string(struct metadata_index *metadata_index, char *query_filter_string);
 int filter_metadata_row_by_item(struct metadata_item *metadata_item, struct query_filter *query_filter);  
 int filter_metadata_row_by_row(struct metadata_row *metadata_row, struct query_filter *query_filter);  
-void query_filter_destroy(struct query_filter *query_filter);
+void query_filter_destroy(struct query_filter **query_filter_ptr);
 
 #endif

@@ -239,11 +239,13 @@ int filter_metadata_row_by_row(struct metadata_row *metadata_row, struct query_f
   return filter_metadata_row_by_item(metadata_item, query_filter);
 }
 
-void query_filter_destroy(struct query_filter *query_filter) {
+void query_filter_destroy(struct query_filter **query_filter_ptr) {
+  struct query_filter *query_filter = *query_filter_ptr;
   if (query_filter->type->data_type == STRING) {
     free(query_filter->data.s);
   }
   free(query_filter);
+  *query_filter_ptr = NULL;
 }
 
 void print_comparison(enum comparison comparison) {
