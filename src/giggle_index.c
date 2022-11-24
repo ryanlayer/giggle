@@ -1238,8 +1238,10 @@ struct giggle_index *giggle_load_with_metadata(char *data_dir,
         // prints the summary of the metadata index
         // print_metadata_index(gi->metadata_idx);
 
-        // Warning- prints all the intervals if uncommented 
-        // print_metadata_rows(read_metadata_rows(gi->metadata_idx));
+        // Warning- prints all the intervals if uncommented
+        // struct metadata_rows *metadata_rows = read_metadata_rows(gi->metadata_idx);
+        // print_metadata_rows(metadata_rows);
+        // metadata_rows_destroy(metadata_rows);
     }
 
 #ifdef TIME
@@ -2451,8 +2453,10 @@ uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
         // prints the summary of the metadata index
         // print_metadata_index(gi->metadata_idx);
         
-        // Warning- prints all the intervals if uncommented 
-        // print_metadata_rows(read_metadata_rows(gi->metadata_idx));
+        // Warning- prints all the intervals if uncommented
+        // struct metadata_rows *metadata_rows = read_metadata_rows(gi->metadata_idx);
+        // print_metadata_rows(metadata_rows);
+        // metadata_rows_destroy(metadata_rows);
     }
     
     uint64_t num_intervals = gi->offset_idx->index->num;
