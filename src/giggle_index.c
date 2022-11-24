@@ -1380,6 +1380,7 @@ void apply_query_filter_to_results(struct giggle_index *gi,
     uint64_t len = R->len;
     uint64_t *data = R->data;
     uint64_t new_len = 0;
+    uint64_t diff;
     uint8_t column_id = query_filter->column_id;
     struct metadata_index *metadata_idx = gi->metadata_idx;
 
@@ -1396,6 +1397,9 @@ void apply_query_filter_to_results(struct giggle_index *gi,
         }
     }
 
+    diff = len - new_len;
+    printf("Removed %ld record%s after applying query filter.\n", diff, (diff > 1) ? "s" : "");
+    
     if (new_len == 0) {
         free(data);
         free(R);
