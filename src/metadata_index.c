@@ -563,7 +563,7 @@ uint64_t metadata_index_add(struct metadata_index *metadata_index, uint32_t file
   }
 
   free(fields);
-  metadata_index->num_rows++;
+  return metadata_index->num_rows++;
 }
 
 void metadata_index_store(struct metadata_index *metadata_index) {

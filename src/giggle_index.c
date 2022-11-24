@@ -2329,8 +2329,14 @@ uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
     chrm_index_store(gi->chrm_idx);
     file_index_store(gi->file_idx);
     offset_index_store(gi->offset_idx);
-    if (gi->metadata_idx)
+    if (gi->metadata_idx) {
         metadata_index_store(gi->metadata_idx);
+        // prints the summary of the metadata index
+        // print_metadata_index(gi->metadata_idx);
+        
+        // Warning- prints all the intervals if uncommented 
+        // print_metadata_rows(read_metadata_rows(gi->metadata_idx));
+    }
     
     uint64_t num_intervals = gi->offset_idx->index->num;
 
@@ -2766,6 +2772,15 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                     offset,
                                                     &line,
                                                     pqd_start->file_id);
+
+            if (gi->metadata_idx) {
+                // register the interval with the metadata index
+                uint64_t interval_id_from_metadata = metadata_index_add(gi->metadata_idx, pqd_start->file_id, &line);
+
+                // assert that both interval_ids are the same
+                assert(interval_id == interval_id_from_metadata);
+            }
+
             struct file_data *fd = file_index_get(gi->file_idx,
                                                   pqd_start->file_id);
             fd->mean_interval_size += end-start;
@@ -2939,6 +2954,14 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
 
         // register the interval with the offset index
         interval_id = offset_index_add(gi->offset_idx, offset, &line, i);
+
+        if (gi->metadata_idx) {
+            // register the interval with the metadata index
+            uint64_t interval_id_from_metadata = metadata_index_add(gi->metadata_idx, i, &line);
+
+            // assert that both interval_ids are the same
+            assert(interval_id == interval_id_from_metadata);
+        }
 
         //fprintf(stderr, "%s %u %u %u\n", chrm, start, end, interval_id);
 
