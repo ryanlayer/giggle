@@ -252,6 +252,7 @@ int search_main(int argc, char **argv, char *full_cmd)
             case 'q':
                 q_is_set = 1;
                 query_file_name = optarg;
+                break;
             case 'u':
                 u_is_set = 1;
                 query_filter_string = optarg;
