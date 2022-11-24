@@ -51,7 +51,8 @@ int search_help(int exit_code)
 "             -v give full record results\n"
 "             -f print results for files that match a pattern (regex CSV)\n"
 "             -g genome size for significance testing (default 3095677412)\n"
-"             -l list the files in the index\n",
+"             -l list the files in the index\n"
+"             -m load metadata index\n",
             PROGRAM_NAME, VERSION, PROGRAM_NAME);
     return exit_code;
 }
@@ -228,13 +229,14 @@ int search_main(int argc, char **argv, char *full_cmd)
         s_is_set = 0,
         v_is_set = 0,
         f_is_set = 0,
-        o_is_set = 0;
+        o_is_set = 0,
+        m_is_set = 0;
 
     double genome_size =  3095677412.0;
 
     //{{{ cmd line param parsing
     //{{{ while((c = getopt (argc, argv, "i:r:q:cvf:h")) != -1) {
-    while((c = getopt (argc, argv, "i:r:q:csvof:g:lh")) != -1) {
+    while((c = getopt (argc, argv, "i:r:q:csvomf:g:lh")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -259,6 +261,9 @@ int search_main(int argc, char **argv, char *full_cmd)
                 break;
             case 'o':
                 o_is_set = 1;
+                break;
+            case 'm':
+                m_is_set = 1;
                 break;
             case 'f':
                 f_is_set = 1;
@@ -291,7 +296,7 @@ int search_main(int argc, char **argv, char *full_cmd)
         }
     }
     //}}}
-    
+
     if (i_is_set == 0) {
         fprintf(stderr, "Index directory is not set\n");
         return search_help(EX_USAGE);
