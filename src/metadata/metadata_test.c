@@ -92,8 +92,10 @@ int main(void) {
   printf("\nRead metadata_items metadata_row_0_col_2 and metadata_row_2_score from %s\n", metadata_index_filename);
   printf("metadata_row_0_col_2 => ");
   print_metadata_item(metadata_row_0_col_2);  
+  printf("\n");
   printf("metadata_row_2_score => ");
   print_metadata_item(metadata_row_2_score);
+  printf("\n");
 
   // 4. Read query filter
   char *query_filter_string_1 = "feature<my_feature";

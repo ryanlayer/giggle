@@ -807,7 +807,6 @@ void print_metadata_data(struct metadata_type *type, union metadata_data data) {
 
 void print_metadata_item(struct metadata_item *metadata_item) {
   print_metadata_data(metadata_item->type, metadata_item->data);
-  printf("\n");
 }
 
 void print_metadata_row(struct metadata_row *metadata_row) {

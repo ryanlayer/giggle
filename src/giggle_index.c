@@ -1358,11 +1358,61 @@ struct giggle_query_result *giggle_query_with_query_filter(struct giggle_index *
         gqr = _gqr;
     }
 
+    if (query_filter != NULL) {
+        apply_query_filter_to_results(gi, query_filter, &R);
+    }
+
     giggle_data_handler.map_intersection_to_offset_list(gi, gqr, R);
 
     return gqr;
 }
 //}}}
+
+void apply_query_filter_to_results(struct giggle_index *gi,
+                                   struct query_filter *query_filter,
+                                   void **R_ptr)
+{
+    struct leaf_data_result *R = (struct leaf_data_result *)*R_ptr;
+    if (!R) return;
+    uint64_t i;
+    uint64_t len = R->len;
+    uint64_t *data = R->data;
+    uint64_t new_len = 0;
+    uint8_t column_id = query_filter->column_id;
+    struct metadata_index *metadata_idx = gi->metadata_idx;
+
+    // printf("len: %ld, column id: %d\n", len, column_id);
+    for (i = 0; i < len; ++i) {
+        struct metadata_item *item = read_metadata_item_by_column_id(metadata_idx, data[i], column_id);
+        int result = filter_metadata_row_by_item(item, query_filter);
+        // printf("interval: %ld, ", data[i]);
+        // print_metadata_item(item);
+        // printf(", result: %d\n", result);
+        metadata_item_destroy(item);
+        if (result) {
+            data[new_len++] = data[i];
+        }
+    }
+
+    if (new_len == 0) {
+        free(data);
+        free(R);
+        *R_ptr = NULL;
+    } else {
+        data = (uint64_t *)realloc(data, sizeof(uint64_t) * new_len);
+        if (data == NULL)
+            err(1, "realloc failure in apply_query_filter_to_results.\n");
+
+        // printf("new_len: %ld, data: ", new_len);
+        // for (i = 0; i < new_len; ++i) {
+        //     printf("%ld ", data[i]);
+        // }
+        // printf("\n");
+
+        R->len = new_len;
+        R->data = data;
+    }
+}
 
 //{{{void giggle_query_result_destroy(struct giggle_query_result **gqr)
 void giggle_query_result_destroy(struct giggle_query_result **gqr)

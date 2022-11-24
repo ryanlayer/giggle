@@ -96,6 +96,10 @@ struct giggle_query_result *giggle_query_with_query_filter(struct giggle_index *
                                                            struct query_filter *query_filter,
                                                            struct giggle_query_result *gqr);
 
+void apply_query_filter_to_results(struct giggle_index *gi,
+                                   struct query_filter *query_filter,
+                                   void **R_ptr);
+
 void giggle_query_result_destroy(struct giggle_query_result **gqr);
 
 struct giggle_query_iter
