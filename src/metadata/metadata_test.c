@@ -125,8 +125,8 @@ int main(void) {
 
   // 6. metadata_index_destroy
   metadata_index_destroy(&metadata_index);
-  query_filter_destroy(query_filter_1);
-  query_filter_destroy(query_filter_2);
+  query_filter_destroy(&query_filter_1);
+  query_filter_destroy(&query_filter_2);
   metadata_item_destroy(metadata_row_0_col_2);
   metadata_item_destroy(metadata_row_2_score);
   metadata_row_destroy(metadata_row_1);
