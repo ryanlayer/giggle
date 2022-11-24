@@ -791,9 +791,17 @@ void *giggle_collect_intersection_data_in_pointers(uint32_t leaf_start_id,
 }
 //}}}
 
-//{{{struct giggle_index *giggle_init_index(uint32_t init_size);
+
 struct giggle_index *giggle_init_index(uint32_t init_size,
                                        char *offset_file_name)
+{
+    return giggle_init_index_with_metadata(init_size, offset_file_name, NULL, NULL);
+}
+
+struct giggle_index *giggle_init_index_with_metadata(uint32_t init_size,
+                                                     char *offset_file_name,
+                                                     char *metadata_conf_name,
+                                                     char *metadata_file_name)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
@@ -811,6 +819,12 @@ struct giggle_index *giggle_init_index(uint32_t init_size,
     gi->file_idx = file_index_init(3, NULL);
 
     gi->offset_idx = offset_index_init(1000, offset_file_name);
+    if (metadata_conf_name != NULL) {
+        gi->metadata_idx = metadata_index_init(metadata_conf_name, metadata_file_name);
+    } else {
+        gi->metadata_idx = NULL;
+    }
+
     gi->root_ids_file_name = NULL;
 
     return gi;
@@ -974,11 +988,19 @@ uint32_t giggle_index_directory(struct giggle_index *gi,
 }
 //}}}
 
-//{{{struct giggle_index *giggle_init(uint32_t num_chrms)
 struct giggle_index *giggle_init(uint32_t num_chrms,
                                  char *data_dir,
                                  uint32_t force,
-                                 void (*giggle_set_data_handler)(void))
+                                 void (*giggle_set_data_handler)())
+{
+    return giggle_init_with_metadata(num_chrms, data_dir, NULL, force, giggle_set_data_handler);
+}
+
+struct giggle_index *giggle_init_with_metadata(uint32_t num_chrms,
+                                               char *data_dir,
+                                               char *metadata_conf_filename,
+                                               uint32_t force,
+                                               void (*giggle_set_data_handler)())
 {
     if (data_dir == NULL)
         errx(1,"giggle_init: data_dir cannot be NULL.");
@@ -1018,7 +1040,17 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                    data_dir,
                    OFFSET_INDEX_FILE_NAME);
 
-    struct giggle_index *gi = giggle_init_index(num_chrms, offset_idx_name);
+    char *metadata_idx_name = NULL;
+    if (metadata_conf_filename != NULL)
+        ret = asprintf(&metadata_idx_name,
+                    "%s/%s",
+                    data_dir,
+                    METADATA_INDEX_FILE_NAME);
+
+    struct giggle_index *gi = giggle_init_index_with_metadata(num_chrms,
+                                                              offset_idx_name,
+                                                              metadata_conf_filename,
+                                                              metadata_idx_name);
     gi->data_dir = strdup(data_dir);
 
     struct simple_cache *sc = simple_cache_init(1000,
@@ -1048,6 +1080,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
     free(cache_names);
 
     free(offset_idx_name);
+    free(metadata_idx_name);
 
     return gi;
 }

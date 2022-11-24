@@ -180,7 +180,15 @@ struct giggle_def
 
 struct giggle_def giggle_data_handler;
 
-struct giggle_index *giggle_init_index(uint32_t init_size, char *offset_file_name);
+
+struct giggle_index *giggle_init_index(uint32_t init_size,
+                                       char *offset_file_name);
+
+struct giggle_index *giggle_init_index_with_metadata(uint32_t init_size,
+                                                     char *offset_file_name,
+                                                     char *metadata_conf_name,
+                                                     char *metadata_file_name);
+
 void giggle_index_destroy(struct giggle_index **gi);
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm);
 uint32_t giggle_get_file_id(struct giggle_index *gi, char *path);
@@ -262,6 +270,11 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                                  char *output_dir,
                                  uint32_t force,
                                  void (*giggle_set_data_handler)());
+struct giggle_index *giggle_init_with_metadata(uint32_t num_chrms,
+                                               char *output_dir,
+                                               char *metadata_conf_filename,
+                                               uint32_t force,
+                                               void (*giggle_set_data_handler)());
 uint32_t giggle_store(struct giggle_index *gi);
 
 /**
