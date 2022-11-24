@@ -819,10 +819,9 @@ struct giggle_index *giggle_init_index_with_metadata(uint32_t init_size,
     gi->file_idx = file_index_init(3, NULL);
 
     gi->offset_idx = offset_index_init(1000, offset_file_name);
+    gi->metadata_idx = NULL;
     if (metadata_conf_name != NULL) {
         gi->metadata_idx = metadata_index_init(metadata_conf_name, metadata_file_name);
-    } else {
-        gi->metadata_idx = NULL;
     }
 
     gi->root_ids_file_name = NULL;
@@ -1226,6 +1225,7 @@ struct giggle_index *giggle_load_with_metadata(char *data_dir,
     gi->offset_idx = offset_index_load(offset_index_file_name);
     free(offset_index_file_name);
     
+    gi->metadata_idx = NULL;
     if (load_metadata) {
         char *metadata_index_file_name = NULL;
         ret = asprintf(&metadata_index_file_name,
@@ -1240,8 +1240,6 @@ struct giggle_index *giggle_load_with_metadata(char *data_dir,
 
         // Warning- prints all the intervals if uncommented 
         // print_metadata_rows(read_metadata_rows(gi->metadata_idx));
-    } else {
-        gi->metadata_idx = NULL;
     }
 
 #ifdef TIME
@@ -2315,6 +2313,7 @@ uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
     free(offset_index_file_name);
  
     //init metadata index
+    gi->metadata_idx = NULL;
     if (metadata_conf_name != NULL) {
         char *metadata_index_file_name = NULL;
         int ret = asprintf(&metadata_index_file_name,
@@ -2323,8 +2322,6 @@ uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
                         METADATA_INDEX_FILE_NAME);
         gi->metadata_idx = metadata_index_init(metadata_conf_name, metadata_index_file_name);
         free(metadata_index_file_name);
-    } else {
-        gi->metadata_idx = NULL;
     }
 
     //init chrm index
