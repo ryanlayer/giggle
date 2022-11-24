@@ -280,7 +280,6 @@ struct metadata_index *metadata_index_new() {
     err(1, "malloc failure for metadata_index in metadata_index_new.\n");
   }
 
-  metadata_index->metadata_conf_filename = NULL;
   metadata_index->columns = NULL;
   metadata_index->metadata_index_filename = NULL;
   metadata_index->metadata_index_fp = NULL;
@@ -528,7 +527,6 @@ struct metadata_index *metadata_index_init(char *metadata_conf_filename, char *m
   }
 
   struct metadata_index *metadata_index = metadata_index_new();
-  metadata_index->metadata_conf_filename = strdup(metadata_conf_filename);
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
 
   metadata_index->num_rows = 0;
@@ -588,9 +586,6 @@ struct metadata_index *metadata_index_load(char *metadata_index_filename) {
   }
   struct metadata_index *metadata_index = metadata_index_new();
   metadata_index->metadata_index_filename = strdup(metadata_index_filename);
-
-  metadata_index->metadata_conf_filename = NULL;
-  metadata_index->columns = NULL;
 
   FILE *metadata_index_fp = fopen(metadata_index_filename, "rb");
   if (metadata_index_fp == NULL) {
@@ -760,11 +755,8 @@ void metadata_index_destroy(struct metadata_index **metadata_index_ptr) {
   struct metadata_index *metadata_index = *metadata_index_ptr;
   int i;
 
-  // members used only for operations used in indexing- init, add 
-  free(metadata_index->metadata_conf_filename);
   free(metadata_index->columns);
 
-  // other members, always used
   free(metadata_index->metadata_index_filename);
 
   for (i = 0; i < metadata_index->num_cols; ++i) {

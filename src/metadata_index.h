@@ -80,11 +80,10 @@ struct metadata_rows {
 };
 
 struct metadata_index {
-  // members used only for operations used in indexing- init, add 
-  char *metadata_conf_filename;
-  uint8_t *columns; // column numbers in the conf file
+  // for storing the column numbers in the conf file, 
+  // only used by the operations used in indexing- init, add 
+  uint8_t *columns; 
 
-  // other members, always used
   char *metadata_index_filename;
   FILE *metadata_index_fp;
   
