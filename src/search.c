@@ -52,7 +52,8 @@ int search_help(int exit_code)
 "             -f print results for files that match a pattern (regex CSV)\n"
 "             -g genome size for significance testing (default 3095677412)\n"
 "             -l list the files in the index\n"
-"             -m load metadata index\n",
+"             -m load metadata index\n"
+"             -u query filter\n",
             PROGRAM_NAME, VERSION, PROGRAM_NAME);
     return exit_code;
 }
@@ -216,7 +217,8 @@ int search_main(int argc, char **argv, char *full_cmd)
     char *index_dir_name = NULL,
          *regions = NULL,
          *query_file_name = NULL,
-         *file_patterns_to_be_printed = NULL;
+         *file_patterns_to_be_printed = NULL,
+         *query_filter_string = NULL;
 
 
     char *i_type = "i";
@@ -230,13 +232,14 @@ int search_main(int argc, char **argv, char *full_cmd)
         v_is_set = 0,
         f_is_set = 0,
         o_is_set = 0,
-        m_is_set = 0;
+        m_is_set = 0,
+        u_is_set = 0;
 
     double genome_size =  3095677412.0;
 
     //{{{ cmd line param parsing
     //{{{ while((c = getopt (argc, argv, "i:r:q:cvf:h")) != -1) {
-    while((c = getopt (argc, argv, "i:r:q:csvomf:g:lh")) != -1) {
+    while((c = getopt (argc, argv, "i:r:q:u:csvomf:g:lh")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -249,6 +252,9 @@ int search_main(int argc, char **argv, char *full_cmd)
             case 'q':
                 q_is_set = 1;
                 query_file_name = optarg;
+            case 'u':
+                u_is_set = 1;
+                query_filter_string = optarg;
                 break;
             case 'c':
                 c_is_set = 1;
@@ -281,6 +287,7 @@ int search_main(int argc, char **argv, char *full_cmd)
                  if ( (optopt == 'i') ||
                       (optopt == 'r') ||
                       (optopt == 'q') ||
+                      (optopt == 'u') ||
                       (optopt == 'f') )
                         fprintf (stderr, "Option -%c requires an argument.\n",
                                 optopt);
@@ -336,6 +343,11 @@ int search_main(int argc, char **argv, char *full_cmd)
         return search_help(EX_USAGE);
     } if ((r_is_set == 1) && (q_is_set == 1)) {
         fprintf(stderr, "Both regions and query file is set\n");
+        return search_help(EX_USAGE);
+    }
+
+    if ((u_is_set == 1) && (m_is_set == 0)) {
+        fprintf(stderr, "Query filter needs metadata index\n");
         return search_help(EX_USAGE);
     }
 
