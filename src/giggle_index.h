@@ -280,6 +280,10 @@ uint32_t giggle_store(struct giggle_index *gi);
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void));
 
+struct giggle_index *giggle_load_with_metadata(char *data_dir,
+                                               int load_metadata,
+                                               void (*giggle_set_data_handler)(void));
+
 struct cache_handler leaf_data_cache_handler;
 
 uint32_t giggle_get_leaf_data(struct giggle_index *gi,

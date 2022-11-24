@@ -396,8 +396,9 @@ int search_main(int argc, char **argv, char *full_cmd)
     //}}}
 
     struct giggle_index *gi =
-                giggle_load(index_dir_name,
-                            block_store_giggle_set_data_handler);
+                giggle_load_with_metadata(index_dir_name,
+                                          m_is_set,
+                                          block_store_giggle_set_data_handler);
 
     if (gi == NULL)
         errx(1, "Error loading giggle index %s.", index_dir_name);

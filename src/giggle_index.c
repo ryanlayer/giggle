@@ -858,6 +858,9 @@ void giggle_index_destroy(struct giggle_index **gi)
     file_index_destroy(&((*gi)->file_idx));
 
     offset_index_destroy(&((*gi)->offset_idx));
+    
+    if ((*gi)->metadata_idx)
+        metadata_index_destroy(&((*gi)->metadata_idx));
 
     chrm_index_destroy(&((*gi)->chrm_idx));
 
@@ -1084,9 +1087,15 @@ uint32_t giggle_store(struct giggle_index *gi)
 }
 //}}}
 
-//{{{struct giggle_index *giggle_load(char *data_dir,
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void))
+{
+    return giggle_load_with_metadata(data_dir, 0, giggle_set_data_handler);
+}
+
+struct giggle_index *giggle_load_with_metadata(char *data_dir,
+                                               int load_metadata,
+                                               void (*giggle_set_data_handler)(void))
 {
     //ORDER = 100;
 
@@ -1183,6 +1192,24 @@ struct giggle_index *giggle_load(char *data_dir,
                    OFFSET_INDEX_FILE_NAME);
     gi->offset_idx = offset_index_load(offset_index_file_name);
     free(offset_index_file_name);
+    
+    if (load_metadata) {
+        char *metadata_index_file_name = NULL;
+        ret = asprintf(&metadata_index_file_name,
+                    "%s/%s",
+                    data_dir,
+                    METADATA_INDEX_FILE_NAME);
+        gi->metadata_idx = metadata_index_load(metadata_index_file_name);
+        free(metadata_index_file_name);
+
+        // prints the summary of the metadata index
+        // print_metadata_index(gi->metadata_idx);
+
+        // Warning- prints all the intervals if uncommented 
+        // print_metadata_rows(read_metadata_rows(gi->metadata_idx));
+    } else {
+        gi->metadata_idx = NULL;
+    }
 
 #ifdef TIME
     fprintf(stderr,
@@ -2331,6 +2358,7 @@ uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
     offset_index_store(gi->offset_idx);
     if (gi->metadata_idx) {
         metadata_index_store(gi->metadata_idx);
+        
         // prints the summary of the metadata index
         // print_metadata_index(gi->metadata_idx);
         
