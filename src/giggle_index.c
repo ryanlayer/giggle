@@ -1398,7 +1398,7 @@ void apply_query_filter_to_results(struct giggle_index *gi,
     }
 
     diff = len - new_len;
-    printf("Removed %ld record%s after applying query filter.\n", diff, (diff > 1) ? "s" : "");
+    fprintf(stderr, "Removed %ld record%s after applying query filter.\n", diff, (diff > 1) ? "s" : "");
     
     if (new_len == 0) {
         free(data);
