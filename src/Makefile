@@ -30,6 +30,8 @@ LIB=bpt.o \
     kfunc.o \
     index.o \
     offset_index.o \
+    metadata_index.o \
+    query_filter.o \
     search.o \
     leaf.o \
     pq.o \

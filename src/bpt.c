@@ -11,7 +11,7 @@
 #include "lists.h"
 //#include "ll.h"
 #include "util.h"
-#include "disk_store.h"
+// #include "disk_store.h"
 #include "cache.h"
 
 /*

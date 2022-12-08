@@ -1,0 +1,2 @@
+command,mean,stddev,median,user,system,min,max
+"$GIGGLE_ROOT/bin/giggle index -s -f -i ""split_stats/*gz"" -o split_stats_b_m -m ""split_stats_metadata.conf""",3.21789765232,0.07718254445598732,3.23337241512,2.90494334,0.3117602,3.0216530646199997,3.28775030562
