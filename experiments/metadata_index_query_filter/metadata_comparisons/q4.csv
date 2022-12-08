@@ -1,0 +1,2 @@
+command,mean,stddev,median,user,system,min,max
+/home/sspathare97/layerlab/giggle/bin/giggle search -i split_stats_b_m -q GSM1218850_MB135DMMD.peak.q100.bed.gz -m -u 'mean>0.0003',0.06146501216086957,0.0005752456971642424,0.061404315900000006,0.053664041739130426,0.007794006086956524,0.0604301879,0.0639016069
