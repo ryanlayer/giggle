@@ -51,7 +51,9 @@ int search_help(int exit_code)
 "             -v give full record results\n"
 "             -f print results for files that match a pattern (regex CSV)\n"
 "             -g genome size for significance testing (default 3095677412)\n"
-"             -l list the files in the index\n",
+"             -l list the files in the index\n"
+"             -m load metadata index\n"
+"             -u query filter\n",
             PROGRAM_NAME, VERSION, PROGRAM_NAME);
     return exit_code;
 }
@@ -215,7 +217,8 @@ int search_main(int argc, char **argv, char *full_cmd)
     char *index_dir_name = NULL,
          *regions = NULL,
          *query_file_name = NULL,
-         *file_patterns_to_be_printed = NULL;
+         *file_patterns_to_be_printed = NULL,
+         *query_filter_string = NULL;
 
 
     char *i_type = "i";
@@ -228,13 +231,15 @@ int search_main(int argc, char **argv, char *full_cmd)
         s_is_set = 0,
         v_is_set = 0,
         f_is_set = 0,
-        o_is_set = 0;
+        o_is_set = 0,
+        m_is_set = 0,
+        u_is_set = 0;
 
     double genome_size =  3095677412.0;
 
     //{{{ cmd line param parsing
     //{{{ while((c = getopt (argc, argv, "i:r:q:cvf:h")) != -1) {
-    while((c = getopt (argc, argv, "i:r:q:csvof:g:lh")) != -1) {
+    while((c = getopt (argc, argv, "i:r:q:u:csvomf:g:lh")) != -1) {
         switch (c) {
             case 'i':
                 i_is_set = 1;
@@ -248,6 +253,10 @@ int search_main(int argc, char **argv, char *full_cmd)
                 q_is_set = 1;
                 query_file_name = optarg;
                 break;
+            case 'u':
+                u_is_set = 1;
+                query_filter_string = optarg;
+                break;
             case 'c':
                 c_is_set = 1;
                 break;
@@ -259,6 +268,9 @@ int search_main(int argc, char **argv, char *full_cmd)
                 break;
             case 'o':
                 o_is_set = 1;
+                break;
+            case 'm':
+                m_is_set = 1;
                 break;
             case 'f':
                 f_is_set = 1;
@@ -276,6 +288,7 @@ int search_main(int argc, char **argv, char *full_cmd)
                  if ( (optopt == 'i') ||
                       (optopt == 'r') ||
                       (optopt == 'q') ||
+                      (optopt == 'u') ||
                       (optopt == 'f') )
                         fprintf (stderr, "Option -%c requires an argument.\n",
                                 optopt);
@@ -291,7 +304,7 @@ int search_main(int argc, char **argv, char *full_cmd)
         }
     }
     //}}}
-    
+
     if (i_is_set == 0) {
         fprintf(stderr, "Index directory is not set\n");
         return search_help(EX_USAGE);
@@ -331,6 +344,11 @@ int search_main(int argc, char **argv, char *full_cmd)
         return search_help(EX_USAGE);
     } if ((r_is_set == 1) && (q_is_set == 1)) {
         fprintf(stderr, "Both regions and query file is set\n");
+        return search_help(EX_USAGE);
+    }
+
+    if ((u_is_set == 1) && (m_is_set == 0)) {
+        fprintf(stderr, "Query filter needs metadata index\n");
         return search_help(EX_USAGE);
     }
 
@@ -391,11 +409,18 @@ int search_main(int argc, char **argv, char *full_cmd)
     //}}}
 
     struct giggle_index *gi =
-                giggle_load(index_dir_name,
-                            block_store_giggle_set_data_handler);
+                giggle_load_with_metadata(index_dir_name,
+                                          m_is_set,
+                                          block_store_giggle_set_data_handler);
 
     if (gi == NULL)
         errx(1, "Error loading giggle index %s.", index_dir_name);
+
+    struct query_filter *query_filter = NULL;
+    if (query_filter_string != NULL) {
+        query_filter = parse_query_filter_string(gi->metadata_idx, query_filter_string);
+        // print_query_filter(query_filter);
+    }
 
     struct giggle_query_result *gqr = NULL;
 
@@ -414,7 +439,7 @@ int search_main(int argc, char **argv, char *full_cmd)
                 char *region;
                 ret = asprintf(&region, "%s", regions + last);
                 if (parse_region(region, &chrm, &start, &end) == 0) {
-                    gqr = giggle_query(gi, chrm, start, end, gqr);
+                    gqr = giggle_query_with_query_filter(gi, chrm, start, end, query_filter, gqr);
                     free(region);
                 } else {
                     errx(EX_USAGE,
@@ -445,7 +470,7 @@ int search_main(int argc, char **argv, char *full_cmd)
                                                   &end,
                                                   &offset,
                                                   &line) >= 0 ) {
-            gqr = giggle_query(gi, chrm, start, end, gqr);
+            gqr = giggle_query_with_query_filter(gi, chrm, start, end, query_filter, gqr);
             if ( (o_is_set == 1) && (gqr->num_hits > 0) ) {
                 char *str;
                 input_file_get_curr_line_bgzf(q_f, &str);
@@ -495,6 +520,8 @@ int search_main(int argc, char **argv, char *full_cmd)
                                       o_is_set);
 
     giggle_query_result_destroy(&gqr);
+    if (query_filter)
+        query_filter_destroy(&query_filter);
     giggle_index_destroy(&gi);
     cache.destroy();
     free(full_cmd);

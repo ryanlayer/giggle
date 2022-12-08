@@ -9,6 +9,8 @@
 #include "jsw_avltree.h"
 #include "pq.h"
 #include "offset_index.h"
+#include "metadata_index.h"
+#include "query_filter.h"
 
 #define PROGRAM_NAME  "giggle"
 #define MAJOR_VERSION "0"
@@ -68,6 +70,7 @@ struct giggle_index
     struct chrm_index *chrm_idx; //<! chrom string/root_id index pairs
     struct file_index *file_idx;
     struct offset_index *offset_idx; //<! file_index/offse pair list
+    struct metadata_index *metadata_idx; //<! metadata of each interval
     char *data_dir; //<! database directory
     char *root_ids_file_name; //<! root_ids file name
 };
@@ -85,6 +88,17 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
                                         uint32_t start,
                                         uint32_t end,
                                         struct giggle_query_result *gqr);
+
+struct giggle_query_result *giggle_query_with_query_filter(struct giggle_index *gi,
+                                                           char *chrm,
+                                                           uint32_t start,
+                                                           uint32_t end,
+                                                           struct query_filter *query_filter,
+                                                           struct giggle_query_result *gqr);
+
+void apply_query_filter_to_results(struct giggle_index *gi,
+                                   struct query_filter *query_filter,
+                                   void **R_ptr);
 
 void giggle_query_result_destroy(struct giggle_query_result **gqr);
 
@@ -178,7 +192,15 @@ struct giggle_def
 
 struct giggle_def giggle_data_handler;
 
-struct giggle_index *giggle_init_index(uint32_t init_size, char *offset_file_name);
+
+struct giggle_index *giggle_init_index(uint32_t init_size,
+                                       char *offset_file_name);
+
+struct giggle_index *giggle_init_index_with_metadata(uint32_t init_size,
+                                                     char *offset_file_name,
+                                                     char *metadata_conf_name,
+                                                     char *metadata_file_name);
+
 void giggle_index_destroy(struct giggle_index **gi);
 uint32_t giggle_get_chrm_id(struct giggle_index *gi, char *chrm);
 uint32_t giggle_get_file_id(struct giggle_index *gi, char *path);
@@ -260,6 +282,11 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                                  char *output_dir,
                                  uint32_t force,
                                  void (*giggle_set_data_handler)());
+struct giggle_index *giggle_init_with_metadata(uint32_t num_chrms,
+                                               char *output_dir,
+                                               char *metadata_conf_filename,
+                                               uint32_t force,
+                                               void (*giggle_set_data_handler)());
 uint32_t giggle_store(struct giggle_index *gi);
 
 /**
@@ -277,6 +304,10 @@ uint32_t giggle_store(struct giggle_index *gi);
  */
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void));
+
+struct giggle_index *giggle_load_with_metadata(char *data_dir,
+                                               int load_metadata,
+                                               void (*giggle_set_data_handler)(void));
 
 struct cache_handler leaf_data_cache_handler;
 
@@ -401,6 +432,11 @@ void giggle_bulk_insert_build_tree_on_leaves(struct giggle_index *gi);
 uint64_t giggle_bulk_insert(char *input_path_name,
                             char *output_path_name,
                             uint32_t force);
+
+uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
+                                          char *output_path_name,
+                                          char *metadata_conf_name,
+                                          uint32_t force);
 
 uint32_t giggle_get_indexed_files(char *index_dir_name,
                                   char ***names,

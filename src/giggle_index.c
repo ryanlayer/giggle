@@ -14,6 +14,7 @@
 #include "cache.h"
 #include "giggle_index.h"
 #include "offset_index.h"
+#include "metadata_index.h"
 #include "ll.h"
 #include "lists.h"
 #include "file_read.h"
@@ -790,9 +791,17 @@ void *giggle_collect_intersection_data_in_pointers(uint32_t leaf_start_id,
 }
 //}}}
 
-//{{{struct giggle_index *giggle_init_index(uint32_t init_size);
+
 struct giggle_index *giggle_init_index(uint32_t init_size,
                                        char *offset_file_name)
+{
+    return giggle_init_index_with_metadata(init_size, offset_file_name, NULL, NULL);
+}
+
+struct giggle_index *giggle_init_index_with_metadata(uint32_t init_size,
+                                                     char *offset_file_name,
+                                                     char *metadata_conf_name,
+                                                     char *metadata_file_name)
 {
     struct giggle_index *gi = (struct giggle_index *)
             malloc(sizeof(struct giggle_index));
@@ -810,6 +819,11 @@ struct giggle_index *giggle_init_index(uint32_t init_size,
     gi->file_idx = file_index_init(3, NULL);
 
     gi->offset_idx = offset_index_init(1000, offset_file_name);
+    gi->metadata_idx = NULL;
+    if (metadata_conf_name != NULL) {
+        gi->metadata_idx = metadata_index_init(metadata_conf_name, metadata_file_name);
+    }
+
     gi->root_ids_file_name = NULL;
 
     return gi;
@@ -857,6 +871,9 @@ void giggle_index_destroy(struct giggle_index **gi)
     file_index_destroy(&((*gi)->file_idx));
 
     offset_index_destroy(&((*gi)->offset_idx));
+    
+    if ((*gi)->metadata_idx)
+        metadata_index_destroy(&((*gi)->metadata_idx));
 
     chrm_index_destroy(&((*gi)->chrm_idx));
 
@@ -970,11 +987,19 @@ uint32_t giggle_index_directory(struct giggle_index *gi,
 }
 //}}}
 
-//{{{struct giggle_index *giggle_init(uint32_t num_chrms)
 struct giggle_index *giggle_init(uint32_t num_chrms,
                                  char *data_dir,
                                  uint32_t force,
-                                 void (*giggle_set_data_handler)(void))
+                                 void (*giggle_set_data_handler)())
+{
+    return giggle_init_with_metadata(num_chrms, data_dir, NULL, force, giggle_set_data_handler);
+}
+
+struct giggle_index *giggle_init_with_metadata(uint32_t num_chrms,
+                                               char *data_dir,
+                                               char *metadata_conf_filename,
+                                               uint32_t force,
+                                               void (*giggle_set_data_handler)())
 {
     if (data_dir == NULL)
         errx(1,"giggle_init: data_dir cannot be NULL.");
@@ -1014,7 +1039,17 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
                    data_dir,
                    OFFSET_INDEX_FILE_NAME);
 
-    struct giggle_index *gi = giggle_init_index(num_chrms, offset_idx_name);
+    char *metadata_idx_name = NULL;
+    if (metadata_conf_filename != NULL)
+        ret = asprintf(&metadata_idx_name,
+                    "%s/%s",
+                    data_dir,
+                    METADATA_INDEX_FILE_NAME);
+
+    struct giggle_index *gi = giggle_init_index_with_metadata(num_chrms,
+                                                              offset_idx_name,
+                                                              metadata_conf_filename,
+                                                              metadata_idx_name);
     gi->data_dir = strdup(data_dir);
 
     struct simple_cache *sc = simple_cache_init(1000,
@@ -1044,6 +1079,7 @@ struct giggle_index *giggle_init(uint32_t num_chrms,
     free(cache_names);
 
     free(offset_idx_name);
+    free(metadata_idx_name);
 
     return gi;
 }
@@ -1083,9 +1119,15 @@ uint32_t giggle_store(struct giggle_index *gi)
 }
 //}}}
 
-//{{{struct giggle_index *giggle_load(char *data_dir,
 struct giggle_index *giggle_load(char *data_dir,
                                  void (*giggle_set_data_handler)(void))
+{
+    return giggle_load_with_metadata(data_dir, 0, giggle_set_data_handler);
+}
+
+struct giggle_index *giggle_load_with_metadata(char *data_dir,
+                                               int load_metadata,
+                                               void (*giggle_set_data_handler)(void))
 {
     //ORDER = 100;
 
@@ -1182,6 +1224,25 @@ struct giggle_index *giggle_load(char *data_dir,
                    OFFSET_INDEX_FILE_NAME);
     gi->offset_idx = offset_index_load(offset_index_file_name);
     free(offset_index_file_name);
+    
+    gi->metadata_idx = NULL;
+    if (load_metadata) {
+        char *metadata_index_file_name = NULL;
+        ret = asprintf(&metadata_index_file_name,
+                    "%s/%s",
+                    data_dir,
+                    METADATA_INDEX_FILE_NAME);
+        gi->metadata_idx = metadata_index_load(metadata_index_file_name);
+        free(metadata_index_file_name);
+
+        // prints the summary of the metadata index
+        // print_metadata_index(gi->metadata_idx);
+
+        // Warning- prints all the intervals if uncommented
+        // struct metadata_rows *metadata_rows = read_metadata_rows(gi->metadata_idx);
+        // print_metadata_rows(metadata_rows);
+        // metadata_rows_destroy(metadata_rows);
+    }
 
 #ifdef TIME
     fprintf(stderr,
@@ -1227,12 +1288,21 @@ struct giggle_index *giggle_load(char *data_dir,
 }
 //}}}
 
-//{{{struct giggle_query_result *giggle_query(struct giggle_index *gi,
 struct giggle_query_result *giggle_query(struct giggle_index *gi,
                                         char *chrm,
                                         uint32_t start,
                                         uint32_t end,
                                         struct giggle_query_result *_gqr)
+{
+    return giggle_query_with_query_filter(gi, chrm, start, end, NULL, _gqr);
+}
+
+struct giggle_query_result *giggle_query_with_query_filter(struct giggle_index *gi,
+                                                           char *chrm,
+                                                           uint32_t start,
+                                                           uint32_t end,
+                                                           struct query_filter *query_filter,
+                                                           struct giggle_query_result *_gqr)
 {
 #if GIGGLE_QUERY_TRACE
     fprintf(stderr, "giggle_query\t%s\t%u\t%u\n", chrm, start, end);
@@ -1290,11 +1360,65 @@ struct giggle_query_result *giggle_query(struct giggle_index *gi,
         gqr = _gqr;
     }
 
+    if (query_filter != NULL) {
+        apply_query_filter_to_results(gi, query_filter, &R);
+    }
+
     giggle_data_handler.map_intersection_to_offset_list(gi, gqr, R);
 
     return gqr;
 }
 //}}}
+
+void apply_query_filter_to_results(struct giggle_index *gi,
+                                   struct query_filter *query_filter,
+                                   void **R_ptr)
+{
+    struct leaf_data_result *R = (struct leaf_data_result *)*R_ptr;
+    if (!R) return;
+    uint64_t i;
+    uint64_t len = R->len;
+    uint64_t *data = R->data;
+    uint64_t new_len = 0;
+    uint64_t diff;
+    uint8_t column_id = query_filter->column_id;
+    struct metadata_index *metadata_idx = gi->metadata_idx;
+
+    // printf("len: %ld, column id: %d\n", len, column_id);
+    for (i = 0; i < len; ++i) {
+        struct metadata_item *item = read_metadata_item_by_column_id(metadata_idx, data[i], column_id);
+        int result = filter_metadata_row_by_item(item, query_filter);
+        // printf("interval: %ld, ", data[i]);
+        // print_metadata_item(item);
+        // printf(", result: %d\n", result);
+        metadata_item_destroy(item);
+        if (result) {
+            data[new_len++] = data[i];
+        }
+    }
+
+    diff = len - new_len;
+    fprintf(stderr, "Removed %ld record%s after applying query filter.\n", diff, (diff > 1) ? "s" : "");
+    
+    if (new_len == 0) {
+        free(data);
+        free(R);
+        *R_ptr = NULL;
+    } else {
+        data = (uint64_t *)realloc(data, sizeof(uint64_t) * new_len);
+        if (data == NULL)
+            err(1, "realloc failure in apply_query_filter_to_results.\n");
+
+        // printf("new_len: %ld, data: ", new_len);
+        // for (i = 0; i < new_len; ++i) {
+        //     printf("%ld ", data[i]);
+        // }
+        // printf("\n");
+
+        R->len = new_len;
+        R->data = data;
+    }
+}
 
 //{{{void giggle_query_result_destroy(struct giggle_query_result **gqr)
 void giggle_query_result_destroy(struct giggle_query_result **gqr)
@@ -2190,10 +2314,20 @@ struct file_data *file_index_get(struct file_index *fi, uint32_t id)
 //}}}
 //}}}
 
-//{{{ uint64_t giggle_bulk_insert(char *input_path_name,
 uint64_t giggle_bulk_insert(char *input_path_name,
                             char *output_path_name,
                             uint32_t force)
+{
+    return giggle_bulk_insert_with_metadata(input_path_name,
+                                            output_path_name,
+                                            NULL,
+                                            force);
+}
+
+uint64_t giggle_bulk_insert_with_metadata(char *input_path_name,
+                                          char *output_path_name,
+                                          char *metadata_conf_name,
+                                          uint32_t force)
 {
     // Make the output directory
     struct stat st = {0};
@@ -2234,6 +2368,18 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     gi->offset_idx = offset_index_init(1000, offset_index_file_name);
     free(offset_index_file_name);
  
+    //init metadata index
+    gi->metadata_idx = NULL;
+    if (metadata_conf_name != NULL) {
+        char *metadata_index_file_name = NULL;
+        int ret = asprintf(&metadata_index_file_name,
+                        "%s/%s",
+                        gi->data_dir,
+                        METADATA_INDEX_FILE_NAME);
+        gi->metadata_idx = metadata_index_init(metadata_conf_name, metadata_index_file_name);
+        free(metadata_index_file_name);
+    }
+
     //init chrm index
     char *chrm_index_file_name = NULL;
     ret = asprintf(&chrm_index_file_name,
@@ -2305,7 +2451,18 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     chrm_index_store(gi->chrm_idx);
     file_index_store(gi->file_idx);
     offset_index_store(gi->offset_idx);
-
+    if (gi->metadata_idx) {
+        metadata_index_store(gi->metadata_idx);
+        
+        // prints the summary of the metadata index
+        // print_metadata_index(gi->metadata_idx);
+        
+        // Warning- prints all the intervals if uncommented
+        // struct metadata_rows *metadata_rows = read_metadata_rows(gi->metadata_idx);
+        // print_metadata_rows(metadata_rows);
+        // metadata_rows_destroy(metadata_rows);
+    }
+    
     uint64_t num_intervals = gi->offset_idx->index->num;
 
     if (gi->root_ids_file_name != NULL)
@@ -2316,6 +2473,8 @@ uint64_t giggle_bulk_insert(char *input_path_name,
     free(gi->root_ids);
     file_index_destroy(&(gi->file_idx));
     offset_index_destroy(&(gi->offset_idx));
+    if (gi->metadata_idx)
+        metadata_index_destroy(&(gi->metadata_idx));
     chrm_index_destroy(&(gi->chrm_idx));
     free(gi);
     gi = NULL;
@@ -2738,6 +2897,15 @@ void giggle_bulk_insert_build_leaf_levels(struct giggle_index *gi,
                                                     offset,
                                                     &line,
                                                     pqd_start->file_id);
+
+            if (gi->metadata_idx) {
+                // register the interval with the metadata index
+                uint64_t interval_id_from_metadata = metadata_index_add(gi->metadata_idx, pqd_start->file_id, &line);
+
+                // assert that both interval_ids are the same
+                assert(interval_id == interval_id_from_metadata);
+            }
+
             struct file_data *fd = file_index_get(gi->file_idx,
                                                   pqd_start->file_id);
             fd->mean_interval_size += end-start;
@@ -2911,6 +3079,14 @@ void giggle_bulk_insert_prime_pqs(struct giggle_index *gi,
 
         // register the interval with the offset index
         interval_id = offset_index_add(gi->offset_idx, offset, &line, i);
+
+        if (gi->metadata_idx) {
+            // register the interval with the metadata index
+            uint64_t interval_id_from_metadata = metadata_index_add(gi->metadata_idx, i, &line);
+
+            // assert that both interval_ids are the same
+            assert(interval_id == interval_id_from_metadata);
+        }
 
         //fprintf(stderr, "%s %u %u %u\n", chrm, start, end, interval_id);
 

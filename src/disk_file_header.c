@@ -50,13 +50,15 @@ void write_disk_file_header(char *file_marker, struct disk_file_header *h, FILE 
 
 struct disk_file_header *read_disk_file_header(FILE *fp, char *file_name, char *expected_file_marker) {
     char file_marker[7];
+    size_t fr;
     
-    size_t fr = fread(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp);
-    if (fr != GIGGLE_FILE_MARKER_LENGTH || strcmp(expected_file_marker, file_marker) != 0) {
+    fr = fread(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp);
+    check_file_read(file_name, fp, GIGGLE_FILE_MARKER_LENGTH, fr);
+    if (strcmp(file_marker,  expected_file_marker) != 0) {
         fseek(fp, 0, SEEK_SET); // uncompressed file
         return NULL;
     }
-
+    
     struct disk_file_header *h = (struct disk_file_header *) 
             calloc(1, sizeof(struct disk_file_header));
     if (h == NULL)
