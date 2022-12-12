@@ -35,11 +35,14 @@ usage:   giggle <command> [options]
 
     giggle, v0.6.3
     usage:   giggle index -i <input files> -o <output dir> -f
-             options:
-                 -s  Files are sorted
-                 -i  Files to index (e.g. data/*.gz)
-                 -o  Index output directory
-                 -f  For reindex if output directory exists
+         options:
+             -s  Files are sorted
+             -i  Files to index (e.g. data/*.gz)
+             -o  Index output directory
+             -m  Metadata config file
+             -f  For reindex if output directory exists
+
+Learn more about the [Metadata config file here](experiments/metadata_index_query_filter)
 
 ### Searching
 
@@ -55,7 +58,9 @@ usage:   giggle <command> [options]
              -v give full record results
              -f print results for files that match a pattern (regex CSV)
              -g genome size for significance testing (default 3095677412)
-             -l list the files in the index  
+             -l list the files in the index
+             -m load metadata index
+             -u query filter
 
 ### Example
 

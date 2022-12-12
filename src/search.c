@@ -45,7 +45,7 @@ int search_help(int exit_code)
 "             -i giggle index directory\n"
 "             -r <regions (CSV)>\n"
 "             -q <query file>\n"
-"             -o give reuslts per record in the query file (omits empty results)\n"
+"             -o give results per record in the query file (omits empty results)\n"
 "             -c give counts by indexed file\n"
 "             -s give significance by indexed file (requires query file)\n"
 "             -v give full record results\n"
