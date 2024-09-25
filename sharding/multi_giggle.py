@@ -219,6 +219,8 @@ def launch_searcher(args):
     if stripHeader and sFlag:
         out = out.split('\n', 1)[1]
 
+    if isinstance(out, bytes):
+        return out.decode('utf-8')
     return out
 
 
