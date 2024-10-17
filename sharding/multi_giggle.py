@@ -5,12 +5,23 @@ import subprocess
 from multiprocessing import Process, Pool
 
 
+# TODO: implement remaining giggle flags
+# Not automatically passing extra flags because
+# some of them may be not compatible with sharding
+
+
 def getLogger(enable=True, prefix=None):
+    # can't use lambda due to backwards compatibility with python2
     if enable:
         return print
     if prefix:
-        return lambda *x: print(prefix, *x)
-    return lambda *_: None
+        def vprint(*x):
+            print(prefix, *x)
+        return vprint
+    else:
+        def vprint(*x):
+            pass
+        return vprint
 
 
 @click.group()
@@ -66,6 +77,7 @@ def index(inputPath, outputPath, preSorted, metadataPath, shardAmnt, keepTemp, v
     vprint("Using arguments:")
     vprint(" - inputPath:", inputPath)
     vprint(" - outputPath:", outputPath)
+    vprint(" - preSorted (-s):", preSorted)
     vprint(" - metadataPath:", metadataPath)
     vprint(" - shardAmnt:", shardAmnt)
     vprint(" - keepTemp:", keepTemp)
@@ -181,7 +193,9 @@ def launch_indexer(shardIndex, outputPath, inputFiles, preSorted, metadataPath, 
     default=1,
     type=click.INT,
     help='Amount of jobs to run in parallel (default: 1)')
-@click.option('-s', 'sFlag', is_flag=True, help='Give significance by indexed file (requires query file).')
+@click.option('-s', 'sFlag', 
+    is_flag=True,
+    help='Give significance by indexed file (requires query file).')
 @click.option('-m', 'metadataPath', type=click.Path(
         file_okay=True,
         dir_okay=False,
