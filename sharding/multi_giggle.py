@@ -43,22 +43,25 @@ def root():
         writable=True),
     required=True,
     help='Index output directory')
-@click.option('-n', 'shardAmnt',
-    required=True,
-    type=click.INT,
-    help='Amount of shards')
+@click.option('-s', 'preSorted',
+    is_flag=True,
+    help='Files are sorted')
 @click.option('-m', 'metadataPath', type=click.Path(
         file_okay=True,
         dir_okay=False,
         readable=True),
     help='Metadata config file')
+@click.option('-n', 'shardAmnt',
+    required=True,
+    type=click.INT,
+    help='Amount of shards')
 @click.option('-k', 'keepTemp',
     is_flag=True,
     help='Keep temporary files after indexing')
 @click.option('--verbose', 'verbose',
     is_flag=True,
     help='Extra logging for debugging')
-def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp, verbose):
+def index(inputPath, outputPath, preSorted, metadataPath, shardAmnt, keepTemp, verbose):
     vprint = getLogger(verbose)
     vprint("Using arguments:")
     vprint(" - inputPath:", inputPath)
@@ -111,7 +114,7 @@ def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp, verbose):
         if not filesSubset:
             break
 
-        args = (i, outputPath, filesSubset, keepTemp, metadataPath, verbose)
+        args = (i, outputPath, filesSubset, preSorted, metadataPath, keepTemp, verbose)
         p = Process(target=launch_indexer, args=args)
         p.start()
         threads.append(p)
@@ -121,7 +124,7 @@ def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp, verbose):
         thread.join()
 
 
-def launch_indexer(shardIndex, outputPath, inputFiles, keepInputFiles, metadataPath, verbose):
+def launch_indexer(shardIndex, outputPath, inputFiles, preSorted, metadataPath, keepInputFiles, verbose):
     vprint = getLogger(verbose, '{shard ' + str(shardIndex) + '}')
 
     # 1. create shard directory
@@ -139,9 +142,13 @@ def launch_indexer(shardIndex, outputPath, inputFiles, keepInputFiles, metadataP
         shutil.copy(file, os.path.join(shardInputPath, os.path.basename(file)))
     
     # 3. create giggle index
+
     metadataArg = str.format('-m {0}', metadataPath) if metadataPath else ''
+    sArg = '-s' if preSorted else ''
+
     shardIndexPath = os.path.join(shardPath, 'index')
-    giggleCmd = str.format('giggle index -i {0}/*.gz -o {1} {2}', shardInputPath, shardIndexPath, metadataArg)
+    giggleCmd = str.format('giggle index -i {0}/*.gz -o {1} {2} {3}', shardInputPath, shardIndexPath, metadataArg, sArg)
+
     vprint("Working directory:", os.getcwd())
     vprint("Executing giggle ->", giggleCmd)
     os.system(giggleCmd)
