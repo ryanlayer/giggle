@@ -12,8 +12,9 @@ Usage: multi_giggle.py index [OPTIONS]
 Options:
   -i DIRECTORY  Input directory  [required]
   -o DIRECTORY  Index output directory  [required]
-  -n INTEGER    Amount of shards  [required]
+  -s            Files are sorted
   -m FILE       Metadata config file
+  -n INTEGER    Amount of shards  [required]
   -k            Keep temporary files after indexing
   --help        Show this message and exit.
 
