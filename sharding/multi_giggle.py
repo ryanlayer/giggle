@@ -5,6 +5,14 @@ import subprocess
 from multiprocessing import Process, Pool
 
 
+def getLogger(enable=True, prefix=None):
+    if enable:
+        return print
+    if prefix:
+        return lambda *x: print(prefix, *x)
+    return lambda *_: None
+
+
 @click.group()
 def root():
     # check if giggle is installed
@@ -44,8 +52,22 @@ def root():
         dir_okay=False,
         readable=True),
     help='Metadata config file')
-@click.option('-k', 'keepTemp', is_flag=True, help='Keep temporary files after indexing')
-def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp):
+@click.option('-k', 'keepTemp',
+    is_flag=True,
+    help='Keep temporary files after indexing')
+@click.option('--verbose', 'verbose',
+    is_flag=True,
+    help='Extra logging for debugging')
+def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp, verbose):
+    vprint = getLogger(verbose)
+    vprint("Using arguments:")
+    vprint(" - inputPath:", inputPath)
+    vprint(" - outputPath:", outputPath)
+    vprint(" - metadataPath:", metadataPath)
+    vprint(" - shardAmnt:", shardAmnt)
+    vprint(" - keepTemp:", keepTemp)
+    vprint(" - verbose:", verbose)
+
     if os.path.exists(outputPath):
         if os.listdir(outputPath):
             raise click.ClickException('Output directory already exists')
@@ -59,6 +81,8 @@ def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp):
     inputFiles = list(map(lambda x: os.path.join(inputPath, x), inputFiles))
     # attempts to divide files into batches of equal size
     inputFileSizes = list(map(lambda x: os.path.getsize(x), inputFiles))
+    
+    vprint(len(inputFiles), "input files found.")
 
     inputTotalSize = sum(inputFileSizes)
     inputSizePerShard = inputTotalSize // shardAmnt
@@ -87,7 +111,7 @@ def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp):
         if not filesSubset:
             break
 
-        args = (i, outputPath, filesSubset, keepTemp, metadataPath)
+        args = (i, outputPath, filesSubset, keepTemp, metadataPath, verbose)
         p = Process(target=launch_indexer, args=args)
         p.start()
         threads.append(p)
@@ -97,9 +121,12 @@ def index(inputPath, outputPath, metadataPath, shardAmnt, keepTemp):
         thread.join()
 
 
-def launch_indexer(shardIndex, outputPath, inputFiles, keepInputFiles, metadataPath):
+def launch_indexer(shardIndex, outputPath, inputFiles, keepInputFiles, metadataPath, verbose):
+    vprint = getLogger(verbose, '{shard ' + str(shardIndex) + '}')
+
     # 1. create shard directory
     shardPath = os.path.join(outputPath, str.format('shard_{0}', shardIndex))
+    vprint("Operating within", shardPath)
     shardInputPath = os.path.join(shardPath, 'input')
     os.mkdir(shardPath)
     os.mkdir(shardInputPath)
@@ -114,7 +141,11 @@ def launch_indexer(shardIndex, outputPath, inputFiles, keepInputFiles, metadataP
     # 3. create giggle index
     metadataArg = str.format('-m {0}', metadataPath) if metadataPath else ''
     shardIndexPath = os.path.join(shardPath, 'index')
-    os.system(str.format('giggle index -i {0}/*.gz -o {1} {2}', shardInputPath, shardIndexPath, metadataArg))
+    giggleCmd = str.format('giggle index -i {0}/*.gz -o {1} {2}', shardInputPath, shardIndexPath, metadataArg)
+    vprint("Working directory:", os.getcwd())
+    vprint("Executing giggle ->", giggleCmd)
+    os.system(giggleCmd)
+    vprint("Giggle finished.")
     
     # 4. delete copied input files
     if not keepInputFiles:
@@ -149,7 +180,19 @@ def launch_indexer(shardIndex, outputPath, inputFiles, keepInputFiles, metadataP
         dir_okay=False,
         readable=True),
     help='Metadata config file')
-def search(indexPath, queryFilePath, nThreads, sFlag, metadataPath):
+@click.option('--verbose', 'verbose',
+    is_flag=True,
+    help='Extra logging for debugging')
+def search(indexPath, queryFilePath, nThreads, sFlag, metadataPath, verbose):
+    vprint = getLogger(verbose)
+    vprint("Using arguments:")
+    vprint(" - indexPath:", indexPath)
+    vprint(" - queryFilePath:", queryFilePath)
+    vprint(" - nThreads:", nThreads)
+    vprint(" - sFlag:", sFlag)
+    vprint(" - metadataPath:", metadataPath)
+    vprint(" - verbose:", verbose)
+
     # gather shard directories
     
     shardDirs = []
@@ -191,7 +234,7 @@ def search(indexPath, queryFilePath, nThreads, sFlag, metadataPath):
         
         for _ in range(nThreads):
             if i < len(shardDirs):
-                args = (shardDirs[i][0], shardDirs[i][1], queryFilePath, metadataPath, sFlag, i != 0)
+                args = (shardDirs[i][0], shardDirs[i][1], queryFilePath, metadataPath, sFlag, i != 0, verbose)
                 batchArgs.append(args)
                 i += 1
             else:
@@ -203,20 +246,25 @@ def search(indexPath, queryFilePath, nThreads, sFlag, metadataPath):
 
 
 def launch_searcher(args):
-    shardId, shardPath, queryFilePath, metadataPath, sFlag, stripHeader = args
+    shardId, shardPath, queryFilePath, metadataPath, sFlag, stripHeader, verbose = args
+    vprint = getLogger(verbose, '{shard ' + str(shardId) + '}')
+    vprint("Operating within", shardPath)
     
     metadataArg = str.format('-m {0}', metadataPath) if metadataPath else ''
     indexPath = os.path.join(shardPath, 'index')
     sArg = '-s' if sFlag else ''
     cmd = str.format('giggle search -i {0} -q {1} {2} {3}', indexPath, queryFilePath, metadataArg, sArg)
 
+    vprint("Executing giggle ->", cmd)
     p = subprocess.Popen(cmd,
          shell=True,
          stdout=subprocess.PIPE)
     out, _ = p.communicate()
+    vprint("Giggle finished.")
     
     # strip out the header
     if stripHeader and sFlag:
+        vprint("Striping header from output")
         out = out.split('\n', 1)[1]
 
     if isinstance(out, bytes):
