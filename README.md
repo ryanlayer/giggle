@@ -340,6 +340,7 @@ http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.com
         --state_names $GIGGLE_ROOT/examples/rme/short_states.txt \
         --group_names $GIGGLE_ROOT/examples/rme/new_groups_names.txt
 
+These intervals are associated with hg19.
 
 ## APIs
 
