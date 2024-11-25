@@ -789,7 +789,7 @@ void print_metadata_data(struct metadata_type *type, union metadata_data data) {
       printf("%u", data.i);
       break;
     case INT_64: 
-      printf("%lu", data.l);
+      printf("%llu", data.l);
       break;
     case FLOAT: 
       printf("%f", data.f);
@@ -821,7 +821,7 @@ void print_metadata_row(struct metadata_row *metadata_row) {
 
 void print_metadata_rows(struct metadata_rows *metadata_rows) {
   int i, j;
-  printf("metadata_rows => num_rows: %lu\n", metadata_rows->num);
+  printf("metadata_rows => num_rows: %llu\n", metadata_rows->num);
   for (i = 0; i < metadata_rows->num; ++i) {
     struct metadata_row *metadata_row = metadata_rows->rows[i];
     printf("metadata_row %d => ", i);
@@ -832,7 +832,7 @@ void print_metadata_rows(struct metadata_rows *metadata_rows) {
 void print_metadata_index(struct metadata_index *metadata_index) {
   int i;
   uint8_t *columns = metadata_index->columns;
-  printf("metadata_index => num_cols: %d, num_rows: %lu, row_width: %d, header_offset: %lu\n", metadata_index->num_cols, metadata_index->num_rows, metadata_index->row_width, metadata_index->header_offset);
+  printf("metadata_index => num_cols: %d, num_rows: %llu, row_width: %d, header_offset: %llu\n", metadata_index->num_cols, metadata_index->num_rows, metadata_index->row_width, metadata_index->header_offset);
   for (i = 0; i < metadata_index->num_cols; ++i) {
     struct metadata_type *metadata_type = metadata_index->types[i];
     if (columns) {

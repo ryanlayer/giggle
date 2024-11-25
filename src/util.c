@@ -1,17 +1,19 @@
 #define _GNU_SOURCE
 
-#include <float.h>
-#include <limits.h>
 #include <err.h>
-#include <sysexits.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
+#include <float.h>
+#include <glob.h>
+#include <libgen.h>
+#include <limits.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <ftw.h>
@@ -19,22 +21,19 @@
 #include "util.h"
 
 int safe_subtract(uint32_t a, uint32_t b) {
-    if ( a < b )
+    if (a < b)
         return 0;
     return a - b;
 }
 
-int long_uint_pair_cmp(const void *_a, const void *_b)
-{
+int long_uint_pair_cmp(const void *_a, const void *_b) {
     struct long_uint_pair *a = (struct long_uint_pair *)_a;
     struct long_uint_pair *b = (struct long_uint_pair *)_b;
 
     return a->long_val - b->long_val;
 }
 
-
-int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b)
-{
+int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b) {
     struct doubles_uint32_t_tuple *a = (struct doubles_uint32_t_tuple *)_a;
     struct doubles_uint32_t_tuple *b = (struct doubles_uint32_t_tuple *)_b;
 
@@ -52,36 +51,29 @@ int doubles_uint32_t_tuple_cmp(const void *_a, const void *_b)
     }
 }
 
-
-void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs)
-{
+void check_file_read(char *file_name, FILE *fp, size_t exp, size_t obs) {
     if (exp != obs) {
         if (feof(fp))
-            errx(EX_IOERR,
-                 "Error reading file \"%s\": End of file",
-                 file_name);
+            errx(EX_IOERR, "Error reading file \"%s\": End of file", file_name);
         err(EX_IOERR, "Error reading file \"%s\"", file_name);
     }
 }
 
-int unlink_cb(const char *fpath,
-              const struct stat *sb,
-              int typeflag,
-              struct FTW *ftwbuf)
-{
+int unlink_cb(
+    const char *fpath,
+    const struct stat *sb,
+    int typeflag,
+    struct FTW *ftwbuf
+) {
     int rv = remove(fpath);
     if (rv)
         perror(fpath);
     return rv;
 }
 
-int rmrf(char *path)
-{
-    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
-}
+int rmrf(char *path) { return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS); }
 
-int uint32_t_cmp(const void *_a, const void *_b)
-{
+int uint32_t_cmp(const void *_a, const void *_b) {
     uint32_t *a = (uint32_t *)_a;
     uint32_t *b = (uint32_t *)_b;
 
@@ -93,8 +85,7 @@ int uint32_t_cmp(const void *_a, const void *_b)
         return 0;
 }
 
-int uint64_t_cmp(const void *_a, const void *_b)
-{
+int uint64_t_cmp(const void *_a, const void *_b) {
     uint64_t *a = (uint64_t *)_a;
     uint64_t *b = (uint64_t *)_b;
 
@@ -106,13 +97,11 @@ int uint64_t_cmp(const void *_a, const void *_b)
         return 0;
 }
 
-int char_p_cmp(const void *_a, const void *_b)
-{
+int char_p_cmp(const void *_a, const void *_b) {
     return strcmp(*(char **)_a, *(char **)_b);
 }
 
-uint32_t bin_char_to_int(char *bin)
-{
+uint32_t bin_char_to_int(char *bin) {
     uint32_t i = 0;
     int j = 0;
 
@@ -120,14 +109,13 @@ uint32_t bin_char_to_int(char *bin)
         i = i << 1;
         if (bin[j] == '1')
             i += 1;
-        j+=1;
+        j += 1;
     }
 
     return i;
 }
 
-int long_cmp(const void *_a, const void *_b)
-{
+int long_cmp(const void *_a, const void *_b) {
     long *a = (long *)_a;
     long *b = (long *)_b;
 
@@ -139,15 +127,13 @@ int long_cmp(const void *_a, const void *_b)
         return 0;
 }
 
-
 //{{{int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t
-int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end)
-{
+int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end) {
     *chrm = NULL;
     *start = 0;
     *end = 0;
     uint32_t i, len = strlen(region_s);
-    
+
     for (i = 0; i < len; ++i) {
         if (region_s[i] == ':') {
             region_s[i] = '\0';
@@ -158,7 +144,7 @@ int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end)
             *end = atoi(region_s + i + 1);
             if (*chrm != NULL)
                 return 0;
-            else 
+            else
                 return 1;
         }
     }
@@ -168,12 +154,14 @@ int parse_region(char *region_s, char **chrm, uint32_t *start, uint32_t *end)
 //}}}
 
 //{{{int test_pattern_match(struct giggle_index *gi,
-int test_pattern_match(struct giggle_index *gi,
-                       regex_t *regexs,
-                       char **file_patterns,
-                       uint32_t num_file_patterns,
-                       uint32_t file_id,
-                       uint32_t f_is_set) {
+int test_pattern_match(
+    struct giggle_index *gi,
+    regex_t *regexs,
+    char **file_patterns,
+    uint32_t num_file_patterns,
+    uint32_t file_id,
+    uint32_t f_is_set
+) {
     if (f_is_set == 0)
         return 1;
 
@@ -181,7 +169,7 @@ int test_pattern_match(struct giggle_index *gi,
 
     int match = 0;
     uint32_t j;
-    for(j = 0; j < num_file_patterns; j++) {
+    for (j = 0; j < num_file_patterns; j++) {
         int r = regexec(&(regexs[j]), fd->file_name, 0, NULL, 0);
         if (r == 0) {
             match = 1;
@@ -189,10 +177,12 @@ int test_pattern_match(struct giggle_index *gi,
         } else if (r != REG_NOMATCH) {
             char msgbuf[100];
             regerror(r, &regexs[j], msgbuf, sizeof(msgbuf));
-            errx(EX_USAGE,
-                 "Regex '%s' match failed: %s\n",
-                 file_patterns[file_id],
-                 msgbuf);
+            errx(
+                EX_USAGE,
+                "Regex '%s' match failed: %s\n",
+                file_patterns[file_id],
+                msgbuf
+            );
         }
     }
 
@@ -201,13 +191,12 @@ int test_pattern_match(struct giggle_index *gi,
 //}}}
 
 //{{{double log2fc(double ratio)
-double log2fc(double ratio)
-{
+double log2fc(double ratio) {
     if (fabs(ratio) < 0.0001)
         return 0.0;
 
     if (ratio < 1) {
-        ratio = 1.0/ratio;
+        ratio = 1.0 / ratio;
         return -1.0 * log2(ratio);
     }
 
@@ -216,11 +205,73 @@ double log2fc(double ratio)
 //}}}
 
 //{{{double neglog10p(double sig)
-long double neglog10p(long double sig)
-{
+long double neglog10p(long double sig) {
     if (fabsl(sig) < -DBL_MAX)
         return 10.0;
     return -1.0 * log10l(sig);
 }
 //}}}
 
+///////////////////////////////////////////////////////////////////////////////
+// Safe versions of basename and dirname that will not modify the input path
+///////////////////////////////////////////////////////////////////////////////
+void safe_dirname(const char *path, char *result) {
+    if (path == NULL || result == NULL) {
+        return;
+    }
+
+    size_t len = strlen(path);
+    if (len == 0) {
+        strcpy(result, ".");
+        return;
+    }
+
+    // Copy the path to a new buffer
+    char path_copy[PATH_MAX];
+    strncpy(path_copy, path, PATH_MAX);
+
+    const char *dir = dirname(path_copy);
+    strncpy(result, dir, PATH_MAX);
+}
+
+void safe_basename(const char *path, char *result) {
+    if (path == NULL || result == NULL) {
+        return;
+    }
+
+    size_t len = strlen(path);
+    if (len == 0) {
+        strcpy(result, ".");
+        return;
+    }
+
+    // Copy the path to a new buffer
+    char path_copy[PATH_MAX];
+    strncpy(path_copy, path, PATH_MAX);
+
+    const char *base = basename(path_copy);
+    strncpy(result, base, PATH_MAX);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Use glob function to get the absolute path of a glob pattern.
+// eg. path/of/glob/*.txt -> /full/path/of/glob/*.txt
+///////////////////////////////////////////////////////////////////////////////
+void abs_path_of_glob(const char *glob_pattern, char *result) {
+
+    glob_t glob_result;
+    if (glob(glob_pattern, 0, NULL, &glob_result) != 0) {
+        perror("glob");
+        exit(EXIT_FAILURE);
+    }
+
+    // full path minus glob pattern
+    char abs_dirname[PATH_MAX];
+    safe_dirname(glob_result.gl_pathv[0], abs_dirname);
+
+    // just the glob pattern minus path
+    char glob_basename[PATH_MAX];
+    safe_basename(glob_pattern, glob_basename);
+
+    snprintf(result, PATH_MAX, "%s/%s", abs_dirname, glob_basename);
+}
