@@ -1,4 +1,3 @@
-#include <sys/syslimits.h>
 #define _GNU_SOURCE
 
 #include <dirent.h>
