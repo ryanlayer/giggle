@@ -1436,8 +1436,6 @@ struct giggle_query_iter *giggle_get_query_data_itr(
 
 //{{{int giggle_query_next(struct giggle_query_iter *gqi,
 int giggle_query_next(struct giggle_query_iter *gqi, char **result) {
-    fprintf(stderr, "giggle_query_next\n");
-    fflush(stderr);
 #ifdef DEBUG
     fprintf(stderr, "giggle_query_next num:%u\tcurr:%u\n", gqi->num, gqi->curr);
 #endif
