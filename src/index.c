@@ -109,23 +109,23 @@ int index_main(int argc, char **argv, char *full_cmd) {
      */
 
     // Get the absolute path for one of the input files (using glob)
-    char glob_abs_path[PATH_MAX];
+    char glob_abs_path[4096];
     abs_path_of_glob(input_pattern, glob_abs_path);
 
-    char glob_basename[PATH_MAX];
+    char glob_basename[4096];
     safe_basename(input_pattern, glob_basename);
 
     // input data is directly under this directory
-    char input_dirname[PATH_MAX];
+    char input_dirname[4096];
     safe_dirname(glob_abs_path, input_dirname);
 
     // working directory for building the index
-    char parent_dirname[PATH_MAX];
+    char parent_dirname[4096];
     safe_dirname(input_dirname, parent_dirname);
 
-    char output_parent_dirname[PATH_MAX];
+    char output_parent_dirname[4096];
     safe_dirname(output_dir_name, output_parent_dirname);
-    char output_parent_abs_path[PATH_MAX];
+    char output_parent_abs_path[4096];
     if (realpath(output_parent_dirname, output_parent_abs_path) == NULL) {
         fprintf(stderr, "Invalid output directory path: %s\n", output_parent_dirname);
         exit(EXIT_FAILURE);
@@ -137,13 +137,13 @@ int index_main(int argc, char **argv, char *full_cmd) {
     }
 
     // just the directory names of the input/output data without the rest of the path
-    char input_dir_only[PATH_MAX];
-    char output_dir_only[PATH_MAX];
+    char input_dir_only[4096];
+    char output_dir_only[4096];
     safe_basename(input_dirname, input_dir_only);
     safe_basename(output_dir_name, output_dir_only);
 
-    char input_dir_with_glob[PATH_MAX];
-    snprintf(input_dir_with_glob, PATH_MAX, "%s/%s", input_dir_only, glob_basename);
+    char input_dir_with_glob[4096];
+    snprintf(input_dir_with_glob, 4096, "%s/%s", input_dir_only, glob_basename);
 
     chdir(parent_dirname);
     struct giggle_index *gi;

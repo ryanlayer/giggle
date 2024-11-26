@@ -1458,16 +1458,16 @@ int giggle_query_next(struct giggle_query_iter *gqi, char **result) {
          * Therefore we can construct the absolute path of the bed file by
          * appending the file name to the parent directory of the giggle index
          */
-        char index_parent_dir[PATH_MAX];
-        char index_abs_path[PATH_MAX];
+        char index_parent_dir[4096];
+        char index_abs_path[4096];
 
         if (realpath(gqi->gi->data_dir, index_abs_path) == NULL)
             errx(1, "%s not found\n", gqi->gi->data_dir);
 
         safe_dirname(index_abs_path, index_parent_dir);
 
-        char data_abs_path[PATH_MAX];
-        snprintf(data_abs_path, PATH_MAX, "%s/%s", index_parent_dir, fd->file_name);
+        char data_abs_path[4096];
+        snprintf(data_abs_path, 4096, "%s/%s", index_parent_dir, fd->file_name);
 
         gqi->ipf = input_file_init(data_abs_path);
 

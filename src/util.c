@@ -227,11 +227,11 @@ void safe_dirname(const char *path, char *result) {
     }
 
     // Copy the path to a new buffer
-    char path_copy[PATH_MAX];
-    strncpy(path_copy, path, PATH_MAX);
+    char path_copy[4096];
+    strncpy(path_copy, path, 4096);
 
     const char *dir = dirname(path_copy);
-    strncpy(result, dir, PATH_MAX);
+    strncpy(result, dir, 4096);
 }
 
 void safe_basename(const char *path, char *result) {
@@ -246,11 +246,11 @@ void safe_basename(const char *path, char *result) {
     }
 
     // Copy the path to a new buffer
-    char path_copy[PATH_MAX];
-    strncpy(path_copy, path, PATH_MAX);
+    char path_copy[4096];
+    strncpy(path_copy, path, 4096);
 
     const char *base = basename(path_copy);
-    strncpy(result, base, PATH_MAX);
+    strncpy(result, base, 4096);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -266,12 +266,12 @@ void abs_path_of_glob(const char *glob_pattern, char *result) {
     }
 
     // full path minus glob pattern
-    char abs_dirname[PATH_MAX];
+    char abs_dirname[4096];
     safe_dirname(glob_result.gl_pathv[0], abs_dirname);
 
     // just the glob pattern minus path
-    char glob_basename[PATH_MAX];
+    char glob_basename[4096];
     safe_basename(glob_pattern, glob_basename);
 
-    snprintf(result, PATH_MAX, "%s/%s", abs_dirname, glob_basename);
+    snprintf(result, 4096, "%s/%s", abs_dirname, glob_basename);
 }
