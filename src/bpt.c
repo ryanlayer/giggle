@@ -27,6 +27,12 @@ void (*bpt_node_repair)(uint32_t domain,
                         struct bpt_node *,
                         struct bpt_node *) = NULL;
 
+void (*append)(uint32_t domain,
+               uint32_t new_value_id,
+               uint32_t existing_value_id,
+               struct cache_handler *handler) = NULL;
+
+
 struct cache_handler bpt_node_cache_handler = {bpt_node_serialize, 
                                                bpt_node_deserialize,
                                                bpt_node_free_mem};

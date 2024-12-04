@@ -6,9 +6,9 @@
 #define LEAF_DATA_LEADING_START(node) (0)
 #define LEAF_DATA_LEADING_END(node) (node->num_leading)
 
-uint64_t LEAF_POINTERS_SIZE;
-uint64_t LEAF_NUMS_SIZE;
-uint64_t LEAF_LEADING_STARTS_ENDS_SIZE;
+extern uint64_t LEAF_POINTERS_SIZE;
+extern uint64_t LEAF_NUMS_SIZE;
+extern uint64_t LEAF_LEADING_STARTS_ENDS_SIZE;
 
 struct leaf_data {
     uint64_t num_leading, num_starts, num_ends;

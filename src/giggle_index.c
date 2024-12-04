@@ -26,6 +26,7 @@
 #include "timer.h"
 #include "util.h"
 
+struct giggle_def giggle_data_handler;
 char *CHRM_INDEX_FILE_NAME = "chrm_index.dat";
 char *FILE_INDEX_FILE_NAME = "file_index.dat";
 char *ROOT_IDS_FILE_NAME = "root_ids.dat";

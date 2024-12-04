@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <htslib/kstring.h>
 
-char *OFFSET_INDEX_FILE_NAME;
+extern char *OFFSET_INDEX_FILE_NAME;
 
-uint32_t offset_data_size;
+extern uint32_t offset_data_size;
 
-void (*offset_data_append_data)(uint8_t *dest, kstring_t *line);
+extern void (*offset_data_append_data)(uint8_t *dest, kstring_t *line);
 
 struct file_id_offset_pair
 {

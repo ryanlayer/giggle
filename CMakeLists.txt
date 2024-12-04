@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.27)
 project(Giggle C)
 
 cmake_policy(SET CMP0135 NEW)
@@ -13,7 +13,9 @@ ExternalProject_Add(htslib
     URL https://github.com/samtools/htslib/releases/download/1.21/htslib-1.21.tar.bz2
     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/htslib
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/htslib
-    CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/htslib && autoreconf -i && ./configure --disable-bz2 --disable-lzma --enable-libcurl
+    # CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/htslib && autoreconf -i && ./configure --disable-bz2 --disable-lzma --enable-libcurl
+    CONFIGURE_COMMAND COMMAND autoreconf -i 
+                      COMMAND ./configure --disable-bz2 --disable-lzma --enable-libcurl
     BUILD_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/htslib
     LOG_DOWNLOAD ON
     LOG_CONFIGURE ON
@@ -73,15 +75,22 @@ set(LIB_SRC
 
 add_library(libgiggle STATIC ${LIB_SRC})
 target_include_directories(libgiggle PRIVATE ${HTS_INCLUDE_DIR})
+set_target_properties(libgiggle PROPERTIES
+    OUTPUT_NAME giggle
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib
+)
 
 set(PROGRAMS giggle api_test offset_idx_lookup)
 foreach(PROG ${PROGRAMS})
     add_executable(${PROG} "${SRC_DIR}/${PROG}.c")
     target_link_libraries(${PROG} libgiggle hts ${LIBS})
     target_compile_definitions(${PROG} PRIVATE -DSAMTOOLS=1)
+    set_target_properties(${PROG} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 endforeach()
 
-add_executable(server_enrichment ${SRC_DIR}/server_enrichment.c)
-target_include_directories(server_enrichment PRIVATE ${HTS_INCLUDE_DIR})
-target_link_libraries(server_enrichment libgiggle hts microhttpd ${LIBS})
+# TODO
+# add_executable(server_enrichment ${SRC_DIR}/server_enrichment.c)
+# target_include_directories(server_enrichment PRIVATE ${HTS_INCLUDE_DIR})
+# target_link_libraries(server_enrichment libgiggle hts microhttpd ${LIBS})
 

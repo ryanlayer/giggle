@@ -19,10 +19,10 @@
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
 
-char *CHRM_INDEX_FILE_NAME;
-char *FILE_INDEX_FILE_NAME;
-char *ROOT_IDS_FILE_NAME;
-char *CACHE_FILE_NAME_PREFIX;
+extern char *CHRM_INDEX_FILE_NAME;
+extern char *FILE_INDEX_FILE_NAME;
+extern char *ROOT_IDS_FILE_NAME;
+extern char *CACHE_FILE_NAME_PREFIX;
 
 void c_str_store(void *v, FILE *f, char *file_name);
 void *c_str_load(FILE *f, char *file_name);
@@ -190,7 +190,7 @@ struct giggle_def
                                             void *_R);
 };
 
-struct giggle_def giggle_data_handler;
+extern struct giggle_def giggle_data_handler;
 
 
 struct giggle_index *giggle_init_index(uint32_t init_size,
@@ -309,14 +309,14 @@ struct giggle_index *giggle_load_with_metadata(char *data_dir,
                                                int load_metadata,
                                                void (*giggle_set_data_handler)(void));
 
-struct cache_handler leaf_data_cache_handler;
+extern struct cache_handler leaf_data_cache_handler;
 
 uint32_t giggle_get_leaf_data(struct giggle_index *gi,
                               uint32_t domain,
                               uint32_t leaf_id,
                               struct leaf_data **lf);
 
-struct cache_handler leaf_data_cache_handler;
+extern struct cache_handler leaf_data_cache_handler;
 
 uint32_t giggle_leaf_data_get_intersection_size(uint32_t leaf_start_id,
                                                 int pos_start_id,

@@ -7,6 +7,8 @@
 #include "ll.h"
 #include "giggle_index.h"
 
+struct giggle_def uint64_t_ll_giggle_data_handler;
+
 //{{{void uint64_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
 void uint64_t_ll_map_intersection_to_offset_list(struct giggle_index *gi,
                                                  struct giggle_query_result *gqr,

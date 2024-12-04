@@ -9,6 +9,7 @@
 #include <err.h>
 
 
+#include "giggle_index.h"
 #include "wah.h"
 #include "util.h"
 #include "ll.h"

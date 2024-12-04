@@ -96,7 +96,7 @@ void uint64_t_ll_non_leading_union_with_SA_subtract_SE(uint32_t domain,
                                                        void *d);
 void uint64_t_ll_non_leading_union_with_SA(uint32_t domain, void **R, void *d);
 
-struct giggle_def uint64_t_ll_giggle_data_handler;
+extern struct giggle_def uint64_t_ll_giggle_data_handler;
 
 // cache_handler :: uint64_t_ll_non_leading_cache_handler
 uint64_t uint64_t_ll_non_leading_serialize(void *deserialized,
@@ -105,7 +105,7 @@ uint64_t uint64_t_ll_non_leading_deserialize(void *serialized,
                                              uint64_t serialized_size,
                                              void **deserialized);
 void uint64_t_ll_non_leading_free(void **deserialized);
-struct cache_handler uint64_t_ll_non_leading_cache_handler;
+extern struct cache_handler uint64_t_ll_non_leading_cache_handler;
 
 // cache_handler :: uint64_t_ll_leading_cache_handler
 uint64_t uint64_t_ll_leading_serialize(void *deserialized,
@@ -114,13 +114,13 @@ uint64_t uint64_t_ll_leading_deserialize(void *serialized,
                                          uint64_t serialized_size,
                                          void **deserialized);
 void uint64_t_ll_leading_free(void **deserialized);
-struct cache_handler uint64_t_ll_leading_cache_handler;
+extern struct cache_handler uint64_t_ll_leading_cache_handler;
 
 void uint64_t_ll_giggle_set_data_handler();
 
-struct cache_handler uint64_t_ll_wah_leading_cache_handler;
+extern struct cache_handler uint64_t_ll_wah_leading_cache_handler;
 void uint64_t_ll_wah_giggle_set_data_handler();
-struct cache_handler uint64_t_ll_wah_non_leading_cache_handler;
+extern struct cache_handler uint64_t_ll_wah_non_leading_cache_handler;
 uint64_t uint64_t_ll_leading_serialize_to_wah(void *deserialized,
                                               void **serialized);
 

@@ -7,7 +7,7 @@
 #include "lists.h"
 #include "cache.h"
 
-uint32_t ORDER;
+extern uint32_t ORDER;
 
 #define BPT_NODE_NUM_ELEMENTS (2*ORDER+10)
 #define BPT_NODE_ELEMENT_SIZE sizeof(uint32_t)
@@ -23,7 +23,7 @@ uint32_t ORDER;
 #define BPT_POINTERS_BLOCK(node) (((node)->data + (6+ORDER+1))[0])
 #define BPT_POINTERS(node)      ((node)->data + (6+ORDER+2))
 
-struct ordered_set *id_to_offset_map;
+extern struct ordered_set *id_to_offset_map;
 
 struct bpt_node 
 {
@@ -46,7 +46,7 @@ uint64_t bpt_node_deserialize(void *serialized,
                               void **deserialized);
 void bpt_node_free_mem(void **deserialized);
 
-struct cache_handler bpt_node_cache_handler;
+extern struct cache_handler bpt_node_cache_handler;
 
 struct bpt_node *bpt_new_node(uint32_t domain);
 
@@ -70,13 +70,13 @@ uint32_t bpt_split_node(uint32_t domain,
                                        struct bpt_node *,
                                        struct bpt_node *));
 
-void (*bpt_node_repair)(uint32_t domain, struct bpt_node *, struct bpt_node *);
+extern void (*bpt_node_repair)(uint32_t domain, struct bpt_node *, struct bpt_node *);
 
 //uint64_t (*serialize_leading)(void *deserialized, uint8_t **serialized);
 //uint64_t (*serialize_pointer)(void *deserialized, uint8_t **serialized);
 //uint64_t serialize_uint32_t(void *deserialized, uint8_t **serialized);
 
-void (*append)(uint32_t domain,
+extern void (*append)(uint32_t domain,
                uint32_t new_value_id,
                uint32_t existing_value_id,
                struct cache_handler *handler);

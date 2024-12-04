@@ -5,12 +5,14 @@
 #include <string.h>
 #include <sysexits.h>
 #include "giggle_index.h"
-#include "wah.h"
-#include "cache.h"
+#include "index.h"
+#include "search.h"
+// #include "wah.h"
+//#include "cache.h"
 
 int giggle_help(int argc, char **argv, int exit_code);
-int index_main(int argc, char **argv, char *full_cmd);
-int search_main(int argc, char **argv, char *full_cmd);
+// int index_main(int argc, char **argv, char *full_cmd);
+//int search_main(int argc, char **argv, char *full_cmd);
 
 int main(int argc, char **argv)
 {

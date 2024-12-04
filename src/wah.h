@@ -10,8 +10,8 @@
 #define WAH_VAL(W,S) ( ((W >> (S-1))&1) == 1 ?  0 : W)
 #define WAH_NUM_WORDS(W,S) ( ((W >> (S-1))&1) == 1 ?  W & ~(1<< (S-1)) : 1)
 
-uint32_t WAH_SIZE;
-uint32_t WAH_MAX_FILL_WORDS;
+extern uint32_t WAH_SIZE;
+extern uint32_t WAH_MAX_FILL_WORDS;
 
 //uint8_t *wah_init(uint32_t word_size,
                   //uint32_t val);
@@ -63,7 +63,7 @@ void wah_non_leading_union_with_SA_subtract_SE(uint32_t domain,
                                                  void *d);
 void wah_non_leading_union_with_SA(uint32_t domain, void **R, void *d);
 
-struct giggle_def wah_giggle_data_handler;
+extern struct giggle_def wah_giggle_data_handler;
 
 // cache_handler :: wah_non_leading_cache_handler
 uint64_t wah_non_leading_serialize(void *deserialized,
@@ -72,7 +72,7 @@ uint64_t wah_non_leading_deserialize(void *serialized,
                                        uint64_t serialized_size,
                                        void **deserialized);
 void wah_non_leading_free(void **deserialized);
-struct cache_handler wah_non_leading_cache_handler;
+extern struct cache_handler wah_non_leading_cache_handler;
 
 // cache_handler :: wah_leading_cache_handler
 uint64_t wah_leading_serialize(void *deserialized,
@@ -81,7 +81,7 @@ uint64_t wah_leading_deserialize(void *serialized,
                                    uint64_t serialized_size,
                                    void **deserialized);
 void wah_leading_free(void **deserialized);
-struct cache_handler wah_leading_cache_handler;
+extern struct cache_handler wah_leading_cache_handler;
 
 void wah_giggle_set_data_handler();
 

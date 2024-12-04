@@ -17,7 +17,7 @@ struct cache_handler
     void (*free_mem)(void **deserialized);
 };
 
-struct cache_handler uint32_t_cache_handler;
+extern struct cache_handler uint32_t_cache_handler;
 uint64_t uint32_t_serialize(void *deserialized, void **serialized);
 uint64_t uint32_t_deserialize(void *serialized,
                              uint64_t serialized_size,
@@ -43,11 +43,11 @@ struct cache_def {
     void (*destroy)();
 };
 
-struct cache_def cache;
+extern struct cache_def cache;
 
 //void *_cache;
-void *_cache[10];
-uint32_t CACHE_NAME_SPACE;
+extern void *_cache[10];
+extern uint32_t CACHE_NAME_SPACE;
 
 struct value_cache_handler_pair
 {
@@ -56,7 +56,7 @@ struct value_cache_handler_pair
     struct lru_ll_element *lru_node;
 };
 
-struct cache_def simple_cache_def;
+extern struct cache_def simple_cache_def;
 
 struct lru_ll_element
 {
