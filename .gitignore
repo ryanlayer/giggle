@@ -14,3 +14,8 @@ test/**/*.dat
 !test/unit/unity/
 !test/unit/*.c
 test/unit/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+htslib-prefix/
+htslib/
