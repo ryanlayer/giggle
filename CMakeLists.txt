@@ -44,7 +44,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuniniti
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/htslib)
 
-set(LIBS dl z m pthread curl crypto)
+set(LIBS dl z m pthread curl)
 
 set(LIB_SRC
     "${SRC_DIR}/bpt.c"
