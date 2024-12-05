@@ -15,7 +15,7 @@ ExternalProject_Add(htslib
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/htslib
     # CONFIGURE_COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/htslib && autoreconf -i && ./configure --disable-bz2 --disable-lzma --enable-libcurl
     CONFIGURE_COMMAND COMMAND autoreconf -i 
-                      COMMAND ./configure --disable-bz2 --disable-lzma --enable-libcurl
+                      COMMAND ./configure --disable-bz2 --disable-lzma --disable-libcurl
     BUILD_COMMAND make -C ${CMAKE_CURRENT_BINARY_DIR}/htslib
     LOG_DOWNLOAD ON
     LOG_CONFIGURE ON
@@ -44,7 +44,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuniniti
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/htslib)
 
-set(LIBS dl z m pthread curl)
+set(LIBS dl z m pthread)
 
 set(LIB_SRC
     "${SRC_DIR}/bpt.c"
