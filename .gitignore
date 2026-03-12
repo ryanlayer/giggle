@@ -2,7 +2,7 @@ doc/html/
 inkids_rare.bed.gz
 inkids_rare_smaller.bed.gz
 *.o
-*_Runner.c
+**/*_Runner.c
 *.dSYM/
 *.DS_Store
 bin/
@@ -10,7 +10,8 @@ lib/
 ssshtest
 test/**/*.idx
 test/**/*.dat
-!test/unit/Makefile
-!test/unit/unity/
-!test/unit/*.c
-test/unit/
+
+# Ignore test/unit build artifacts (compiled binaries and generated runners)
+test/unit/test_*
+!test/unit/test_*.c
+test/unit/test_*_Runner.c
