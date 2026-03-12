@@ -281,4 +281,6 @@ void abs_path_of_glob(const char *glob_pattern, char *result) {
     safe_basename(glob_pattern, glob_basename);
 
     snprintf(result, 4096, "%s/%s", abs_dirname, glob_basename);
+
+    globfree(&glob_result);
 }
