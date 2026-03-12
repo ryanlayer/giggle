@@ -265,9 +265,16 @@ void abs_path_of_glob(const char *glob_pattern, char *result) {
         exit(EXIT_FAILURE);
     }
 
-    // full path minus glob pattern
+    // get dirname of first match
+    char rel_dirname[4096];
+    safe_dirname(glob_result.gl_pathv[0], rel_dirname);
+
+    // convert to absolute path
     char abs_dirname[4096];
-    safe_dirname(glob_result.gl_pathv[0], abs_dirname);
+    if (realpath(rel_dirname, abs_dirname) == NULL) {
+        perror("realpath");
+        exit(EXIT_FAILURE);
+    }
 
     // just the glob pattern minus path
     char glob_basename[4096];
