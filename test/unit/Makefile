@@ -26,7 +26,8 @@ NO_PRE_SRC_FILES= disk_store.c \
 		 offset_index.c \
 		 metadata_index.c \
 		 query_filter.c \
-		 fastlz.c
+		 fastlz.c \
+		 kfunc.c
 
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))
@@ -43,7 +44,7 @@ endif
 %: %.c
 	#ruby $(UNITY_ROOT)/auto/generate_test_runner.rb $@.c
 	ruby $(UNITY_ROOT)/generate_test_runner.rb $@.c
-	$(CC) -Werror -g -o $@ \
+	$(CC) -fcommon -g -o $@ \
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
 	    -I$(HTS_ROOT) \

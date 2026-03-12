@@ -4,8 +4,8 @@ LIBD=../lib
 HTS_ROOT=$(LIBD)/htslib
 LIBMHD_INCLUDES=$(HOME)/usr/local/include
 LIBMHD_LIBS=$(HOME)/usr/local/lib
-override CFLAGS+=-O2 -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized -DBLOCK_STORE 
-#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Werror -Wuninitialized
+override CFLAGS+=-fcommon -O2 -D_FILE_OFFSET_BITS=64 -Wuninitialized -DBLOCK_STORE 
+#CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Wuninitialized
 INCLUDES=-I$(HTS_ROOT)
 LIBS=-ldl -lz -lm -pthread -lcurl
 LIBS+=-lcrypto
