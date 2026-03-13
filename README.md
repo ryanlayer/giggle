@@ -180,7 +180,11 @@ Original records can also be retrieved and grouped by query interval with the `-
 From a fresh install of Ubuntu, the following steps should provide all the
 required dependencies.
 
-    sudo apt-get install gcc make autoconf automake libtool zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev liblzma-dev ruby
+    sudo apt-get install gcc make zlib1g-dev libssl-dev libhts-dev ruby
+
+    # or wherever you keep htslib
+    export HTS_INC=/usr/include
+    export HTS_LIB=/usr/lib
 
 or for nix users: `nix develop`
 
@@ -317,7 +321,7 @@ http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.com
     zcat GSM1218850_MB135DMMD.peak.txt.gz \
     | awk '$8>100' \
     | cut -f1,2,3 \
-    | $GIGGLE_ROOT/lib/htslib/bgzip -c \
+    | bgzip -c \
     > GSM1218850_MB135DMMD.peak.q100.bed.gz
 
     # List files in the index

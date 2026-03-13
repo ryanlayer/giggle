@@ -1,13 +1,12 @@
 BIN=../bin
 OBJ=../obj
 LIBD=../lib
-HTS_ROOT=$(LIBD)/htslib
 LIBMHD_INCLUDES=$(HOME)/usr/local/include
 LIBMHD_LIBS=$(HOME)/usr/local/lib
 override CFLAGS+=-fcommon -O2 -D_FILE_OFFSET_BITS=64 -Wuninitialized -Werror -Wno-format-truncation -DBLOCK_STORE
 #CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Wuninitialized
-INCLUDES=-I$(HTS_ROOT)
-LIBS=-ldl -lz -lm -pthread -lcurl
+INCLUDES=-I$(HTS_INC)
+LIBS=-ldl -lz -lm -pthread -lcurl -lhts -L$(HTS_LIB)
 LIBS+=-lcrypto
 CC=gcc
 
@@ -52,31 +51,23 @@ PROG=giggle \
 LIST=$(addprefix $(BIN)/, $(PROG))
 
 
-all: check-env $(LIST) library
+all: $(LIST) library
 
 server: INCLUDES+=-I$(LIBMHD_INCLUDES) -L$(LIBMHD_LIBS)
-server: LIBS+=-lmicrohttpd 
+server: LIBS+=-lmicrohttpd
 server: $(BIN)/server_enrichment
 
 library: $(OBJS)
 	ar -cvq $(LIBD)/libgiggle.a $(OBJS)
 
-$(OBJ)/%.o: %.c 
+$(OBJ)/%.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $< \
-		-I$(HTS_ROOT)
+		-I$(HTS_INC)
 
 
 $(BIN)/%: %.c $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ \
 		$(INCLUDES) \
 		-DSAMTOOLS=1 \
-		$(HTS_ROOT)/libhts.a \
 		$(LIBS)
-
-
-check-env:
-ifdef TRAVIS_BUILD_DIR
-HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib
-endif
-
 

@@ -1,5 +1,4 @@
 UNITY_ROOT=./unity
-HTS_ROOT=../../lib/htslib/
 CC=gcc
 SRC=../../src/
 TEST_SRC = $(filter-out $(wildcard *_Runner.c), $(wildcard *.c))
@@ -32,12 +31,7 @@ NO_PRE_SRC_FILES= disk_store.c \
 
 SRC_FILES=$(addprefix $(SRC),$(NO_PRE_SRC_FILES))
 
-all: check-env clean $(TEST_NAMES) test
-
-check-env:
-ifdef TRAVIS_BUILD_DIR
-HTS_ROOT=$(TRAVIS_BUILD_DIR)/htslib
-endif
+all: clean $(TEST_NAMES) test
 
 
 
@@ -47,13 +41,13 @@ endif
 	$(CC) -fcommon -g -o $@ \
 	    -I$(UNITY_ROOT) \
 	    -I$(SRC) \
-	    -I$(HTS_ROOT) \
+	    -I$(HTS_INC) \
 	    -DTEST $(UNITY_ROOT)/unity.c \
 	    -DSAMTOOLS=1 \
 	    -pthread \
 	    $(SRC_FILES) \
 	    $@.c $@_Runner.c \
-	    $(HTS_ROOT)/libhts.a \
+	    -L$(HTS_LIB) -lhts \
 	    -lz -lm -lcurl -lcrypto -lssl
 	#rm $@_Runner.c
 
