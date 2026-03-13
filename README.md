@@ -177,6 +177,8 @@ Original records can also be retrieved and grouped by query interval with the `-
 
 ### Dependencies
 
+#### Straight ubuntu
+
 From a fresh install of Ubuntu, the following steps should provide all the
 required dependencies.
 
@@ -186,7 +188,16 @@ required dependencies.
     export HTS_INC=/usr/include
     export HTS_LIB=/usr/lib
 
-or for nix users: `nix develop`
+#### Conda
+
+    mamba env create -f environment.yml
+    mamba activate giggle-dev
+    export HTS_INC=$CONDA_PREFIX/include
+    export HTS_LIB=$CONDA_PREFIX/lib
+
+#### Nix
+
+    nix develop
 
 ### Giggle command line interface
 

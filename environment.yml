@@ -1,0 +1,29 @@
+name: giggle-dev
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  # Build tools
+  - gcc
+  - make
+  - autoconf
+  - automake
+  - libtool
+  - binutils
+
+  # Libraries
+  - zlib
+  - bzip2
+  - xz
+  - curl
+  - openssl
+  - htslib
+
+  # Testing/utilities
+  - bedtools
+  - ruby
+# After creating the environment, set these before building:
+#   export HTS_INC=$CONDA_PREFIX/include
+#   export HTS_LIB=$CONDA_PREFIX/lib
+#   cd giggle && make
