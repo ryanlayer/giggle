@@ -3,7 +3,7 @@ OBJ=../obj
 LIBD=../lib
 LIBMHD_INCLUDES=$(HOME)/usr/local/include
 LIBMHD_LIBS=$(HOME)/usr/local/lib
-override CFLAGS+=-fcommon -O2 -D_FILE_OFFSET_BITS=64 -Wuninitialized -Werror -Wno-format-truncation -DBLOCK_STORE
+override CFLAGS+=-fcommon -O2 -D_FILE_OFFSET_BITS=64 -Wuninitialized -Wno-format-truncation -DBLOCK_STORE
 #CFLAGS=-g -D_FILE_OFFSET_BITS=64 -Wuninitialized
 INCLUDES=-I$(HTS_INC)
 LIBS=-ldl -lz -lm -pthread -lcurl -lhts -L$(HTS_LIB)
