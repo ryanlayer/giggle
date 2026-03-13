@@ -180,7 +180,9 @@ Original records can also be retrieved and grouped by query interval with the `-
 From a fresh install of Ubuntu, the following steps should provide all the
 required dependencies.
 
-    sudo apt install gcc make autoconf zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev ruby
+    sudo apt-get install gcc make autoconf automake libtool zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev liblzma-dev ruby
+
+or for nix users: `nix develop`
 
 ### Giggle command line interface
 
@@ -198,7 +200,7 @@ The first set of tests require bedtools to be in your path.
 
 or, build bedtools from source:
 
-    sudo apt install g++ python
+    sudo apt install g++ python3
 
     git clone https://github.com/arq5x/bedtools2.git
     cd bedtools2
@@ -207,13 +209,10 @@ or, build bedtools from source:
     export PATH=$PATH:`pwd`
     cd ../..
 
-Now run the tests
+**Now run the tests**
 
-    cd $GIGGLE_ROOT/test/func
-    ./giggle_tests.sh
-    cd ../unit
-    make
-    cd ../../..
+    cd $GIGGLE_ROOT/test/func && ./giggle_tests.sh
+    cd $GIGGLE_ROOT/test/unit && make
 
 ### Hosted data and services
 
@@ -351,6 +350,8 @@ http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.com
 These intervals are associated with hg19.
 
 ## APIs
+
+Note, the following APIs have not been maintained for several years. // March 12, 2026
 
 ### [Python](https://github.com/brentp/python-giggle) by Brent Pedersen
 
