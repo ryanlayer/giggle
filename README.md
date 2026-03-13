@@ -15,13 +15,13 @@ https://www.nature.com/articles/nmeth.4556
 Or watch a presentation about GIGGLE on YouTube (14m 37s)
 [![GIGGLE](https://img.youtube.com/vi/yw8H7PhtZoA/0.jpg)](https://www.youtube.com/watch?v=yw8H7PhtZoA)
 
-
 ## Usage
 
 GIGGLE has two high-level functions:
-* `index` creates an index from a directory of bgzipped annotations (BED files
+
+- `index` creates an index from a directory of bgzipped annotations (BED files
   or VCF files)
-* `search` takes a region or a file of regions and searches them against an
+- `search` takes a region or a file of regions and searches them against an
   index
 
 ```
@@ -65,7 +65,7 @@ Learn more about the [Metadata config file here](experiments/metadata_index_quer
 ### Example
 
 To demonstrate GIGGLE indexing and searching, we will curate and query a genome
-repeat reference dataset. 
+repeat reference dataset.
 
 This example will use `gargs` from `https://github.com/brentp/gargs`
 
@@ -79,14 +79,15 @@ or if you are on a Mac
 
 This reference will be based on the following annotation from the UCSC genome
 browser:
-* Repeat Masker
-* Segmental Duplications 
-* Microsatellites 
-* Simple Repeats
+
+- Repeat Masker
+- Segmental Duplications
+- Microsatellites
+- Simple Repeats
 
 UCSC stores data as tables, and the relevant columns vary between files, so we
 must take some care in curating the data.
-    
+
     mkdir repeat
     url="http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/rmsk.txt.gz"
     curl -s $url | gunzip -c | cut -f 6,7,8,11,12,13 > repeat/rmsk.bed
@@ -102,7 +103,7 @@ must take some care in curating the data.
 
     url="http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/chainSelf.txt.gz"
     curl -s $url | gunzip -c  | cut -f 3,5,6,7,10,11 > repeat/chainSelf.bed
- 
+
 Once all of the data are in bed files in the `repeat` directory, we sort and bgzip the
 files then index.
 
@@ -111,9 +112,8 @@ files then index.
     giggle index -i "repeat_sort/*gz" -o repeat_sort_b -f -s
 
 A GIGGLE index can be queried and the output formatted in a variety of ways.
-The most basic is to search a single interval and get the number of overlaps for 
+The most basic is to search a single interval and get the number of overlaps for
 each database file.
-
 
     giggle search -i repeat_sort_b -r 1:200457776-200457776
 
@@ -123,7 +123,7 @@ each database file.
     #repeat_sort/rmsk.bed.gz    size:5298130    overlaps:1
     #repeat_sort/simpleRepeat.bed.gz    size:962714 overlaps:0
 
-To search only a subset of database files use the `-f` option, which takes a 
+To search only a subset of database files use the `-f` option, which takes a
 comma separated list of regular expressions. Only those database files that
 match one of the regular expressions will be considered.
 
@@ -132,20 +132,21 @@ match one of the regular expressions will be considered.
     #repeat_sort/rmsk.bed.gz    size:5298130    overlaps:1
     #repeat_sort/simpleRepeat.bed.gz    size:962714 overlaps:0
 
-To retrieve the original records for each overlap, use the `-v` option.  This
+To retrieve the original records for each overlap, use the `-v` option. This
 is useful for detailed filtering and summaries.
 
     giggle search -i repeat_sort_b -r 1:200457776-200457776 -f rmsk,simple -v
 
     chr1    200457488   200457811   L2a LINE    L2  repeat_sort/rmsk.bed.gz
 
-GIGGLE also accepts query files in either `bed.gz` or `vcf.gz` formats. When a 
+GIGGLE also accepts query files in either `bed.gz` or `vcf.gz` formats. When a
 query file is given all of the above options are valid. In addition, GIGGLE can
-perform statistical tests between the query file and each database file using the 
+perform statistical tests between the query file and each database file using the
 `-s` option. These tests include the:
-* odds ratio that estimates the enrichment of observed v. expected
-* the Fisher's two tailed, left tailed, and right tailed tests that estimate p-values
-* the GIGGLE combo score that combines the odds ratio and Fisher's two tailed tests
+
+- odds ratio that estimates the enrichment of observed v. expected
+- the Fisher's two tailed, left tailed, and right tailed tests that estimate p-values
+- the GIGGLE combo score that combines the odds ratio and Fisher's two tailed tests
 
 ```
 giggle search -i repeat_sort_b -q bed.bed.gz -s
@@ -175,11 +176,12 @@ Original records can also be retrieved and grouped by query interval with the `-
 ## Building
 
 ### Dependencies
+
 From a fresh install of Ubuntu, the following steps should provide all the
 required dependencies.
 
     sudo apt install gcc make autoconf zlib1g-dev libbz2-dev libcurl4-openssl-dev libssl-dev ruby
-    
+
 ### Giggle command line interface
 
     git clone https://github.com/ryanlayer/giggle.git
@@ -192,6 +194,10 @@ required dependencies.
 
 The first set of tests require bedtools to be in your path.
 
+**install bed tools with `apt-get install bedtools`**
+
+or, build bedtools from source:
+
     sudo apt install g++ python
 
     git clone https://github.com/arq5x/bedtools2.git
@@ -200,7 +206,7 @@ The first set of tests require bedtools to be in your path.
     cd bin
     export PATH=$PATH:`pwd`
     cd ../..
-    
+
 Now run the tests
 
     cd $GIGGLE_ROOT/test/func
@@ -208,21 +214,23 @@ Now run the tests
     cd ../unit
     make
     cd ../../..
-    
+
 ### Hosted data and services
 
 #### Data
-Roadmap Epigenomics:  https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
 
-UCSC Genome browser:  https://s3.amazonaws.com/layerlab/giggle/ucsc/ucscweb_sort.tar.gz
+Roadmap Epigenomics: https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
 
-Fantom5:  https://s3.amazonaws.com/layerlab/giggle/fantom/fantom_sort.tar.gz
+UCSC Genome browser: https://s3.amazonaws.com/layerlab/giggle/ucsc/ucscweb_sort.tar.gz
+
+Fantom5: https://s3.amazonaws.com/layerlab/giggle/fantom/fantom_sort.tar.gz
 
 #### Interactive heatmap
 
 http://ryanlayer.github.io/giggle/index.html?primary_index=stix.colorado.edu/rme&ucsc_index=stix.colorado.edu/ucsc
 
 ### Web server (optional)
+
 This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
 
     mkdir -p $HOME/usr/local/
@@ -240,7 +248,7 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     sudo apt install libtool
 
     wget https://github.com/json-c/json-c/archive/json-c-0.12.1-20160607.tar.gz
-    tar xvf json-c-0.12.1-20160607.tar.gz  
+    tar xvf json-c-0.12.1-20160607.tar.gz
     cd json-c-json-c-0.12.1-20160607
     ./configure --prefix=$HOME/usr/local/
     make
@@ -250,30 +258,30 @@ This is based on [libmicrohttpd](http://www.gnu.org/software/libmicrohttpd/)
     make
     make server
     cd ..
-    
-To host the site shown in Supplemental Figure 3, you will need host web servers for both 
+
+To host the site shown in Supplemental Figure 3, you will need host web servers for both
 the Roadmap Epigenomics data and the UCSC data. Here we will run both servers on the same
-host from ports `8080` and `8081` and access the web services using `localhost`, but these 
-are general steps and apply to many other configurations including hosting the data sets 
+host from ports `8080` and `8081` and access the web services using `localhost`, but these
+are general steps and apply to many other configurations including hosting the data sets
 on different servers.
-     
+
     wget https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
     tar -zxvf roadmap_sort.tar.gz
-    
+
     # NOTE, if the following command gives "Too many open files" try:
     ulimit -Sn 16384
     $GIGGLE_ROOT/bin/giggle index -s -f \
         -i "roadmap_sort/*gz" \
-        -o roadmap_sort_b 
-        
+        -o roadmap_sort_b
+
     wget https://s3.amazonaws.com/layerlab/giggle/ucsc/ucscweb_sort.tar.gz
     tar -zxvf ucscweb_sort.tar.gz
-    
+
     $GIGGLE_ROOT/bin/giggle index -s -f \
         -i "ucscweb_sort/*gz" \
         -o ucscweb_sort_b
-    
-Start a web server for each index. 
+
+Start a web server for each index.
 
     $GIGGLE_ROOT/bin/server_enrichment -i roadmap_sort_b/ -u /tmp/ -d $GIGGLE_ROOT/examples/rme/data_def.json -p 8080 &
     $GIGGLE_ROOT/bin/server_enrichment -i ucscweb_sort_b/ -u /tmp/ -d $GIGGLE_ROOT/examples/ucsc/data_def.json -p 8081 &
@@ -283,7 +291,7 @@ Start a web server for each index.
 Pass these two services to the web interface through URL arguments:
 
     http://ryanlayer.github.io/giggle/index.html?primary_index=localhost:8080&ucsc_index=localhost:8081
-   
+
 These data are also being served here:
 
 http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.compute-1.amazonaws.com/rme&ucsc_index=ec2-54-227-176-15.compute-1.amazonaws.com/ucsc
@@ -294,16 +302,16 @@ http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.com
 
 ### Roadmap Epigenomics
 
-    # details of how to recreate the data at 
+    # details of how to recreate the data at
     # https://github.com/ryanlayer/giggle/blob/master/examples/rme/README.md
     wget https://s3.amazonaws.com/layerlab/giggle/roadmap/roadmap_sort.tar.gz
     tar -zxvf roadmap_sort.tar.gz
-    
+
     # NOTE, if the following command gives "Too many open files" try:
     # ulimit -Sn 16384
     $GIGGLE_ROOT/bin/giggle index -s -f \
         -i "roadmap_sort/*gz" \
-        -o roadmap_sort_b 
+        -o roadmap_sort_b
 
     wget ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM1218nnn/GSM1218850/suppl/GSM1218850_MB135DMMD.peak.txt.gz
     # take the just the top peaks
@@ -315,7 +323,7 @@ http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.com
 
     # List files in the index
     $GIGGLE_ROOT/bin/giggle search -l \
-        -i roadmap_sort_b/ 
+        -i roadmap_sort_b/
 
     # Search
     $GIGGLE_ROOT/bin/giggle search -s \
@@ -323,7 +331,7 @@ http://ryanlayer.github.io/giggle/index.html?primary_index=ec2-54-227-176-15.com
         -q GSM1218850_MB135DMMD.peak.q100.bed.gz \
     > GSM1218850_MB135DMMD.peak.q100.bed.gz.result
 
-    
+
     # Plot
     sudo apt install python python-pip python-tk
     pip install matplotlib
@@ -365,6 +373,7 @@ for hit in result[0]:
 
 make sure you have `liz`, `libcurl`, `libcrypto`, `libbz2` and `liblzma` installed in the appropriate
 place on your system.
+
 ```
 git clone --recursive https://github.com/brentp/python-giggle
 cd python-giggle
@@ -381,7 +390,7 @@ python setup.py install
 import (
     giggle "github.com/brentp/go-giggle"
     "fmt"
-) 
+)
 
 func main() {
 
