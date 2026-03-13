@@ -10,6 +10,8 @@ lib/
 ssshtest
 test/**/*.idx
 test/**/*.dat
+.direnv
+.DS_STORE
 
 # Ignore test/unit build artifacts (compiled binaries and generated runners)
 test/unit/test_*
