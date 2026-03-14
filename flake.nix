@@ -30,6 +30,7 @@
             xz
             curl
             openssl
+            htslib
 
             # Testing/utilities
             bedtools
@@ -37,6 +38,8 @@
 
           shellHook = ''
             export GIGGLE_ROOT=$PWD
+            export HTS_INC=${pkgs.htslib}/include
+            export HTS_LIB=${pkgs.htslib}/lib
           '';
         };
       }
