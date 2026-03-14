@@ -47,17 +47,17 @@ make
 
 ```bash
 # Create some test data
-mkdir -p example && cd example
+mkdir -p example/beds && cd example
 
 # Download and prepare a small dataset
 curl -s "http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/microsat.txt.gz" \
-    | gunzip -c | cut -f 2,3,4 | sort -k1,1 -k2,2n | bgzip > microsat.bed.gz
+    | gunzip -c | cut -f 2,3,4 | sort -k1,1 -k2,2n | bgzip > beds/microsat.bed.gz
 
 curl -s "http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/simpleRepeat.txt.gz" \
-    | gunzip -c | cut -f 2,3,4 | sort -k1,1 -k2,2n | bgzip > simpleRepeat.bed.gz
+    | gunzip -c | cut -f 2,3,4 | sort -k1,1 -k2,2n | bgzip > beds/simpleRepeat.bed.gz
 
 # Index the files
-giggle index -i "*.bed.gz" -o my_index -s -f
+giggle index -i "beds/*.bed.gz" -o my_index -s -f
 
 # Search a region
 giggle search -i my_index -r chr1:1000000-2000000
