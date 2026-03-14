@@ -811,7 +811,7 @@ void test_giggle_bulk_insert_prime_pq(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -899,7 +899,7 @@ void test_giggle_bulk_insert_build_leaf_levels(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -995,7 +995,7 @@ void test_giggle_bulk_insert_build_tree_on_leaves(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -1095,7 +1095,7 @@ void test_giggle_bulk_insert_build_leaf_levels_few(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -1305,7 +1305,7 @@ void test_giggle_bulk_insert_build_tree_on_leaves_few(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -1483,7 +1483,7 @@ void test_giggle_bulk_insert_build_tree_on_leaves_few_order_4(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -1643,7 +1643,7 @@ void test_giggle_bulk_insert_build_tree_on_leaves_few_order_3(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
@@ -1763,7 +1763,7 @@ void test_giggle_bulk_insert_build_tree_on_leaves_few_order_2(void)
     }
 
     struct giggle_index *gi = (struct giggle_index *)
-            malloc(sizeof(struct giggle_index));
+            calloc(1, sizeof(struct giggle_index));
     gi->data_dir = strdup(output_path_name);
 
     // open files
