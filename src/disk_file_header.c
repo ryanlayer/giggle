@@ -49,11 +49,12 @@ void write_disk_file_header(char *file_marker, struct disk_file_header *h, FILE 
 }
 
 struct disk_file_header *read_disk_file_header(FILE *fp, char *file_name, char *expected_file_marker) {
-    char file_marker[7];
+    char file_marker[GIGGLE_FILE_MARKER_LENGTH + 1];
     size_t fr;
-    
+
     fr = fread(file_marker, sizeof(char), GIGGLE_FILE_MARKER_LENGTH, fp);
     check_file_read(file_name, fp, GIGGLE_FILE_MARKER_LENGTH, fr);
+    file_marker[GIGGLE_FILE_MARKER_LENGTH] = '\0';  // Null-terminate for strcmp
     if (strcmp(file_marker,  expected_file_marker) != 0) {
         fseek(fp, 0, SEEK_SET); // uncompressed file
         return NULL;

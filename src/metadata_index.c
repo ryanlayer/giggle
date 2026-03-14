@@ -449,8 +449,8 @@ void read_metadata_index_header(struct metadata_index *metadata_index) {
 
   int i;
   size_t fr;
-  char file_marker[GIGGLE_METADATA_FILE_MARKER_LENGTH];
-  char version_marker[GIGGLE_METADATA_VERSION_MARKER_LENGTH];
+  char file_marker[GIGGLE_METADATA_FILE_MARKER_LENGTH + 1];
+  char version_marker[GIGGLE_METADATA_VERSION_MARKER_LENGTH + 1];
   char extra[GIGGLE_METADATA_EXTRA_LENGTH] = {0};
   uint16_t col_offset = 0;
 
@@ -458,12 +458,14 @@ void read_metadata_index_header(struct metadata_index *metadata_index) {
 
   fr = fread(file_marker, sizeof(char), GIGGLE_METADATA_FILE_MARKER_LENGTH, metadata_index_fp);
   check_file_read(metadata_index_filename, metadata_index_fp, GIGGLE_METADATA_FILE_MARKER_LENGTH, fr);
+  file_marker[GIGGLE_METADATA_FILE_MARKER_LENGTH] = '\0';
   if (strcmp(file_marker, GIGGLE_METADATA_FILE_MARKER) != 0) {
     err(1, "Not a GIGGLE Metadata Index file.\n");
   }
 
   fr = fread(version_marker, sizeof(char), GIGGLE_METADATA_VERSION_MARKER_LENGTH, metadata_index_fp);
   check_file_read(metadata_index_filename, metadata_index_fp, GIGGLE_METADATA_VERSION_MARKER_LENGTH, fr);
+  version_marker[GIGGLE_METADATA_VERSION_MARKER_LENGTH] = '\0';
   if (strcmp(version_marker, GIGGLE_METADATA_VERSION_MARKER) != 0) {
     err(1, "Incompatible GIGGLE Metadata Index version.\n");
   }
