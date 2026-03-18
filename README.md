@@ -10,7 +10,14 @@ GIGGLE is a genomics search engine that identifies and ranks the significance of
 
 ### Install
 
-Choose one of the following methods:
+Clone,
+
+```bash
+git clone https://github.com/ryanlayer/giggle.git
+cd giggle
+```
+
+Then choose one of the following methods:
 
 **Conda/Mamba**
 
@@ -38,8 +45,6 @@ export HTS_LIB=/usr/lib
 ### Build
 
 ```bash
-git clone https://github.com/ryanlayer/giggle.git
-cd giggle
 make
 ```
 
